@@ -311,7 +311,7 @@ def sync_gmail(session: Session) -> int:
     closed = 0
     for row in rows:
         if not gmail.draft_exists(token, row.external_id):
-            row.status = "closed_in_gmail"
+            row.status, row.approved_at = "closed_in_gmail", clock.utcnow()
             closed += 1
     session.commit()
     return closed

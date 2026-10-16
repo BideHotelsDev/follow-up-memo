@@ -16,6 +16,7 @@ export type AnswerIn = Schemas["AnswerIn"]
 export type Output = Schemas["OutputOut"]
 export type OutputIn = Schemas["OutputIn"]
 export type Run = Schemas["RunOut"]
+export type Impact = Schemas["ImpactOut"]
 export type Settings = Schemas["SettingsOut"]
 export type SettingsIn = Schemas["SettingsIn"]
 export type ChannelMap = Schemas["ChannelMapOut"]
@@ -83,6 +84,7 @@ export const api = {
   logout: () => request<void>("POST", "/auth/logout"),
 
   people: () => request<Person[]>("GET", "/people"),
+  impact: (params: { property?: string | null; weeks?: string }) => request<Impact>("GET", `/impact${qs(params)}`),
   today: (scope: Scope) => request<Today>("GET", `/today${qs(scope)}`),
   meetings: (scope: Scope & { q?: string }) => request<MeetingSummary[]>("GET", `/meetings${qs(scope)}`),
   meeting: (id: string) => request<Meeting>("GET", `/meetings/${id}`),

@@ -13,6 +13,7 @@ import SettingsPage from "@/pages/admin/settings"
 import SkipRulesPage from "@/pages/admin/skip-rules"
 import EmailsPage from "@/pages/emails"
 import HowPage from "@/pages/how"
+import ImpactPage from "@/pages/impact"
 import MeetingsPage from "@/pages/meetings"
 import SignInPage from "@/pages/sign-in"
 import SlackPage from "@/pages/slack"
@@ -50,6 +51,7 @@ export default function App() {
         <Route path="how" element={<HowPage />} />
         {reviewer ? (
           <>
+            <Route path="impact" element={<ImpactPage />} />
             <Route path="meetings" element={<MeetingsPage />} />
             <Route path="meetings/:id" element={<MeetingsPage />} />
             <Route path="emails" element={<EmailsPage />} />

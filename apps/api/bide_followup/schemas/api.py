@@ -93,12 +93,20 @@ class SettingsOut(BaseModel):
     email_signature: str
     slack_mode: Literal["approve"]
     poll_interval_minutes: int
+    minutes_saved_per_meeting: int
+    baseline_followup_rate: int | None
+    baseline_followup_days: float | None
 
 
 class SettingsIn(BaseModel):
+    """Only the fields sent are changed; the two baselines can be cleared by sending null."""
+
     email_tone: str | None = None
     email_signature: str | None = None
     poll_interval_minutes: int | None = Field(default=None, ge=5, le=60)
+    minutes_saved_per_meeting: int | None = Field(default=None, ge=1, le=240)
+    baseline_followup_rate: int | None = Field(default=None, ge=0, le=100)
+    baseline_followup_days: float | None = Field(default=None, ge=0, le=60)
 
 
 class RunOut(Orm):
@@ -255,3 +263,63 @@ class TodayOut(BaseModel):
     problems: list[MeetingSummaryOut]
     last_run: RunOut | None
     next_run_at: datetime | None
+
+
+# --- impact ------------------------------------------------------------------------------------------------------
+
+
+class ImpactWeek(BaseModel):
+    week_start: date
+    meetings: int
+    followed_up: int
+    rate: int | None
+    in_progress: bool
+
+
+class ImpactActions(BaseModel):
+    on_time: int
+    late: int
+    open: int
+    overdue: int
+    on_time_rate: int | None
+
+
+class ImpactOwner(BaseModel):
+    name: str
+    open: int
+    overdue: int
+
+
+class ImpactDrafts(BaseModel):
+    acted: int
+    unedited: int
+    reassigned: int
+    actions: int
+
+
+class ImpactHotel(BaseModel):
+    name: str
+    meetings: int
+    followed_up_rate: int | None
+    actions: int
+    on_time_rate: int | None
+    overdue: int
+
+
+class ImpactOut(BaseModel):
+    since: date
+    weeks: list[ImpactWeek]
+    meetings: int
+    followed_up: int
+    followed_up_rate: int | None
+    minutes_to_drafts: float | None
+    minutes_to_follow_up: float | None
+    actions: ImpactActions
+    owners: list[ImpactOwner]
+    drafts: ImpactDrafts
+    meetings_handled: int
+    david_active_days: int
+    minutes_saved_per_meeting: int
+    baseline_followup_rate: int | None
+    baseline_followup_days: float | None
+    hotels: list[ImpactHotel]

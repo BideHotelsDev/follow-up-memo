@@ -68,6 +68,7 @@ export function AppShell({ me }: { me: User }) {
   const tabs: Tab[] = !asMember
     ? [
         { to: "/", label: "Today", count: counts?.questions, hot: true },
+        { to: "/impact", label: "Impact" },
         { to: "/meetings", label: "Meetings" },
         { to: "/emails", label: "Email drafts", count: counts?.emails },
         { to: "/slack", label: "Slack drafts", count: counts?.slack },

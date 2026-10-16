@@ -56,6 +56,16 @@ discard), **Tasks** (by due date; a drawer to change owner, date and status), **
 switch sit in the header. Members (Russell, Sam) see only Today and their own tasks. Every approve, edit, discard,
 answer and task change is recorded in `audit_log`.
 
+## Impact
+
+The Impact page (David and Admin) measures, from the app's own records and from launch onwards: meetings followed up
+within 24 hours (by week), time from meeting end to drafts and to David acting, actions done on time, late, open
+and overdue, open actions by owner, drafts approved without edits, tasks David had to give a different owner, his
+days of use, and a time-saved estimate, each by hotel. The PRD's success measures are shown against their targets.
+There is no data from before launch; Admin can enter a before-launch rate and time (Admin → Email and schedule) to
+show the comparison. Definitions are on the page. `pnpm seed:mock` adds eight weeks of made-up history so the page
+has something to show locally.
+
 ## Pipeline
 
 Every 10 minutes the worker (`bide_followup.worker`) runs `pipeline/run.py`:

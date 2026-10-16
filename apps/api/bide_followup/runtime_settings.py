@@ -14,6 +14,11 @@ DEFAULTS: dict[str, Any] = {
     # Slack items always wait for approval in v1 (PRD D4); kept as a setting so the Admin page can show it.
     "slack_mode": "approve",
     "poll_interval_minutes": env.poll_interval_minutes,
+    # Impact page: the minutes a meeting's follow-up took by hand (time saved = meetings × this), and optional
+    # before-launch figures Admin can enter, since the app has no data from before it existed.
+    "minutes_saved_per_meeting": 20,
+    "baseline_followup_rate": None,
+    "baseline_followup_days": None,
 }
 
 

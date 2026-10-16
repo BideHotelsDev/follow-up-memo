@@ -28,6 +28,7 @@ test("every page loads, fits the screen and passes axe", async ({ page }) => {
   await signIn(page, DAVID)
   for (const [path, heading] of [
     ["/", /Good (morning|afternoon|evening), David/],
+    ["/impact", "Impact"],
     ["/meetings", "Meetings"],
     ["/emails", "Email drafts"],
     ["/slack", "Slack drafts"],

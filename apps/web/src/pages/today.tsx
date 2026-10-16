@@ -39,6 +39,25 @@ function Stat({
   )
 }
 
+function ImpactTeaser() {
+  const { property } = useScope()
+  const { data } = useQuery({
+    queryKey: ["impact", property, "8"],
+    queryFn: () => api.impact({ property, weeks: "8" }),
+  })
+  if (!data || data.followed_up_rate === null) return null
+  return (
+    <Link
+      to="/impact"
+      className={cn(surface, "mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:border-primary")}
+    >
+      <span className="text-3xl font-semibold tracking-tight text-foreground">{data.followed_up_rate}%</span>
+      <span className="text-foreground">of meetings followed up within a day over the last 8 weeks.</span>
+      <span className="ml-auto text-sm underline underline-offset-2">See the impact</span>
+    </Link>
+  )
+}
+
 export default function TodayPage() {
   const { scope, property } = useScope()
   const { data } = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope) })
@@ -94,6 +113,8 @@ export default function TodayPage() {
           />
         </div>
       )}
+
+      {isReviewer ? <ImpactTeaser /> : null}
 
       {data.problems.length ? (
         <div className={cn(surface, "mb-8 flex gap-3 border-destructive/30 bg-danger-subtle p-4")}>

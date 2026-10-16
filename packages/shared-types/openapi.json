@@ -583,6 +583,68 @@
         }
       }
     },
+    "/api/impact": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Get Impact",
+        "description": "The Impact page: follow-up rate and speed, follow-through on actions, draft quality, by week and hotel.",
+        "operationId": "get_impact_api_impact_get",
+        "parameters": [
+          {
+            "name": "property",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property"
+            }
+          },
+          {
+            "name": "weeks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 26,
+              "minimum": 2,
+              "default": 8,
+              "title": "Weeks"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImpactOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/meetings": {
       "get": {
         "tags": [
@@ -1681,6 +1743,321 @@
         ],
         "title": "HealthOut"
       },
+      "ImpactActions": {
+        "properties": {
+          "on_time": {
+            "type": "integer",
+            "title": "On Time"
+          },
+          "late": {
+            "type": "integer",
+            "title": "Late"
+          },
+          "open": {
+            "type": "integer",
+            "title": "Open"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          },
+          "on_time_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Rate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "on_time",
+          "late",
+          "open",
+          "overdue",
+          "on_time_rate"
+        ],
+        "title": "ImpactActions"
+      },
+      "ImpactDrafts": {
+        "properties": {
+          "acted": {
+            "type": "integer",
+            "title": "Acted"
+          },
+          "unedited": {
+            "type": "integer",
+            "title": "Unedited"
+          },
+          "reassigned": {
+            "type": "integer",
+            "title": "Reassigned"
+          },
+          "actions": {
+            "type": "integer",
+            "title": "Actions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "acted",
+          "unedited",
+          "reassigned",
+          "actions"
+        ],
+        "title": "ImpactDrafts"
+      },
+      "ImpactHotel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "meetings": {
+            "type": "integer",
+            "title": "Meetings"
+          },
+          "followed_up_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followed Up Rate"
+          },
+          "actions": {
+            "type": "integer",
+            "title": "Actions"
+          },
+          "on_time_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Time Rate"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "meetings",
+          "followed_up_rate",
+          "actions",
+          "on_time_rate",
+          "overdue"
+        ],
+        "title": "ImpactHotel"
+      },
+      "ImpactOut": {
+        "properties": {
+          "since": {
+            "type": "string",
+            "format": "date",
+            "title": "Since"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactWeek"
+            },
+            "type": "array",
+            "title": "Weeks"
+          },
+          "meetings": {
+            "type": "integer",
+            "title": "Meetings"
+          },
+          "followed_up": {
+            "type": "integer",
+            "title": "Followed Up"
+          },
+          "followed_up_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followed Up Rate"
+          },
+          "minutes_to_drafts": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes To Drafts"
+          },
+          "minutes_to_follow_up": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes To Follow Up"
+          },
+          "actions": {
+            "$ref": "#/components/schemas/ImpactActions"
+          },
+          "owners": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactOwner"
+            },
+            "type": "array",
+            "title": "Owners"
+          },
+          "drafts": {
+            "$ref": "#/components/schemas/ImpactDrafts"
+          },
+          "meetings_handled": {
+            "type": "integer",
+            "title": "Meetings Handled"
+          },
+          "david_active_days": {
+            "type": "integer",
+            "title": "David Active Days"
+          },
+          "minutes_saved_per_meeting": {
+            "type": "integer",
+            "title": "Minutes Saved Per Meeting"
+          },
+          "baseline_followup_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Rate"
+          },
+          "baseline_followup_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Days"
+          },
+          "hotels": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactHotel"
+            },
+            "type": "array",
+            "title": "Hotels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "since",
+          "weeks",
+          "meetings",
+          "followed_up",
+          "followed_up_rate",
+          "minutes_to_drafts",
+          "minutes_to_follow_up",
+          "actions",
+          "owners",
+          "drafts",
+          "meetings_handled",
+          "david_active_days",
+          "minutes_saved_per_meeting",
+          "baseline_followup_rate",
+          "baseline_followup_days",
+          "hotels"
+        ],
+        "title": "ImpactOut"
+      },
+      "ImpactOwner": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "open": {
+            "type": "integer",
+            "title": "Open"
+          },
+          "overdue": {
+            "type": "integer",
+            "title": "Overdue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "open",
+          "overdue"
+        ],
+        "title": "ImpactOwner"
+      },
+      "ImpactWeek": {
+        "properties": {
+          "week_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Week Start"
+          },
+          "meetings": {
+            "type": "integer",
+            "title": "Meetings"
+          },
+          "followed_up": {
+            "type": "integer",
+            "title": "Followed Up"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          },
+          "in_progress": {
+            "type": "boolean",
+            "title": "In Progress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_start",
+          "meetings",
+          "followed_up",
+          "rate",
+          "in_progress"
+        ],
+        "title": "ImpactWeek"
+      },
       "MeetingOut": {
         "properties": {
           "id": {
@@ -2426,10 +2803,50 @@
               }
             ],
             "title": "Poll Interval Minutes"
+          },
+          "minutes_saved_per_meeting": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 240.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes Saved Per Meeting"
+          },
+          "baseline_followup_rate": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Rate"
+          },
+          "baseline_followup_days": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 60.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Days"
           }
         },
         "type": "object",
-        "title": "SettingsIn"
+        "title": "SettingsIn",
+        "description": "Only the fields sent are changed; the two baselines can be cleared by sending null."
       },
       "SettingsOut": {
         "properties": {
@@ -2449,6 +2866,32 @@
           "poll_interval_minutes": {
             "type": "integer",
             "title": "Poll Interval Minutes"
+          },
+          "minutes_saved_per_meeting": {
+            "type": "integer",
+            "title": "Minutes Saved Per Meeting"
+          },
+          "baseline_followup_rate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Rate"
+          },
+          "baseline_followup_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baseline Followup Days"
           }
         },
         "type": "object",
@@ -2456,7 +2899,10 @@
           "email_tone",
           "email_signature",
           "slack_mode",
-          "poll_interval_minutes"
+          "poll_interval_minutes",
+          "minutes_saved_per_meeting",
+          "baseline_followup_rate",
+          "baseline_followup_days"
         ],
         "title": "SettingsOut"
       },

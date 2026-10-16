@@ -69,6 +69,14 @@
 
   --danger-subtle: #f9e8e6;
 
+  /* Action states on the Impact page (validated: lightness band, chroma, CVD and normal-vision separation pass on
+     white; under 3:1 contrast, so every chart using them carries a legend with counts and a table). The app is one
+     light theme, as in the demo, so there is no dark set. */
+  --state-on-time: #1d7a58;
+  --state-late: #5fb38a;
+  --state-open: #cf9a17;
+  --state-overdue: #b8432d;
+
   /* Hotel tags (from the approved demo): one hue per property, always with the name written on it. */
   --view: #2f5d76;
   --view-subtle: #e0ebf1;

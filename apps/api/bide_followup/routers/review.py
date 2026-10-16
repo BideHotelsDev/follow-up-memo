@@ -10,7 +10,7 @@ from slack_sdk.errors import SlackApiError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock, runtime_settings, views
+from bide_followup import clock, impact, runtime_settings, views
 from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
@@ -22,6 +22,7 @@ from bide_followup.schemas.api import (
     AnswerIn,
     ApproveAllIn,
     Bucket,
+    ImpactOut,
     MeetingOut,
     MeetingStatus,
     MeetingSummaryOut,
@@ -156,6 +157,21 @@ def today(
         last_run=RunOut.model_validate(last) if last else None,
         next_run_at=last.started_at + timedelta(minutes=interval) if last else None,
     )
+
+
+# --- impact ------------------------------------------------------------------------------------------------------
+
+
+@router.get("/impact")
+def get_impact(
+    session: SessionDep,
+    user: CurrentUser,
+    property: str | None = None,
+    weeks: Annotated[int, Query(ge=2, le=26)] = 8,
+) -> ImpactOut:
+    """The Impact page: follow-up rate and speed, follow-through on actions, draft quality, by week and hotel."""
+    views.require_reviewer(user)
+    return impact.compute(session, weeks, property)
 
 
 # --- meetings ----------------------------------------------------------------------------------------------------
@@ -411,8 +427,9 @@ def update_task(task_id: uuid.UUID, body: TaskIn, session: SessionDep, user: Cur
         _set_owner(session, item, body.owner_user_id)
     if "due_date" in sent:
         item.due_date = body.due_date
-    if "status" in sent and body.status:
+    if "status" in sent and body.status and body.status != item.status:
         item.status = body.status
+        item.done_at = clock.utcnow() if body.status == "done" else None
     session.flush()
     if sent & {"owner_user_id", "due_date"}:
         pipeline_outputs.refresh_slack(session, item.meeting)

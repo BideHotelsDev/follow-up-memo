@@ -36,8 +36,10 @@ def get_settings(session: SessionDep, _: Admin) -> SettingsOut:
 
 @router.put("/settings")
 def put_settings(body: SettingsIn, session: SessionDep, _: Admin) -> SettingsOut:
-    for key, value in body.model_dump(exclude_none=True).items():
-        runtime_settings.put(session, key, value)
+    for key in body.model_fields_set:
+        value = getattr(body, key)
+        if value is not None or key.startswith("baseline_"):
+            runtime_settings.put(session, key, value)
     session.commit()
     return SettingsOut(**runtime_settings.all_(session))
 

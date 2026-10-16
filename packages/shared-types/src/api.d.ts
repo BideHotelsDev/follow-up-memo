@@ -245,6 +245,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Impact
+         * @description The Impact page: follow-up rate and speed, follow-through on actions, draft quality, by week and hotel.
+         */
+        get: operations["get_impact_api_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meetings": {
         parameters: {
             query?: never;
@@ -581,6 +601,106 @@ export interface components {
             /** Database */
             database: string;
         };
+        /** ImpactActions */
+        ImpactActions: {
+            /** On Time */
+            on_time: number;
+            /** Late */
+            late: number;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+            /** On Time Rate */
+            on_time_rate: number | null;
+        };
+        /** ImpactDrafts */
+        ImpactDrafts: {
+            /** Acted */
+            acted: number;
+            /** Unedited */
+            unedited: number;
+            /** Reassigned */
+            reassigned: number;
+            /** Actions */
+            actions: number;
+        };
+        /** ImpactHotel */
+        ImpactHotel: {
+            /** Name */
+            name: string;
+            /** Meetings */
+            meetings: number;
+            /** Followed Up Rate */
+            followed_up_rate: number | null;
+            /** Actions */
+            actions: number;
+            /** On Time Rate */
+            on_time_rate: number | null;
+            /** Overdue */
+            overdue: number;
+        };
+        /** ImpactOut */
+        ImpactOut: {
+            /**
+             * Since
+             * Format: date
+             */
+            since: string;
+            /** Weeks */
+            weeks: components["schemas"]["ImpactWeek"][];
+            /** Meetings */
+            meetings: number;
+            /** Followed Up */
+            followed_up: number;
+            /** Followed Up Rate */
+            followed_up_rate: number | null;
+            /** Minutes To Drafts */
+            minutes_to_drafts: number | null;
+            /** Minutes To Follow Up */
+            minutes_to_follow_up: number | null;
+            actions: components["schemas"]["ImpactActions"];
+            /** Owners */
+            owners: components["schemas"]["ImpactOwner"][];
+            drafts: components["schemas"]["ImpactDrafts"];
+            /** Meetings Handled */
+            meetings_handled: number;
+            /** David Active Days */
+            david_active_days: number;
+            /** Minutes Saved Per Meeting */
+            minutes_saved_per_meeting: number;
+            /** Baseline Followup Rate */
+            baseline_followup_rate: number | null;
+            /** Baseline Followup Days */
+            baseline_followup_days: number | null;
+            /** Hotels */
+            hotels: components["schemas"]["ImpactHotel"][];
+        };
+        /** ImpactOwner */
+        ImpactOwner: {
+            /** Name */
+            name: string;
+            /** Open */
+            open: number;
+            /** Overdue */
+            overdue: number;
+        };
+        /** ImpactWeek */
+        ImpactWeek: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Meetings */
+            meetings: number;
+            /** Followed Up */
+            followed_up: number;
+            /** Rate */
+            rate: number | null;
+            /** In Progress */
+            in_progress: boolean;
+        };
         /** MeetingOut */
         MeetingOut: {
             /**
@@ -805,7 +925,10 @@ export interface components {
             /** Error */
             error: string | null;
         };
-        /** SettingsIn */
+        /**
+         * SettingsIn
+         * @description Only the fields sent are changed; the two baselines can be cleared by sending null.
+         */
         SettingsIn: {
             /** Email Tone */
             email_tone?: string | null;
@@ -813,6 +936,12 @@ export interface components {
             email_signature?: string | null;
             /** Poll Interval Minutes */
             poll_interval_minutes?: number | null;
+            /** Minutes Saved Per Meeting */
+            minutes_saved_per_meeting?: number | null;
+            /** Baseline Followup Rate */
+            baseline_followup_rate?: number | null;
+            /** Baseline Followup Days */
+            baseline_followup_days?: number | null;
         };
         /** SettingsOut */
         SettingsOut: {
@@ -827,6 +956,12 @@ export interface components {
             slack_mode: "approve";
             /** Poll Interval Minutes */
             poll_interval_minutes: number;
+            /** Minutes Saved Per Meeting */
+            minutes_saved_per_meeting: number;
+            /** Baseline Followup Rate */
+            baseline_followup_rate: number | null;
+            /** Baseline Followup Days */
+            baseline_followup_days: number | null;
         };
         /** SkipRuleIn */
         SkipRuleIn: {
@@ -1437,6 +1572,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TodayOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_impact_api_impact_get: {
+        parameters: {
+            query?: {
+                property?: string | null;
+                weeks?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImpactOut"];
                 };
             };
             /** @description Validation Error */

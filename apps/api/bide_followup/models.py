@@ -225,6 +225,8 @@ class ActionItem(Timestamped, Base):
     owner_status: Mapped[str] = mapped_column(String(16), default="needs_david")
     due_date: Mapped[date | None] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(16), default="open")
+    # When it was ticked done, so the Impact page can tell on time from late.
+    done_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     source_quote: Mapped[str | None] = mapped_column(Text)
 
     meeting: Mapped[Meeting] = relationship(back_populates="action_items")
@@ -262,6 +264,7 @@ class Output(Timestamped, Base):
     error: Mapped[str | None] = mapped_column(Text)
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     approved_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # When David acted on it: approved a Slack draft, or (for an email) when the app saw the draft leave Gmail.
     approved_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
 
     meeting: Mapped[Meeting | None] = relationship(back_populates="outputs")
