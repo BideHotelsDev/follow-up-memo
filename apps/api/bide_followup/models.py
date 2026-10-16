@@ -354,3 +354,24 @@ class LlmJob(Timestamped, Base):
     model: Mapped[str | None] = mapped_column(String(64))
     claimed_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     answered_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+
+
+class Property(Timestamped, Base):
+    """A Bide property (Admin → Properties). Meetings are tagged with property names; Claude picks from the active
+    ones. `color` is a fixed tag-colour slot, kept when the property is renamed or others are added."""
+
+    __tablename__ = "properties"
+
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    color: Mapped[int] = mapped_column(Integer, default=0)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class System(Timestamped, Base):
+    """A system Bide uses (Mews, Operto…), which Claude notes when a meeting mentions it (Admin → Properties)."""
+
+    __tablename__ = "systems"
+
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)

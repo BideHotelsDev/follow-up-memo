@@ -18,6 +18,10 @@ export type OutputIn = Schemas["OutputIn"]
 export type Run = Schemas["RunOut"]
 export type Impact = Schemas["ImpactOut"]
 export type ClaudeStatus = Schemas["ClaudeStatusOut"]
+export type AppSettings = Schemas["AppOut"]
+export type Property = Schemas["PropertyOut"]
+export type PropertyIn = Schemas["PropertyIn"]
+export type System = Schemas["SystemOut"]
 export type Settings = Schemas["SettingsOut"]
 export type SettingsIn = Schemas["SettingsIn"]
 export type ChannelMap = Schemas["ChannelMapOut"]
@@ -84,6 +88,7 @@ export const api = {
   devLogin: (email: string) => request<void>("POST", "/auth/dev-login", { email }),
   logout: () => request<void>("POST", "/auth/logout"),
 
+  app: () => request<AppSettings>("GET", "/app"),
   people: () => request<Person[]>("GET", "/people"),
   impact: (params: { property?: string | null; weeks?: string }) => request<Impact>("GET", `/impact${qs(params)}`),
   today: (scope: Scope) => request<Today>("GET", `/today${qs(scope)}`),
@@ -114,6 +119,12 @@ export const api = {
   skipRules: () => request<SkipRule[]>("GET", "/admin/skip-rules"),
   putSkipRules: (body: SkipRuleIn[]) => request<SkipRule[]>("PUT", "/admin/skip-rules", body),
   runs: () => request<Run[]>("GET", "/admin/runs"),
+  adminProperties: () => request<Property[]>("GET", "/admin/properties"),
+  addProperty: (body: PropertyIn) => request<Property>("POST", "/admin/properties", body),
+  updateProperty: (id: string, body: PropertyIn) => request<Property>("PUT", `/admin/properties/${id}`, body),
+  adminSystems: () => request<System[]>("GET", "/admin/systems"),
+  addSystem: (body: PropertyIn) => request<System>("POST", "/admin/systems", body),
+  updateSystem: (id: string, body: PropertyIn) => request<System>("PUT", `/admin/systems/${id}`, body),
   runNow: () => request<Run>("POST", "/admin/runs"),
 }
 

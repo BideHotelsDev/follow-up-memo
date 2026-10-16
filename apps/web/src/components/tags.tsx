@@ -1,22 +1,30 @@
 import { cn } from "@/lib/utils"
 
-/** The property filter's choices: the three properties, and meetings tagged with none. */
-export const PROPERTIES = ["The View", "The Hearth", "The Villa"] as const
+import { useApp } from "@/hooks/use-app"
+
+/** The property filter's name for meetings tagged with no property. */
 export const BIDE_WIDE = "Bide-wide"
 
-const STYLE: Record<string, string> = {
-  "The View": "bg-view-subtle text-view",
-  "The Hearth": "bg-hearth-subtle text-hearth",
-  "The Villa": "bg-villa-subtle text-villa",
-  [BIDE_WIDE]: "bg-bide-subtle text-bide",
-}
+// Written out in full so Tailwind sees every class.
+const SLOTS = [
+  "bg-tag-0-subtle text-tag-0",
+  "bg-tag-1-subtle text-tag-1",
+  "bg-tag-2-subtle text-tag-2",
+  "bg-tag-3-subtle text-tag-3",
+  "bg-tag-4-subtle text-tag-4",
+  "bg-tag-5-subtle text-tag-5",
+]
+const NEUTRAL = "bg-bide-subtle text-bide"
 
+/** A property's tag, in the colour slot it keeps for good (Admin → Properties). */
 export function HotelTag({ name, className }: { name: string; className?: string }) {
+  const { properties } = useApp()
+  const slot = properties.find((p) => p.name === name)?.color
   return (
     <span
       className={cn(
         "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
-        STYLE[name] ?? STYLE[BIDE_WIDE],
+        slot === undefined ? NEUTRAL : SLOTS[slot % SLOTS.length],
         className,
       )}
     >

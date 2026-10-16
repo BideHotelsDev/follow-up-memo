@@ -10,7 +10,7 @@ import { api, HttpError, type AnswerIn, type Question } from "@/lib/api"
 const option =
   "rounded-full border border-attention/40 bg-card px-3 py-1 text-sm text-foreground hover:border-attention-foreground disabled:opacity-50"
 
-/** One question for David, answered in place: pick an owner, set a date, or type an answer (FR-35). */
+/** One question for the owner, answered in place: pick an owner, set a date, or type an answer (FR-35). */
 export function QuestionCard({ question }: { question: Question }) {
   const queryClient = useQueryClient()
   const people = useQuery({ queryKey: ["people"], queryFn: api.people, enabled: question.kind === "owner" })

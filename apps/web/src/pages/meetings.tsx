@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Meeting, type MeetingSummary } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
@@ -65,6 +66,7 @@ function Point({
 }
 
 function Detail({ meeting }: { meeting: Meeting }) {
+  const app = useApp()
   const queryClient = useQueryClient()
   const reprocess = useMutation({
     mutationFn: () => api.reprocess(meeting.id),
@@ -180,7 +182,12 @@ function Detail({ meeting }: { meeting: Meeting }) {
                         ? ["/emails", "Email draft"]
                         : undefined
                 return (
-                  <Point key={t.id} kind={owner ? owner.split(" ")[0] : "Needs David"} question={!owner} to={to}>
+                  <Point
+                    key={t.id}
+                    kind={owner ? owner.split(" ")[0] : `Needs ${app.owner_name}`}
+                    question={!owner}
+                    to={to}
+                  >
                     {t.description}
                     {t.due_date ? <span className="tnum text-muted-foreground"> · {day(t.due_date)}</span> : null}
                   </Point>

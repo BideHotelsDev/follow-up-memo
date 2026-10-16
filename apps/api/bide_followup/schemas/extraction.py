@@ -1,16 +1,15 @@
-"""The AI extraction contract (PRD §6). Claude must return JSON matching SCHEMA; Extraction validates it again here.
+"""The AI extraction contract (PRD §6). Claude must return JSON matching the schema; Extraction validates it again.
 
-SCHEMA is written out by hand rather than generated from the Pydantic models, because structured outputs need every
-property required and additionalProperties false, which is easier to see and keep right in one place.
+The schema is written out by hand rather than generated from the Pydantic models, because structured outputs need
+every property required and additionalProperties false, which is easier to see and keep right in one place. The
+property and system lists come from Admin (catalog.py), so `schema()` builds it for the current ones.
 """
 
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PROPERTIES = ("The View", "The Hearth", "The Villa")
-SYSTEMS = ("Mews", "Operto", "PriceLabs", "Canary", "GHL", "Xero")
-NEEDS_DAVID = "NEEDS_DAVID"
+NEEDS_OWNER = "NEEDS_OWNER"  # an action with no clear owner, for the owner (David) to assign
 MAX_QUESTIONS = 5
 
 
@@ -22,45 +21,54 @@ def _object(properties: dict) -> dict:
     return {"type": "object", "properties": properties, "required": list(properties), "additionalProperties": False}
 
 
-SCHEMA = _object(
-    {
-        "meeting": _object(
-            {
-                "title": {"type": "string"},
-                "purpose": {"type": "string", "description": "One sentence."},
-                "properties": {"type": "array", "items": {"type": "string", "enum": list(PROPERTIES)}},
-                "is_sensitive": {"type": "boolean"},
-                "sensitive_reason": _nullable("string"),
-            }
-        ),
-        "attendees": {
-            "type": "array",
-            "items": _object(
-                {"name": {"type": "string"}, "email": _nullable("string"), "is_internal": {"type": "boolean"}}
-            ),
-        },
-        "key_points": {"type": "array", "items": {"type": "string"}},
-        "decisions": {"type": "array", "items": {"type": "string"}},
-        "action_items": {
-            "type": "array",
-            "items": _object(
+def _names(names: list[str]) -> dict:
+    # An enum needs at least one value; with none configured, any string (the checks in validate.py still apply).
+    return {"type": "string", "enum": list(names)} if names else {"type": "string"}
+
+
+def schema(properties: list[str], systems: list[str]) -> dict:
+    return _object(
+        {
+            "meeting": _object(
                 {
-                    "description": {"type": "string"},
-                    "owner": {
-                        "type": "string",
-                        "description": f"A Bide person's first name, an external person's name, or {NEEDS_DAVID}.",
-                    },
-                    "due_date": {**_nullable("string"), "description": "YYYY-MM-DD, or null when no date is stated."},
-                    "source_quote": {"type": "string", "description": "A short exact quote from the notes."},
+                    "title": {"type": "string"},
+                    "purpose": {"type": "string", "description": "One sentence."},
+                    "properties": {"type": "array", "items": _names(properties)},
+                    "is_sensitive": {"type": "boolean"},
+                    "sensitive_reason": _nullable("string"),
                 }
             ),
-        },
-        "open_threads": {"type": "array", "items": {"type": "string"}},
-        "questions_for_david": {"type": "array", "items": {"type": "string"}},
-        "systems_mentioned": {"type": "array", "items": {"type": "string", "enum": list(SYSTEMS)}},
-        "notes_quality": {"type": "string", "enum": ["good", "thin", "garbled"]},
-    }
-)
+            "attendees": {
+                "type": "array",
+                "items": _object(
+                    {"name": {"type": "string"}, "email": _nullable("string"), "is_internal": {"type": "boolean"}}
+                ),
+            },
+            "key_points": {"type": "array", "items": {"type": "string"}},
+            "decisions": {"type": "array", "items": {"type": "string"}},
+            "action_items": {
+                "type": "array",
+                "items": _object(
+                    {
+                        "description": {"type": "string"},
+                        "owner": {
+                            "type": "string",
+                            "description": f"A Bide person's first name, an external person's name, or {NEEDS_OWNER}.",
+                        },
+                        "due_date": {
+                            **_nullable("string"),
+                            "description": "YYYY-MM-DD, or null when no date is stated.",
+                        },
+                        "source_quote": {"type": "string", "description": "A short exact quote from the notes."},
+                    }
+                ),
+            },
+            "open_threads": {"type": "array", "items": {"type": "string"}},
+            "questions_for_david": {"type": "array", "items": {"type": "string"}},
+            "systems_mentioned": {"type": "array", "items": _names(systems)},
+            "notes_quality": {"type": "string", "enum": ["good", "thin", "garbled"]},
+        }
+    )
 
 
 class _Strict(BaseModel):
@@ -70,7 +78,7 @@ class _Strict(BaseModel):
 class MeetingInfo(_Strict):
     title: str
     purpose: str
-    properties: list[Literal["The View", "The Hearth", "The Villa"]]
+    properties: list[str]
     is_sensitive: bool
     sensitive_reason: str | None
 
@@ -96,5 +104,5 @@ class Extraction(_Strict):
     action_items: list[ActionInfo]
     open_threads: list[str]
     questions_for_david: list[str]
-    systems_mentioned: list[Literal["Mews", "Operto", "PriceLabs", "Canary", "GHL", "Xero"]]
+    systems_mentioned: list[str]
     notes_quality: Literal["good", "thin", "garbled"]

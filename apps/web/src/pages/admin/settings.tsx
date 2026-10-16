@@ -22,6 +22,12 @@ function Form({ initial }: { initial: Settings }) {
         minutes_saved_per_meeting: form.minutes_saved_per_meeting,
         baseline_followup_rate: form.baseline_followup_rate,
         baseline_followup_days: form.baseline_followup_days,
+        target_minutes_to_drafts: form.target_minutes_to_drafts,
+        target_unedited_rate: form.target_unedited_rate,
+        target_reassigned_rate: form.target_reassigned_rate,
+        target_active_days: form.target_active_days,
+        followup_within_hours: form.followup_within_hours,
+        routine_stuck_hours: form.routine_stuck_hours,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] })
@@ -70,7 +76,7 @@ function Form({ initial }: { initial: Settings }) {
         />
         <p className="text-xs text-muted-foreground">Takes effect when the worker restarts.</p>
       </div>
-      <p className="text-sm text-muted-foreground">Slack messages always wait for David’s approval.</p>
+      <p className="text-sm text-muted-foreground">Slack messages always wait for the owner’s approval.</p>
       <fieldset className="grid gap-4 border-t pt-5">
         <legend className="mb-2 font-medium">Impact page</legend>
         <div className="grid gap-1.5">
@@ -88,7 +94,7 @@ function Form({ initial }: { initial: Settings }) {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-1.5">
-            <Label htmlFor="base-rate">Before launch: % followed up within a day</Label>
+            <Label htmlFor="base-rate">Before launch: % followed up in time</Label>
             <Input
               id="base-rate"
               type="number"
@@ -118,8 +124,84 @@ function Form({ initial }: { initial: Settings }) {
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Optional. The app has no data from before it existed; fill these in from David’s own estimate to show the
+          Optional. The app has no data from before it existed; fill these in from the owner’s own estimate to show the
           before-and-after.
+        </p>
+      </fieldset>
+      <fieldset className="grid gap-4 border-t pt-5">
+        <legend className="mb-2 font-medium">Targets</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-1.5">
+            <Label htmlFor="followup_within_hours">Counts as followed up within (hours)</Label>
+            <Input
+              id="followup_within_hours"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.followup_within_hours}
+              onChange={(e) => setForm({ ...form, followup_within_hours: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">The window behind the Impact headline.</p>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="target_minutes_to_drafts">Target: drafts ready within (minutes)</Label>
+            <Input
+              id="target_minutes_to_drafts"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.target_minutes_to_drafts}
+              onChange={(e) => setForm({ ...form, target_minutes_to_drafts: Number(e.target.value) })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="target_unedited_rate">Target: drafts approved without edits (%)</Label>
+            <Input
+              id="target_unedited_rate"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.target_unedited_rate}
+              onChange={(e) => setForm({ ...form, target_unedited_rate: Number(e.target.value) })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="target_reassigned_rate">Target: tasks given a different owner, under (%)</Label>
+            <Input
+              id="target_reassigned_rate"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.target_reassigned_rate}
+              onChange={(e) => setForm({ ...form, target_reassigned_rate: Number(e.target.value) })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="target_active_days">Target: days the owner uses the app each week</Label>
+            <Input
+              id="target_active_days"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.target_active_days}
+              onChange={(e) => setForm({ ...form, target_active_days: Number(e.target.value) })}
+            />
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="routine_stuck_hours">Warn when Claude hasn’t answered for (hours)</Label>
+            <Input
+              id="routine_stuck_hours"
+              type="number"
+              min={0}
+              className="w-28"
+              value={form.routine_stuck_hours}
+              onChange={(e) => setForm({ ...form, routine_stuck_hours: Number(e.target.value) })}
+            />
+            <p className="text-xs text-muted-foreground">Routine mode: Today flags meetings waiting this long.</p>
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          They start at the PRD’s success measures and show on the Impact page.
         </p>
       </fieldset>
       <div>

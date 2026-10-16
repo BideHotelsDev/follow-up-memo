@@ -8,6 +8,7 @@ import { HotelTags, Status } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
+import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Output } from "@/lib/api"
 import { dayOf, localDate, time } from "@/lib/format"
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils"
 const fail = (err: unknown) => toast.error(err instanceof HttpError ? err.message : "Something went wrong")
 
 function Message({ draft }: { draft: Output }) {
+  const { owner_name } = useApp()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [body, setBody] = useState(draft.body)
@@ -63,10 +65,10 @@ function Message({ draft }: { draft: Output }) {
           aria-hidden
           className="font-display grid size-10 place-items-center rounded-lg border bg-secondary text-lg"
         >
-          D
+          {owner_name.slice(0, 1).toUpperCase()}
         </span>
         <div className="min-w-0">
-          <p className="font-semibold text-foreground">David</p>
+          <p className="font-semibold text-foreground">{owner_name}</p>
           {editing ? (
             <Textarea
               value={body}
@@ -115,6 +117,7 @@ function Message({ draft }: { draft: Output }) {
 }
 
 export default function SlackPage() {
+  const { owner_name } = useApp()
   const queryClient = useQueryClient()
   const { scope } = useScope()
   const { data } = useQuery({
@@ -157,7 +160,7 @@ export default function SlackPage() {
     <>
       <PageHead
         title="Slack drafts"
-        lede="Actions for the team and updates for channels, written as David. Nothing posts until it’s approved."
+        lede={`Actions for the team and updates for channels, written as ${owner_name}. Nothing posts until it’s approved.`}
       />
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
         <aside className={cn(surface, "grid gap-4 p-5 lg:sticky lg:top-32 lg:order-last")}>

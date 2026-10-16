@@ -10,7 +10,7 @@ from slack_sdk.errors import SlackApiError
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock, impact, runtime_settings, views
+from bide_followup import catalog, clock, impact, runtime_settings, views
 from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
@@ -126,7 +126,7 @@ def today(
         ]
         # Failed or partial meetings, and (routine mode) meetings Claude hasn't answered for hours: the routine may
         # have stopped.
-        stuck = clock.utcnow() - timedelta(hours=3)
+        stuck = clock.utcnow() - timedelta(hours=float(runtime_settings.get(session, "routine_stuck_hours")))
         problems = _property_filter(
             session.scalars(
                 select(Meeting)
@@ -450,7 +450,7 @@ def update_task(task_id: uuid.UUID, body: TaskIn, session: SessionDep, user: Cur
     item = _task(session, user, task_id)
     sent = body.model_fields_set
     if not views.is_reviewer(user) and sent - {"status"}:
-        raise DomainError("forbidden", "Only David can reassign or reschedule tasks", 403)
+        raise DomainError("forbidden", "Only the owner can reassign or reschedule tasks", 403)
     before = _snapshot(item)
     if "owner_user_id" in sent:
         _set_owner(session, item, body.owner_user_id)
@@ -483,7 +483,7 @@ def answer(question_id: uuid.UUID, body: AnswerIn, session: SessionDep, user: Cu
         if "owner_user_id" not in body.model_fields_set:
             raise DomainError("answer_required", "Pick who owns this", 422)
         _set_owner(session, item, body.owner_user_id)
-        question.answer = item.owner.name if item.owner else "Needs David"
+        question.answer = item.owner.name if item.owner else catalog.needs_owner_label(session)
     elif question.kind == "due" and item is not None:
         item.due_date = body.due_date
         question.answer = body.due_date.isoformat() if body.due_date else "No date"

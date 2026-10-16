@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 const TABS: [string, string][] = [
   ["connections", "Connections"],
   ["people", "People"],
+  ["properties", "Properties"],
   ["channels", "Channels"],
   ["skip-rules", "Skip rules"],
   ["settings", "Email and schedule"],

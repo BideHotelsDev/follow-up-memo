@@ -11,13 +11,14 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from bide_followup import catalog
 from bide_followup.config import settings
 from bide_followup.integrations import llm
 from bide_followup.models import ChannelMap, User
 from bide_followup.pipeline import validate
-from bide_followup.schemas.extraction import SCHEMA, Extraction
+from bide_followup.schemas.extraction import Extraction, schema
 
-PROMPT_VERSION = "extract_v1"
+PROMPT_VERSION = "extract_v2"
 PROMPTS = Path(__file__).resolve().parent.parent / "prompts"
 
 
@@ -38,7 +39,14 @@ def system_prompt(session: Session) -> str:
         areas = f"; owns {', '.join(p.ownership_areas)}" if p.ownership_areas else ""
         lines.append(f"- {p.name} ({p.email}), {p.role}{areas}")
     topics = sorted({c.topic for c in session.scalars(select(ChannelMap)) if c.topic})
+    names = catalog.property_names(session)
+    if len(names) > 1:
+        listed = f"{len(names)} short-stay properties in Scotland: {', '.join(names[:-1])} and {names[-1]}"
+    else:
+        listed = f"a short-stay property in Scotland: {names[0]}" if names else "short-stay properties in Scotland"
     return _template(PROMPT_VERSION).format(
+        owner=catalog.owner_name(session),
+        properties=listed,
         people="\n".join(lines) or "- (none listed)",
         domains=" or ".join(f"@{d}" for d in settings.bide_domain_list),
         topics="\n".join(f"- {t}" for t in topics) or "- (none listed)",
@@ -78,15 +86,19 @@ def extract(
     system = system_prompt(session)
     messages = [{"role": "user", "content": user_message(title, meeting_day, attendees, notes)}]
     known_emails = validate.emails_in(notes) | {email for _, email in attendees}
+    properties, systems = catalog.property_names(session), catalog.system_names(session)
+    answer_schema = schema(properties, systems)
     tokens_in = tokens_out = 0
 
     for attempt in range(2):
-        completion = llm.complete(system, messages, SCHEMA, session=session, kind="extract", meeting_id=meeting_id)
+        completion = llm.complete(
+            system, messages, answer_schema, session=session, kind="extract", meeting_id=meeting_id
+        )
         tokens_in += completion.input_tokens
         tokens_out += completion.output_tokens
         extraction, problems = _parse(completion.text)
         if extraction is not None:
-            problems = validate.check(extraction, notes, known_emails, meeting_day)
+            problems = validate.check(extraction, notes, known_emails, meeting_day, properties, systems)
         if not problems or (extraction is not None and attempt == 1):
             break
         # Append-only: the first answer stays in the conversation, followed by what was wrong with it.
@@ -101,7 +113,7 @@ def extract(
     if extraction is None:
         raise ExtractionFailed("; ".join(problems)[:1000])
     return Result(
-        grounded=validate.ground(extraction, notes, known_emails, meeting_day),
+        grounded=validate.ground(extraction, notes, known_emails, meeting_day, properties, systems),
         input_tokens=tokens_in,
         output_tokens=tokens_out,
     )

@@ -77,13 +77,20 @@
   --state-open: #cf9a17;
   --state-overdue: #b8432d;
 
-  /* Property tags (from the approved demo): one hue per property, always with the name written on it. */
-  --view: #2f5d76;
-  --view-subtle: #e0ebf1;
-  --hearth: #94461f;
-  --hearth-subtle: #f6e4d9;
-  --villa: #4a5c20;
-  --villa-subtle: #e8eed6;
+  /* Property tags: six colour slots (the first three from the approved demo), each property keeping its slot. A tag
+     always has the property's name written on it, so the colour is never the only cue. */
+  --tag-0: #2f5d76;
+  --tag-0-subtle: #e0ebf1;
+  --tag-1: #94461f;
+  --tag-1-subtle: #f6e4d9;
+  --tag-2: #4a5c20;
+  --tag-2-subtle: #e8eed6;
+  --tag-3: #6b4478;
+  --tag-3-subtle: #efe4f3;
+  --tag-4: #1f6b66;
+  --tag-4-subtle: #dbefec;
+  --tag-5: #7a5a0e;
+  --tag-5-subtle: #f5ebd0;
   --bide: #172d23;
   --bide-subtle: #e1ece8;
 
@@ -141,12 +148,18 @@
 
   --danger-subtle: #3a1e1b;
 
-  --view: #9cc3d8;
-  --view-subtle: #1c2e38;
-  --hearth: #e3a67f;
-  --hearth-subtle: #3a2419;
-  --villa: #b9cc85;
-  --villa-subtle: #2a3219;
+  --tag-0: #9cc3d8;
+  --tag-0-subtle: #1c2e38;
+  --tag-1: #e3a67f;
+  --tag-1-subtle: #3a2419;
+  --tag-2: #b9cc85;
+  --tag-2-subtle: #2a3219;
+  --tag-3: #cfa9dc;
+  --tag-3-subtle: #33243a;
+  --tag-4: #8fd0c9;
+  --tag-4-subtle: #16312f;
+  --tag-5: #e1c47a;
+  --tag-5-subtle: #362c12;
   --bide: #b6d3c6;
   --bide-subtle: #1e3328;
 
@@ -188,12 +201,18 @@
   --color-attention-foreground: var(--attention-foreground);
   --color-attention-subtle: var(--attention-subtle);
   --color-danger-subtle: var(--danger-subtle);
-  --color-view: var(--view);
-  --color-view-subtle: var(--view-subtle);
-  --color-hearth: var(--hearth);
-  --color-hearth-subtle: var(--hearth-subtle);
-  --color-villa: var(--villa);
-  --color-villa-subtle: var(--villa-subtle);
+  --color-tag-0: var(--tag-0);
+  --color-tag-0-subtle: var(--tag-0-subtle);
+  --color-tag-1: var(--tag-1);
+  --color-tag-1-subtle: var(--tag-1-subtle);
+  --color-tag-2: var(--tag-2);
+  --color-tag-2-subtle: var(--tag-2-subtle);
+  --color-tag-3: var(--tag-3);
+  --color-tag-3-subtle: var(--tag-3-subtle);
+  --color-tag-4: var(--tag-4);
+  --color-tag-4-subtle: var(--tag-4-subtle);
+  --color-tag-5: var(--tag-5);
+  --color-tag-5-subtle: var(--tag-5-subtle);
   --color-bide: var(--bide);
   --color-bide-subtle: var(--bide-subtle);
 

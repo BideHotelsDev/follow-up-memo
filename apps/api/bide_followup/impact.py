@@ -12,7 +12,8 @@ from statistics import mean
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock, runtime_settings
+from bide_followup import catalog, clock, runtime_settings
+from bide_followup.catalog import BIDE_WIDE
 from bide_followup.models import ActionItem, AuditLog, Meeting, User
 from bide_followup.schemas.api import (
     ImpactActions,
@@ -20,13 +21,11 @@ from bide_followup.schemas.api import (
     ImpactHotel,
     ImpactOut,
     ImpactOwner,
+    ImpactTargets,
     ImpactWeek,
 )
 
-BIDE_WIDE = "Bide-wide"
-HOTELS = ("The View", "The Hearth", "The Villa", BIDE_WIDE)
 ACTED = ("posted", "approved", "closed_in_gmail")
-FOLLOW_UP_WITHIN = timedelta(hours=24)
 
 
 def _local(moment: datetime | None) -> date | None:
@@ -42,6 +41,7 @@ class _Followup:
     meeting: Meeting
     acted_at: datetime | None
     drafts_at: datetime | None
+    window: timedelta
 
     @property
     def end(self) -> datetime:
@@ -49,16 +49,16 @@ class _Followup:
 
     @property
     def within_24h(self) -> bool:
-        return self.acted_at is not None and self.acted_at - self.end <= FOLLOW_UP_WITHIN
+        return self.acted_at is not None and self.acted_at - self.end <= self.window
 
 
-def _followup(meeting: Meeting) -> _Followup | None:
+def _followup(meeting: Meeting, window: timedelta) -> _Followup | None:
     """A meeting that needed a follow-up (it produced drafts, or failed and so got none), with when David acted."""
     drafts = [o for o in meeting.outputs if o.type != "run_summary"]
     if not drafts and meeting.status != "failed":
         return None  # nothing to follow up: an internal call with no actions for anyone
     acted = [o.approved_at for o in drafts if o.status in ACTED and o.approved_at]
-    return _Followup(meeting, min(acted) if acted else None, min((o.created_at for o in drafts), default=None))
+    return _Followup(meeting, min(acted) if acted else None, min((o.created_at for o in drafts), default=None), window)
 
 
 def _action_state(item: ActionItem, today: date) -> str | None:
@@ -87,7 +87,8 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
         )
         if prop is None or prop in _hotels(m)
     ]
-    followups = [f for m in meetings if (f := _followup(m))]
+    window = timedelta(hours=float(runtime_settings.get(session, "followup_within_hours")))
+    followups = [f for m in meetings if (f := _followup(m, window))]
 
     # Weekly share followed up within 24 hours.
     by_week: dict[date, list[_Followup]] = defaultdict(list)
@@ -117,11 +118,12 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
     for state in states.values():
         if state:
             counts[state] += 1
+    needs = catalog.needs_owner_label(session)
     owners: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     for a in items:
         state = states[a.id]
         if state in ("open", "overdue"):
-            name = a.owner.name if a.owner else ("External" if a.owner_name else "Needs David")
+            name = a.owner.name if a.owner else ("External" if a.owner_name else needs)
             owners[name][0 if state == "open" else 1] += 1
 
     # Drafts David acted on, and how many he changed first.
@@ -156,7 +158,7 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
         active_days = len(days)
 
     hotels = []
-    for hotel in HOTELS if prop is None else ():
+    for hotel in [*catalog.property_names(session), BIDE_WIDE] if prop is None else ():
         h_meetings = [m for m in meetings if hotel in _hotels(m)]
         h_follow = [f for f in followups if hotel in _hotels(f.meeting)]
         h_items = [a for m in h_meetings for a in m.action_items]
@@ -205,5 +207,7 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
         minutes_saved_per_meeting=int(runtime_settings.get(session, "minutes_saved_per_meeting")),
         baseline_followup_rate=runtime_settings.get(session, "baseline_followup_rate"),
         baseline_followup_days=runtime_settings.get(session, "baseline_followup_days"),
+        targets=ImpactTargets(**catalog.targets(session)),
+        owner_name=catalog.owner_name(session),
         hotels=hotels,
     )

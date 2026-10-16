@@ -19,6 +19,13 @@ DEFAULTS: dict[str, Any] = {
     "minutes_saved_per_meeting": 20,
     "baseline_followup_rate": None,
     "baseline_followup_days": None,
+    # The PRD's success targets (§1), shown against the Impact numbers; and the windows behind two measures.
+    "target_minutes_to_drafts": 30,
+    "target_unedited_rate": 70,
+    "target_reassigned_rate": 5,
+    "target_active_days": 4,
+    "followup_within_hours": 24,  # "followed up" means within this many hours of the meeting ending
+    "routine_stuck_hours": 3,  # Today warns when the Claude Code routine hasn't answered for this long
 }
 
 

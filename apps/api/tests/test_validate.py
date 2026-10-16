@@ -68,7 +68,7 @@ def test_ground_drops_ungrounded_and_unsupported_dates():
 
 def test_needs_david_becomes_a_question_and_questions_cap_at_five():
     e = extraction(
-        [action("Russell to look at the boiler at The Hearth", owner="NEEDS_DAVID", description="Fix boiler")],
+        [action("Russell to look at the boiler at The Hearth", owner="NEEDS_OWNER", description="Fix boiler")],
         questions=[f"Q{i}?" for i in range(6)],
     )
     g = validate.ground(e, NOTES, set(), DAY)

@@ -96,6 +96,12 @@ class SettingsOut(BaseModel):
     minutes_saved_per_meeting: int
     baseline_followup_rate: int | None
     baseline_followup_days: float | None
+    target_minutes_to_drafts: float
+    target_unedited_rate: float
+    target_reassigned_rate: float
+    target_active_days: float
+    followup_within_hours: float
+    routine_stuck_hours: float
 
 
 class SettingsIn(BaseModel):
@@ -107,6 +113,12 @@ class SettingsIn(BaseModel):
     minutes_saved_per_meeting: int | None = Field(default=None, ge=1, le=240)
     baseline_followup_rate: int | None = Field(default=None, ge=0, le=100)
     baseline_followup_days: float | None = Field(default=None, ge=0, le=60)
+    target_minutes_to_drafts: float | None = Field(default=None, ge=1, le=1440)
+    target_unedited_rate: float | None = Field(default=None, ge=0, le=100)
+    target_reassigned_rate: float | None = Field(default=None, ge=0, le=100)
+    target_active_days: float | None = Field(default=None, ge=0, le=7)
+    followup_within_hours: float | None = Field(default=None, ge=1, le=168)
+    routine_stuck_hours: float | None = Field(default=None, ge=1, le=48)
 
 
 class RunOut(Orm):
@@ -306,6 +318,15 @@ class ImpactHotel(BaseModel):
     overdue: int
 
 
+class ImpactTargets(BaseModel):
+    target_minutes_to_drafts: float
+    target_unedited_rate: float
+    target_reassigned_rate: float
+    target_active_days: float
+    followup_within_hours: float
+    routine_stuck_hours: float
+
+
 class ImpactOut(BaseModel):
     since: date
     weeks: list[ImpactWeek]
@@ -322,6 +343,8 @@ class ImpactOut(BaseModel):
     minutes_saved_per_meeting: int
     baseline_followup_rate: int | None
     baseline_followup_days: float | None
+    targets: ImpactTargets
+    owner_name: str
     hotels: list[ImpactHotel]
 
 
@@ -360,3 +383,44 @@ class ClaudeStatusOut(BaseModel):
     pending: int
     oldest_pending_at: datetime | None
     last_answer_at: datetime | None
+
+
+# --- what Bide edits in Admin (catalog.py) -----------------------------------------------------------------------
+
+
+class PropertyOut(Orm):
+    id: uuid.UUID
+    name: str
+    color: int
+    sort_order: int
+    is_active: bool
+
+
+class PropertyIn(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    is_active: bool = True
+    sort_order: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def strip(cls, v: str) -> str:
+        return " ".join(v.split())
+
+
+class SystemOut(Orm):
+    id: uuid.UUID
+    name: str
+    is_active: bool
+
+
+class SystemIn(PropertyIn):
+    """Same fields as a property."""
+
+
+class AppOut(BaseModel):
+    """What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems."""
+
+    owner_name: str
+    owner_email: str | None
+    properties: list[PropertyOut]
+    systems: list[str]

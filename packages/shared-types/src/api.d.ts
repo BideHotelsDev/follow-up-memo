@@ -225,6 +225,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/app": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** App Settings */
+        get: operations["app_settings_api_app_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/properties": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Properties */
+        get: operations["list_properties_api_admin_properties_get"];
+        put?: never;
+        /** Add Property */
+        post: operations["add_property_api_admin_properties_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/properties/{property_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Property
+         * @description Rename, hide or reorder a property. A rename carries over to every meeting and channel tagged with it.
+         */
+        put: operations["update_property_api_admin_properties__property_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/systems": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Systems */
+        get: operations["list_systems_api_admin_systems_get"];
+        put?: never;
+        /** Add System */
+        post: operations["add_system_api_admin_systems_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/systems/{system_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update System */
+        put: operations["update_system_api_admin_systems__system_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/people": {
         parameters: {
             query?: never;
@@ -637,6 +727,20 @@ export interface components {
             text?: string | null;
         };
         /**
+         * AppOut
+         * @description What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems.
+         */
+        AppOut: {
+            /** Owner Name */
+            owner_name: string;
+            /** Owner Email */
+            owner_email: string | null;
+            /** Properties */
+            properties: components["schemas"]["PropertyOut"][];
+            /** Systems */
+            systems: string[];
+        };
+        /**
          * ApproveAllIn
          * @description Approve every Slack draft of one meeting, or (no meeting) every Slack draft waiting.
          */
@@ -811,6 +915,9 @@ export interface components {
             baseline_followup_rate: number | null;
             /** Baseline Followup Days */
             baseline_followup_days: number | null;
+            targets: components["schemas"]["ImpactTargets"];
+            /** Owner Name */
+            owner_name: string;
             /** Hotels */
             hotels: components["schemas"]["ImpactHotel"][];
         };
@@ -822,6 +929,21 @@ export interface components {
             open: number;
             /** Overdue */
             overdue: number;
+        };
+        /** ImpactTargets */
+        ImpactTargets: {
+            /** Target Minutes To Drafts */
+            target_minutes_to_drafts: number;
+            /** Target Unedited Rate */
+            target_unedited_rate: number;
+            /** Target Reassigned Rate */
+            target_reassigned_rate: number;
+            /** Target Active Days */
+            target_active_days: number;
+            /** Followup Within Hours */
+            followup_within_hours: number;
+            /** Routine Stuck Hours */
+            routine_stuck_hours: number;
         };
         /** ImpactWeek */
         ImpactWeek: {
@@ -1052,6 +1174,34 @@ export interface components {
              */
             role: "admin" | "owner" | "member";
         };
+        /** PropertyIn */
+        PropertyIn: {
+            /** Name */
+            name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active?: boolean;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
+        /** PropertyOut */
+        PropertyOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Color */
+            color: number;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
         /** ProvidersOut */
         ProvidersOut: {
             /** Google */
@@ -1130,6 +1280,18 @@ export interface components {
             baseline_followup_rate?: number | null;
             /** Baseline Followup Days */
             baseline_followup_days?: number | null;
+            /** Target Minutes To Drafts */
+            target_minutes_to_drafts?: number | null;
+            /** Target Unedited Rate */
+            target_unedited_rate?: number | null;
+            /** Target Reassigned Rate */
+            target_reassigned_rate?: number | null;
+            /** Target Active Days */
+            target_active_days?: number | null;
+            /** Followup Within Hours */
+            followup_within_hours?: number | null;
+            /** Routine Stuck Hours */
+            routine_stuck_hours?: number | null;
         };
         /** SettingsOut */
         SettingsOut: {
@@ -1150,6 +1312,18 @@ export interface components {
             baseline_followup_rate: number | null;
             /** Baseline Followup Days */
             baseline_followup_days: number | null;
+            /** Target Minutes To Drafts */
+            target_minutes_to_drafts: number;
+            /** Target Unedited Rate */
+            target_unedited_rate: number;
+            /** Target Reassigned Rate */
+            target_reassigned_rate: number;
+            /** Target Active Days */
+            target_active_days: number;
+            /** Followup Within Hours */
+            followup_within_hours: number;
+            /** Routine Stuck Hours */
+            routine_stuck_hours: number;
         };
         /** SkipRuleIn */
         SkipRuleIn: {
@@ -1175,6 +1349,33 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /**
+         * SystemIn
+         * @description Same fields as a property.
+         */
+        SystemIn: {
+            /** Name */
+            name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active?: boolean;
+            /** Sort Order */
+            sort_order?: number | null;
+        };
+        /** SystemOut */
+        SystemOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Is Active */
+            is_active: boolean;
         };
         /**
          * TaskIn
@@ -1737,6 +1938,202 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunOut"];
+                };
+            };
+        };
+    };
+    app_settings_api_app_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppOut"];
+                };
+            };
+        };
+    };
+    list_properties_api_admin_properties_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"][];
+                };
+            };
+        };
+    };
+    add_property_api_admin_properties_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_property_api_admin_properties__property_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                property_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PropertyIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PropertyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_systems_api_admin_systems_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemOut"][];
+                };
+            };
+        };
+    };
+    add_system_api_admin_systems_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_system_api_admin_systems__system_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                system_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SystemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

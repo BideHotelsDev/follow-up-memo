@@ -11,7 +11,7 @@ from bide_followup import auth
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, domain_error_handler
-from bide_followup.routers import admin, connections, review, service
+from bide_followup.routers import admin, catalog, connections, review, service
 from bide_followup.schemas.api import HealthOut
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -47,6 +47,7 @@ app.include_router(health_router)
 app.include_router(auth.router)
 app.include_router(connections.router)
 app.include_router(admin.router)
+app.include_router(catalog.router)
 app.include_router(review.router)
 app.include_router(service.router)
 

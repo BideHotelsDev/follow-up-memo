@@ -75,7 +75,7 @@ def send(session: Session, run: Run, meeting_ids: list) -> Output | None:
 def deliver(session: Session, row: Output) -> None:
     row.attempts += 1
     if not row.recipient:
-        row.status, row.error = "failed", "David has no Slack member ID (Admin → People)"
+        row.status, row.error = "failed", "The owner has no Slack member ID (Admin → People)"
         return
     try:
         row.external_id = slack.post(session, row.recipient, row.body)

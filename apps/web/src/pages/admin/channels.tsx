@@ -4,16 +4,17 @@ import { Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Loading, surface } from "@/components/page"
-import { PROPERTIES } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useApp } from "@/hooks/use-app"
 import { api, HttpError, type ChannelMapIn } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 const TOPIC = "topic"
 
 function Editor({ initial }: { initial: ChannelMapIn[] }) {
+  const { properties } = useApp()
   const queryClient = useQueryClient()
   const [rows, setRows] = useState<ChannelMapIn[]>(initial)
   const save = useMutation({
@@ -43,7 +44,7 @@ function Editor({ initial }: { initial: ChannelMapIn[] }) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={TOPIC}>A topic</SelectItem>
-                {PROPERTIES.map((p) => (
+                {properties.map(({ name: p }) => (
                   <SelectItem key={p} value={p}>
                     {p}
                   </SelectItem>

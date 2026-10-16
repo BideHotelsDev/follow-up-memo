@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from difflib import SequenceMatcher
 
-from bide_followup.schemas.extraction import MAX_QUESTIONS, NEEDS_DAVID, ActionInfo, Extraction
+from bide_followup.schemas.extraction import MAX_QUESTIONS, NEEDS_OWNER, ActionInfo, Extraction
 
 EMAIL = re.compile(r"[\w.+'-]+@[\w-]+(?:\.[\w-]+)+")
 # Words that show a deadline was stated: weekdays, months, relative days, explicit dates and "by/before/until".
@@ -53,8 +53,23 @@ def _due(value: str | None, meeting_day: date) -> date | None:
     return day if meeting_day - timedelta(days=7) <= day <= meeting_day + timedelta(days=366) else None
 
 
-def check(extraction: Extraction, notes: str, known_emails: set[str], meeting_day: date) -> list[str]:
+def check(
+    extraction: Extraction,
+    notes: str,
+    known_emails: set[str],
+    meeting_day: date,
+    properties: list[str] | None = None,
+    systems: list[str] | None = None,
+) -> list[str]:
     problems = []
+    if properties is not None:
+        unknown = [p for p in extraction.meeting.properties if p not in properties]
+        if unknown:
+            problems.append(f"meeting.properties has names that aren't Bide properties: {unknown}")
+    if systems is not None:
+        unknown = [s for s in extraction.systems_mentioned if s not in systems]
+        if unknown:
+            problems.append(f"systems_mentioned has names that aren't on the list: {unknown}")
     for i, action in enumerate(extraction.action_items):
         if not grounded(action.source_quote, notes):
             problems.append(f"action_items[{i}].source_quote is not a quote from the notes: {action.source_quote!r}")
@@ -82,7 +97,18 @@ class Grounded:
     dropped: list[str] = field(default_factory=list)
 
 
-def ground(extraction: Extraction, notes: str, known_emails: set[str], meeting_day: date) -> Grounded:
+def ground(
+    extraction: Extraction,
+    notes: str,
+    known_emails: set[str],
+    meeting_day: date,
+    properties: list[str] | None = None,
+    systems: list[str] | None = None,
+) -> Grounded:
+    if properties is not None:
+        extraction.meeting.properties = [p for p in extraction.meeting.properties if p in properties]
+    if systems is not None:
+        extraction.systems_mentioned = [s for s in extraction.systems_mentioned if s in systems]
     dropped: list[str] = []
     actions: list[GroundedAction] = []
     questions: list[tuple[str, int | None, str]] = []
@@ -102,7 +128,7 @@ def ground(extraction: Extraction, notes: str, known_emails: set[str], meeting_d
     owners = [
         (f"Who should own this: {item.action.description}?", i, "owner")
         for i, item in enumerate(actions)
-        if item.action.owner == NEEDS_DAVID
+        if item.action.owner == NEEDS_OWNER
     ]
     # Questions tied to an action come first: answering them updates the action (FR-35).
     questions = owners + questions + [(q, None, "other") for q in extraction.questions_for_david]

@@ -56,6 +56,14 @@ discard), **Tasks** (by due date; a drawer to change owner, date and status), **
 switch sit in the header. Members (Russell, Sam) see only Today and their own tasks. Every approve, edit, discard,
 answer and task change is recorded in `audit_log`.
 
+## What Bide edits in Admin
+
+Nothing about Bide itself is fixed in the code: the **properties** and **systems** (Admin → Properties; they feed the
+property filter, the tags, the channel map and the extraction schema and prompt), the **people** and who is the
+**Owner** (whose name appears in labels, prompts and Slack messages), the channel map, skip rules, email tone and
+signature, and the **Impact targets** and time windows (Admin → Email and schedule; they start at the PRD's success
+measures).
+
 ## Impact
 
 The Impact page (David and Admin) measures, from the app's own records and from launch onwards: meetings followed up

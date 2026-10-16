@@ -14,7 +14,7 @@ from bide_followup import clock
 from bide_followup.config import settings
 from bide_followup.db import get_session
 from bide_followup.main import app
-from bide_followup.models import Base, User
+from bide_followup.models import Base, Property, System, User
 
 NOW = datetime(2026, 10, 13, 15, 0, tzinfo=ZoneInfo("Europe/London"))  # a Tuesday afternoon
 
@@ -46,6 +46,10 @@ def db():
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)
     with factory() as s:
+        s.add_all(
+            Property(name=n, color=i, sort_order=i) for i, n in enumerate(("The View", "The Hearth", "The Villa"))
+        )
+        s.add_all(System(name=n) for n in ("Mews", "Operto", "PriceLabs", "Canary", "GHL", "Xero"))
         s.add_all(
             [
                 User(email="david@liddellpropertyinvestments.com", name="David", role="owner"),

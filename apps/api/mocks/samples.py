@@ -59,7 +59,7 @@ Priya to send the comparison report for Highland short stays.
                 },
                 {
                     "description": "Check the Canary upsell settings for The Hearth",
-                    "owner": "NEEDS_DAVID",
+                    "owner": "NEEDS_OWNER",
                     "due_date": None,
                     "source_quote": "Someone needs to check the Canary upsell settings for The Hearth.",
                 },

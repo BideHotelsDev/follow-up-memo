@@ -9,6 +9,7 @@ import ChannelsPage from "@/pages/admin/channels"
 import ConnectionsPage from "@/pages/admin/connections"
 import AdminLayout from "@/pages/admin/layout"
 import PeoplePage from "@/pages/admin/people"
+import PropertiesPage from "@/pages/admin/properties"
 import RunsPage from "@/pages/admin/runs"
 import SettingsPage from "@/pages/admin/settings"
 import SkipRulesPage from "@/pages/admin/skip-rules"
@@ -65,6 +66,7 @@ export default function App() {
               <Route index element={<Navigate to="connections" replace />} />
               <Route path="connections" element={<ConnectionsPage />} />
               <Route path="people" element={<PeoplePage />} />
+              <Route path="properties" element={<PropertiesPage />} />
               <Route path="channels" element={<ChannelsPage />} />
               <Route path="skip-rules" element={<SkipRulesPage />} />
               <Route path="settings" element={<SettingsPage />} />

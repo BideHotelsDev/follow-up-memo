@@ -3,7 +3,7 @@ import { LogOut, Settings2 } from "lucide-react"
 import { NavLink, Outlet } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
-import { BIDE_WIDE, PROPERTIES } from "@/components/tags"
+import { BIDE_WIDE } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, type User } from "@/lib/api"
 import { time } from "@/lib/format"
@@ -61,6 +62,7 @@ export function AppShell({ me }: { me: User }) {
   const queryClient = useQueryClient()
   const { property, setProperty, scope } = useScope()
   const reviewer = me.role !== "member"
+  const { properties } = useApp()
   const today = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope), refetchInterval: 60_000 })
   const counts = today.data?.counts
   const tabs: Tab[] = reviewer
@@ -105,7 +107,7 @@ export function AppShell({ me }: { me: User }) {
                 </SelectTrigger>
                 <SelectContent align="end">
                   <SelectItem value={ALL}>All properties</SelectItem>
-                  {[...PROPERTIES, BIDE_WIDE].map((p) => (
+                  {[...properties.map((p) => p.name), BIDE_WIDE].map((p) => (
                     <SelectItem key={p} value={p}>
                       {p}
                     </SelectItem>

@@ -16,7 +16,7 @@ from bide_followup.config import settings
 from bide_followup.integrations import google_api, google_oauth, llm
 from bide_followup.models import ActionItem, Attendee, LlmJob, Meeting, Question, Run, SkipRule, User
 from bide_followup.pipeline import extract, outputs, summary
-from bide_followup.schemas.extraction import NEEDS_DAVID
+from bide_followup.schemas.extraction import NEEDS_OWNER
 
 log = logging.getLogger(__name__)
 
@@ -61,9 +61,9 @@ def discover(session: Session, token: str, run: Run) -> None:
 
 
 def _owner(owner: str, people: list[User]) -> tuple[User | None, str | None, str]:
-    """Who an action belongs to: a Bide person (by first or full name), an external person, or Needs David."""
+    """Who an action belongs to: a Bide person (by first or full name), an external person, or the owner to assign."""
     name = owner.strip()
-    if not name or name.upper() == NEEDS_DAVID:
+    if not name or name.upper() == NEEDS_OWNER:
         return None, None, "needs_david"
     lowered = name.lower()
     for person in people:

@@ -37,7 +37,7 @@ def is_reviewer(user: User) -> bool:
 
 def require_reviewer(user: User) -> None:
     if not is_reviewer(user):
-        raise forbidden("Only David can review drafts")
+        raise forbidden("Only the owner can review drafts")
 
 
 def local_day(moment) -> date | None:

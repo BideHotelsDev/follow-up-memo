@@ -12,7 +12,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock, runtime_settings
+from bide_followup import catalog, clock, runtime_settings
 from bide_followup.config import settings
 from bide_followup.integrations import gmail, google_oauth, llm
 from bide_followup.models import ChannelMap, Meeting, Output, Question, User
@@ -21,7 +21,7 @@ from bide_followup.schemas.extraction import MAX_QUESTIONS
 
 log = logging.getLogger(__name__)
 
-EMAIL_PROMPT = "email_v1"
+EMAIL_PROMPT = "email_v2"
 EMAIL_SCHEMA = {
     "type": "object",
     "properties": {"subject": {"type": "string"}, "body": {"type": "string"}},
@@ -48,10 +48,10 @@ def _due(day: date | None) -> str:
     return f"due {day:%a %-d %b}" if day else "no date set"
 
 
-def _owner_label(item) -> str:
+def _owner_label(item, needs: str = "Needs the owner") -> str:
     if item.owner is not None:
         return item.owner.name
-    return item.owner_name or "Needs David"
+    return item.owner_name or needs
 
 
 # --- building ---------------------------------------------------------------------------------------------------
@@ -63,6 +63,7 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
     if not recipients:
         return None
     info = meeting.extraction or {}
+    needs = catalog.needs_owner_label(session)
     names = [a.name for a in meeting.attendees if not a.is_internal and a.email]
     payload = {
         "meeting": {"title": meeting.title, "date": _day(meeting).isoformat(), **info.get("meeting", {})},
@@ -70,7 +71,7 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
         "key_points": info.get("key_points", []),
         "decisions": info.get("decisions", []),
         "next_steps": [
-            {"action": a.description, "owner": _owner_label(a), "due": a.due_date and a.due_date.isoformat()}
+            {"action": a.description, "owner": _owner_label(a, needs), "due": a.due_date and a.due_date.isoformat()}
             for a in meeting.action_items
         ],
     }
@@ -78,7 +79,9 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
         (PROMPTS / f"{EMAIL_PROMPT}.md")
         .read_text()
         .format(
-            tone=runtime_settings.get(session, "email_tone"), signature=runtime_settings.get(session, "email_signature")
+            owner=catalog.owner_name(session),
+            tone=runtime_settings.get(session, "email_tone"),
+            signature=runtime_settings.get(session, "email_signature"),
         )
     )
     messages = [{"role": "user", "content": json.dumps(payload, indent=2)}]
@@ -142,6 +145,7 @@ def slack_digest(session: Session, meeting: Meeting) -> dict | None:
     if channel is None:
         return None
     info = meeting.extraction or {}
+    needs = catalog.needs_owner_label(session)
     lines = [f"*{meeting.title}* ({_day(meeting):%a %-d %b})"]
     if purpose := info.get("meeting", {}).get("purpose"):
         lines.append(purpose)
@@ -151,7 +155,7 @@ def slack_digest(session: Session, meeting: Meeting) -> dict | None:
         lines += [
             "",
             "*Actions*",
-            *(f"• {a.description} — {_owner_label(a)}, {_due(a.due_date)}" for a in meeting.action_items),
+            *(f"• {a.description} — {_owner_label(a, needs)}, {_due(a.due_date)}" for a in meeting.action_items),
         ]
     lines.append(f"\n<{notes_url(meeting)}|Meeting notes>")
     return {"type": "slack_digest", "recipient": channel.slack_channel_id, "body": "\n".join(lines)}

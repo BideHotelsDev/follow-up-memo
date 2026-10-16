@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useScope } from "@/hooks/use-scope"
+import { useApp } from "@/hooks/use-app"
 import { useMe } from "@/hooks/use-me"
 import { api, HttpError, type Task, type TaskIn } from "@/lib/api"
 import { day, dayOf, localDate, time } from "@/lib/format"
@@ -25,12 +26,12 @@ const BUCKETS: [Task["bucket"], string][] = [
   ["nodate", "No date set"],
   ["done", "Done"],
 ]
-const NEEDS_DAVID = "needs_david"
+const NEEDS_OWNER = "needs_david"
 
-function ownerLabel(t: Task) {
+function ownerLabel(t: Task, ownerName: string) {
   if (t.owner) return t.owner.name.split(" ")[0]
   if (t.owner_name) return `${t.owner_name} (external)`
-  return "Needs David"
+  return `Needs ${ownerName}`
 }
 
 function useUpdate(task: Task) {
@@ -60,10 +61,11 @@ function Tick({ task }: { task: Task }) {
 }
 
 function Drawer({ task, onClose, canEdit }: { task: Task; onClose: () => void; canEdit: boolean }) {
+  const { owner_name } = useApp()
   const people = useQuery({ queryKey: ["people"], queryFn: api.people, enabled: canEdit })
   const update = useUpdate(task)
   const today = localDate(new Date().toISOString()) ?? ""
-  const ownerValue = task.owner?.id ?? (task.owner_name ? "external" : NEEDS_DAVID)
+  const ownerValue = task.owner?.id ?? (task.owner_name ? "external" : NEEDS_OWNER)
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
@@ -90,7 +92,7 @@ function Drawer({ task, onClose, canEdit }: { task: Task; onClose: () => void; c
                 <Select
                   value={ownerValue}
                   onValueChange={(v) =>
-                    v !== "external" && update.mutate({ owner_user_id: v === NEEDS_DAVID ? null : v })
+                    v !== "external" && update.mutate({ owner_user_id: v === NEEDS_OWNER ? null : v })
                   }
                 >
                   <SelectTrigger className="w-full bg-card" aria-label="Owner">
@@ -105,11 +107,11 @@ function Drawer({ task, onClose, canEdit }: { task: Task; onClose: () => void; c
                         </SelectItem>
                       ))}
                     {task.owner_name ? <SelectItem value="external">{task.owner_name} (external)</SelectItem> : null}
-                    <SelectItem value={NEEDS_DAVID}>Needs David</SelectItem>
+                    <SelectItem value={NEEDS_OWNER}>Needs {owner_name}</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
-                <span>{ownerLabel(task)}</span>
+                <span>{ownerLabel(task, owner_name)}</span>
               )}
             </div>
             <div className="grid gap-1.5">
@@ -170,6 +172,7 @@ function Drawer({ task, onClose, canEdit }: { task: Task; onClose: () => void; c
 }
 
 export default function TasksPage() {
+  const app = useApp()
   const me = useMe().data
   const canEdit = me?.role !== "member"
   const people = useQuery({ queryKey: ["people"], queryFn: api.people, enabled: canEdit }).data ?? []
@@ -185,7 +188,7 @@ export default function TasksPage() {
     ["all", "Everyone"],
     ...people.filter((p) => p.role !== "admin").map((p): [string, string] => [p.id, p.name.split(" ")[0]]),
     ["external", "External"],
-    [NEEDS_DAVID, "Needs David"],
+    [NEEDS_OWNER, `Needs ${app.owner_name}`],
   ]
   const open = data?.find((t) => t.id === openId)
 
@@ -249,7 +252,7 @@ export default function TasksPage() {
                         <span
                           className={cn(!t.owner && !t.owner_name && "text-attention-foreground dark:text-attention")}
                         >
-                          {ownerLabel(t)}
+                          {ownerLabel(t, app.owner_name)}
                         </span>
                         <HotelTags properties={t.meeting.properties} />
                         <span>{t.meeting.title}</span>

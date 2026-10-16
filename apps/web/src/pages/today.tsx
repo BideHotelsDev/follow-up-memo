@@ -5,6 +5,7 @@ import { Link } from "react-router-dom"
 import { Empty, Loading, PageHead, SectionTitle, surface } from "@/components/page"
 import { QuestionCard } from "@/components/question-card"
 import { HotelTags, MeetingStatus, Status } from "@/components/tags"
+import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api } from "@/lib/api"
 import { day, greeting, longDay, plural, time } from "@/lib/format"
@@ -52,13 +53,16 @@ function ImpactTeaser() {
       className={cn(surface, "mb-8 flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4 hover:border-primary")}
     >
       <span className="text-3xl font-semibold tracking-tight text-foreground">{data.followed_up_rate}%</span>
-      <span className="text-foreground">of meetings followed up within a day over the last 8 weeks.</span>
+      <span className="text-foreground">
+        of meetings followed up within {data.targets.followup_within_hours} hours over the last 8 weeks.
+      </span>
       <span className="ml-auto text-sm underline underline-offset-2">See the impact</span>
     </Link>
   )
 }
 
 export default function TodayPage() {
+  const { owner_name } = useApp()
   const { scope, property } = useScope()
   const { data } = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope) })
   if (!data) return <Loading />
@@ -75,7 +79,7 @@ export default function TodayPage() {
         lede={
           isReviewer
             ? `${plural(data.meetings.length, "call")} today${where}. ${followed} followed up, and nothing has gone out without your approval.`
-            : "Your actions from David’s meetings. They reach you in Slack once he approves them."
+            : `Your actions from ${owner_name}’s meetings. They reach you in Slack once approved.`
         }
       />
 
@@ -130,7 +134,7 @@ export default function TodayPage() {
                   {m.status === "failed"
                     ? "couldn’t be processed"
                     : m.status === "waiting"
-                      ? "Claude hasn’t answered for over 3 hours: check the Claude Code routine is running"
+                      ? "Claude hasn’t answered for hours: check the Claude Code routine is running"
                       : "some drafts failed and will retry"}
                 </span>
               </p>

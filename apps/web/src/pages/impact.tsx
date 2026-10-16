@@ -53,32 +53,34 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: string 
 
 /** The PRD's success measures, each against its target, with an icon and words (never colour alone). */
 function Targets({ data }: { data: Impact }) {
+  const t = data.targets
+  const owner = data.owner_name
   const unedited = rate(data.drafts.unedited, data.drafts.acted)
   const reassigned = rate(data.drafts.reassigned, data.drafts.actions)
   const rows: [string, string, boolean | null, string][] = [
     [
       "Drafts ready after a meeting ends",
       duration(data.minutes_to_drafts),
-      data.minutes_to_drafts === null ? null : data.minutes_to_drafts <= 30,
-      "Target: under 30 minutes",
+      data.minutes_to_drafts === null ? null : data.minutes_to_drafts <= t.target_minutes_to_drafts,
+      `Target: under ${duration(t.target_minutes_to_drafts)}`,
     ],
     [
       "Drafts approved without edits",
       unedited === null ? "—" : `${unedited}%`,
-      unedited === null ? null : unedited >= 70,
-      `Target: 70% or more · ${data.drafts.unedited} of ${data.drafts.acted}`,
+      unedited === null ? null : unedited >= t.target_unedited_rate,
+      `Target: ${t.target_unedited_rate}% or more · ${data.drafts.unedited} of ${data.drafts.acted}`,
     ],
     [
-      "Tasks David had to give a different owner",
+      `Tasks ${owner} had to give a different owner`,
       reassigned === null ? "—" : `${reassigned}%`,
-      reassigned === null ? null : reassigned < 5,
-      `Target: under 5% · ${data.drafts.reassigned} of ${data.drafts.actions}`,
+      reassigned === null ? null : reassigned < t.target_reassigned_rate,
+      `Target: under ${t.target_reassigned_rate}% · ${data.drafts.reassigned} of ${data.drafts.actions}`,
     ],
     [
-      "Days David used the app this week",
+      `Days ${owner} used the app this week`,
       String(data.david_active_days),
-      data.david_active_days >= 4,
-      "Target: 4 or more working days",
+      data.david_active_days >= t.target_active_days,
+      `Target: ${t.target_active_days} or more working days`,
     ],
   ]
   return (
@@ -104,6 +106,37 @@ function Targets({ data }: { data: Impact }) {
       ))}
     </ul>
   )
+}
+
+function definitions(owner: string, hours: number): [string, string][] {
+  return [
+    [
+      `Followed up within ${hours} hours`,
+      `${owner} approved a Slack message, or the follow-up email left their Gmail drafts, within ${hours} hours of the meeting ending. Only meetings that produced drafts count, plus any the app couldn’t process. Skipped meetings and internal calls with nothing to send are left out.`,
+    ],
+    [
+      "Time to follow-up",
+      `From the end of the meeting to ${owner}’s first approval, averaged over meetings acted on. For emails the app checks Gmail every 30 minutes, so this can read up to half an hour late.`,
+    ],
+    [
+      "Emails",
+      "The app only has permission to manage drafts, so it can see a draft leave Gmail but not whether it was sent or deleted; it counts as acted on either way. Edits made inside Gmail aren’t seen.",
+    ],
+    [
+      "Actions captured",
+      "Tasks taken from the notes, dismissed ones left out. “On time” means ticked done on or before the due date; a task with no date counts as on time.",
+    ],
+    [
+      "Different owner",
+      `Tasks Claude gave to someone that ${owner} then moved to someone else: how often Claude got the owner wrong.`,
+    ],
+    [
+      "Before launch",
+      "The app has no data from before it existed. Admin can enter the earlier follow-up rate and time (Admin → Email and schedule) to show the comparison.",
+    ],
+    ["Targets", "Set in Admin → Email and schedule; they start at the PRD’s success measures."],
+    ["Time saved", "An estimate, not a measurement: meetings the app handled, times the minutes set above."],
+  ]
 }
 
 export default function ImpactPage() {
@@ -165,12 +198,15 @@ export default function ImpactPage() {
         <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isFetching && "opacity-60")}>
           <section className={cn(surface, "grid grid-cols-1 items-center gap-6 p-5 md:p-6 lg:grid-cols-[4fr_7fr]")}>
             <div>
-              <span className="text-sm font-medium text-muted-foreground">Meetings followed up within 24 hours</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Meetings followed up within {data.targets.followup_within_hours} hours
+              </span>
               <div className="my-2 text-6xl font-semibold tracking-tight text-foreground md:text-7xl">
                 {data.followed_up_rate ?? 0}%
               </div>
               <p className="max-w-[34ch] text-lg text-foreground">
-                {data.followed_up} of {plural(data.meetings, "meeting")} that needed a follow-up got one within a day.
+                {data.followed_up} of {plural(data.meetings, "meeting")} that needed a follow-up got one within{" "}
+                {data.targets.followup_within_hours} hours.
               </p>
               {data.baseline_followup_rate !== null ? (
                 <span
@@ -189,7 +225,7 @@ export default function ImpactPage() {
             </div>
             <div className="min-w-0">
               <RateLine
-                label="Weekly share of meetings followed up within 24 hours"
+                label={`Weekly share of meetings followed up within ${data.targets.followup_within_hours} hours`}
                 points={data.weeks.map((w) => ({
                   week: w.week_start,
                   rate: w.rate,
@@ -236,8 +272,8 @@ export default function ImpactPage() {
               value={duration(data.minutes_to_follow_up)}
               sub={
                 data.baseline_followup_days !== null
-                  ? `From meeting end to David acting · was ${data.baseline_followup_days} days`
-                  : "From meeting end to David acting"
+                  ? `From meeting end to ${data.owner_name} acting · was ${data.baseline_followup_days} days`
+                  : `From meeting end to ${data.owner_name} acting`
               }
             />
             <Kpi
@@ -250,7 +286,7 @@ export default function ImpactPage() {
               }
             />
             <Kpi
-              label="Drafts David acted on"
+              label={`Drafts ${data.owner_name} acted on`}
               value={String(data.drafts.acted)}
               sub={`${data.drafts.unedited} without changing a word`}
             />
@@ -378,41 +414,17 @@ export default function ImpactPage() {
       <section className="mt-10">
         <SectionTitle title="How these numbers are measured" />
         <dl className={cn(surface, "grid gap-4 p-5")}>
-          {[
-            [
-              "Followed up within 24 hours",
-              "David approved a Slack message, or the follow-up email left his Gmail drafts, within 24 hours of the meeting ending. Only meetings that produced drafts count, plus any the app couldn’t process. Skipped meetings and internal calls with nothing to send are left out.",
-            ],
-            [
-              "Time to follow-up",
-              "From the end of the meeting to David’s first approval, averaged over meetings he acted on. For emails the app checks Gmail every 30 minutes, so this can read up to half an hour late.",
-            ],
-            [
-              "Emails",
-              "The app only has permission to manage drafts, so it can see a draft leave Gmail but not whether it was sent or deleted; it counts as acted on either way. Edits made inside Gmail aren’t seen.",
-            ],
-            [
-              "Actions captured",
-              "Tasks taken from the notes, dismissed ones left out. “On time” means ticked done on or before the due date; a task with no date counts as on time.",
-            ],
-            [
-              "Different owner",
-              "Tasks Claude gave to someone that David then moved to someone else: how often Claude got the owner wrong.",
-            ],
-            [
-              "Before launch",
-              "The app has no data from before it existed. Admin can enter the earlier follow-up rate and time (Admin → Email and schedule) to show the comparison.",
-            ],
-            ["Time saved", "An estimate, not a measurement: meetings the app handled, times the minutes set above."],
-          ].map(([term, text]) => (
-            <div
-              key={term}
-              className="grid gap-1 border-t pt-4 first:border-t-0 first:pt-0 sm:grid-cols-[14rem_1fr] sm:gap-4"
-            >
-              <dt className="font-medium text-foreground">{term}</dt>
-              <dd className="max-w-prose text-muted-foreground">{text}</dd>
-            </div>
-          ))}
+          {definitions(data?.owner_name ?? "the owner", data?.targets.followup_within_hours ?? 24).map(
+            ([term, text]) => (
+              <div
+                key={term}
+                className="grid gap-1 border-t pt-4 first:border-t-0 first:pt-0 sm:grid-cols-[14rem_1fr] sm:gap-4"
+              >
+                <dt className="font-medium text-foreground">{term}</dt>
+                <dd className="max-w-prose text-muted-foreground">{text}</dd>
+              </div>
+            ),
+          )}
         </dl>
       </section>
     </>

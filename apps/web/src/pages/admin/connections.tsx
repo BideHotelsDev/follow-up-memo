@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useApp } from "@/hooks/use-app"
 import { api, links, type Connection } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
 
@@ -15,8 +16,6 @@ const ERRORS: Record<string, string> = {
   google_error: "Google didn't complete the connection. Try again.",
   slack_error: "Slack didn't complete the install. Try again.",
 }
-
-const DAVID = "david@liddellpropertyinvestments.com"
 
 function Status({ row }: { row: Connection | null | undefined }) {
   if (!row) return <Badge variant="outline">Not connected</Badge>
@@ -76,6 +75,7 @@ function ClaudeCard() {
 }
 
 export default function ConnectionsPage() {
+  const { owner_name: owner, owner_email } = useApp()
   const [params] = useSearchParams()
   const { data } = useQuery({ queryKey: ["connections"], queryFn: api.connections })
   const error = params.get("error")
@@ -85,8 +85,8 @@ export default function ConnectionsPage() {
       <div className="space-y-1">
         <h2 className="text-2xl">Connections</h2>
         <p className="text-muted-foreground">
-          The app reads David's meeting notes and writes Gmail drafts as David, and posts approved messages as the bot.
-          Both are set up once.
+          The app reads {owner}’s meeting notes and writes Gmail drafts as {owner}, and posts approved messages as the
+          bot. Both are set up once.
         </p>
       </div>
       {error ? (
@@ -98,11 +98,11 @@ export default function ConnectionsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between gap-2">
-              <CardTitle>David's Google account</CardTitle>
+              <CardTitle>{owner}’s Google account</CardTitle>
               <Status row={data?.google} />
             </div>
             <CardDescription>
-              Drive (read notes), Calendar (read attendees) and Gmail (create drafts). David signs in with his own
+              Drive (read notes), Calendar (read attendees) and Gmail (create drafts). {owner} signs in with their own
               account on the Google screen.
             </CardDescription>
           </CardHeader>
@@ -112,7 +112,9 @@ export default function ConnectionsPage() {
           </CardContent>
           <CardFooter>
             <Button asChild>
-              <a href={links.googleConnect(DAVID)}>{data?.google ? "Reconnect" : "Connect"} Google</a>
+              <a href={links.googleConnect(owner_email ?? undefined)}>
+                {data?.google ? "Reconnect" : "Connect"} Google
+              </a>
             </Button>
           </CardFooter>
         </Card>
@@ -123,7 +125,7 @@ export default function ConnectionsPage() {
               <Status row={data?.slack} />
             </div>
             <CardDescription>
-              Sends David his run summary and posts team messages after David approves them.
+              Sends {owner} the run summary and posts team messages after {owner} approves them.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm">

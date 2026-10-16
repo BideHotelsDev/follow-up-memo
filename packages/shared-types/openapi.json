@@ -512,6 +512,262 @@
         }
       }
     },
+    "/api/app": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "App Settings",
+        "operationId": "app_settings_api_app_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AppOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/properties": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Properties",
+        "operationId": "list_properties_api_admin_properties_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PropertyOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Properties Api Admin Properties Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Add Property",
+        "operationId": "add_property_api_admin_properties_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/properties/{property_id}": {
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Update Property",
+        "description": "Rename, hide or reorder a property. A rename carries over to every meeting and channel tagged with it.",
+        "operationId": "update_property_api_admin_properties__property_id__put",
+        "parameters": [
+          {
+            "name": "property_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Property Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PropertyIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PropertyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/systems": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Systems",
+        "operationId": "list_systems_api_admin_systems_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SystemOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Systems Api Admin Systems Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Add System",
+        "operationId": "add_system_api_admin_systems_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/systems/{system_id}": {
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Update System",
+        "operationId": "update_system_api_admin_systems__system_id__put",
+        "parameters": [
+          {
+            "name": "system_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "System Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SystemIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/people": {
       "get": {
         "tags": [
@@ -1737,6 +1993,48 @@
         "title": "AnswerIn",
         "description": "owner questions take owner_user_id, due questions due_date, the rest text."
       },
+      "AppOut": {
+        "properties": {
+          "owner_name": {
+            "type": "string",
+            "title": "Owner Name"
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "properties": {
+            "items": {
+              "$ref": "#/components/schemas/PropertyOut"
+            },
+            "type": "array",
+            "title": "Properties"
+          },
+          "systems": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Systems"
+          }
+        },
+        "type": "object",
+        "required": [
+          "owner_name",
+          "owner_email",
+          "properties",
+          "systems"
+        ],
+        "title": "AppOut",
+        "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems."
+      },
       "ApproveAllIn": {
         "properties": {
           "meeting_id": {
@@ -2292,6 +2590,13 @@
             ],
             "title": "Baseline Followup Days"
           },
+          "targets": {
+            "$ref": "#/components/schemas/ImpactTargets"
+          },
+          "owner_name": {
+            "type": "string",
+            "title": "Owner Name"
+          },
           "hotels": {
             "items": {
               "$ref": "#/components/schemas/ImpactHotel"
@@ -2317,6 +2622,8 @@
           "minutes_saved_per_meeting",
           "baseline_followup_rate",
           "baseline_followup_days",
+          "targets",
+          "owner_name",
           "hotels"
         ],
         "title": "ImpactOut"
@@ -2343,6 +2650,44 @@
           "overdue"
         ],
         "title": "ImpactOwner"
+      },
+      "ImpactTargets": {
+        "properties": {
+          "target_minutes_to_drafts": {
+            "type": "number",
+            "title": "Target Minutes To Drafts"
+          },
+          "target_unedited_rate": {
+            "type": "number",
+            "title": "Target Unedited Rate"
+          },
+          "target_reassigned_rate": {
+            "type": "number",
+            "title": "Target Reassigned Rate"
+          },
+          "target_active_days": {
+            "type": "number",
+            "title": "Target Active Days"
+          },
+          "followup_within_hours": {
+            "type": "number",
+            "title": "Followup Within Hours"
+          },
+          "routine_stuck_hours": {
+            "type": "number",
+            "title": "Routine Stuck Hours"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_minutes_to_drafts",
+          "target_unedited_rate",
+          "target_reassigned_rate",
+          "target_active_days",
+          "followup_within_hours",
+          "routine_stuck_hours"
+        ],
+        "title": "ImpactTargets"
       },
       "ImpactWeek": {
         "properties": {
@@ -3034,6 +3379,71 @@
         ],
         "title": "PersonOut"
       },
+      "PropertyIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "PropertyIn"
+      },
+      "PropertyOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "color",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "PropertyOut"
+      },
       "ProvidersOut": {
         "properties": {
           "google": {
@@ -3289,6 +3699,84 @@
               }
             ],
             "title": "Baseline Followup Days"
+          },
+          "target_minutes_to_drafts": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1440.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Minutes To Drafts"
+          },
+          "target_unedited_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Unedited Rate"
+          },
+          "target_reassigned_rate": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 100.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Reassigned Rate"
+          },
+          "target_active_days": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 7.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Active Days"
+          },
+          "followup_within_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 168.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Followup Within Hours"
+          },
+          "routine_stuck_hours": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 48.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routine Stuck Hours"
           }
         },
         "type": "object",
@@ -3339,6 +3827,30 @@
               }
             ],
             "title": "Baseline Followup Days"
+          },
+          "target_minutes_to_drafts": {
+            "type": "number",
+            "title": "Target Minutes To Drafts"
+          },
+          "target_unedited_rate": {
+            "type": "number",
+            "title": "Target Unedited Rate"
+          },
+          "target_reassigned_rate": {
+            "type": "number",
+            "title": "Target Reassigned Rate"
+          },
+          "target_active_days": {
+            "type": "number",
+            "title": "Target Active Days"
+          },
+          "followup_within_hours": {
+            "type": "number",
+            "title": "Followup Within Hours"
+          },
+          "routine_stuck_hours": {
+            "type": "number",
+            "title": "Routine Stuck Hours"
           }
         },
         "type": "object",
@@ -3349,7 +3861,13 @@
           "poll_interval_minutes",
           "minutes_saved_per_meeting",
           "baseline_followup_rate",
-          "baseline_followup_days"
+          "baseline_followup_days",
+          "target_minutes_to_drafts",
+          "target_unedited_rate",
+          "target_reassigned_rate",
+          "target_active_days",
+          "followup_within_hours",
+          "routine_stuck_hours"
         ],
         "title": "SettingsOut"
       },
@@ -3406,6 +3924,62 @@
           "id"
         ],
         "title": "SkipRuleOut"
+      },
+      "SystemIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SystemIn",
+        "description": "Same fields as a property."
+      },
+      "SystemOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_active"
+        ],
+        "title": "SystemOut"
       },
       "TaskIn": {
         "properties": {
