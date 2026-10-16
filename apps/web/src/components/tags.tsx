@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 
-/** The hotel filter's choices: the three properties, and meetings tagged with none. */
+/** The property filter's choices: the three properties, and meetings tagged with none. */
 export const PROPERTIES = ["The View", "The Hearth", "The Villa"] as const
 export const BIDE_WIDE = "Bide-wide"
 
@@ -25,7 +25,7 @@ export function HotelTag({ name, className }: { name: string; className?: string
   )
 }
 
-/** A meeting's hotel tags; a meeting with none is Bide-wide. */
+/** A meeting's property tags; a meeting with none is Bide-wide. */
 export function HotelTags({ properties }: { properties: string[] }) {
   const names = properties.length ? properties : [BIDE_WIDE]
   return (
@@ -54,7 +54,7 @@ const TEXT: Record<Tone, string> = {
   skip: "text-muted-foreground",
 }
 
-/** Status as quiet text with a dot, so hotel tags stay the only pills (as in the demo). */
+/** Status as quiet text with a dot, so property tags stay the only pills (as in the demo). */
 export function Status({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   return (
     <span className={cn("inline-flex items-center gap-1.5 text-sm whitespace-nowrap", TEXT[tone])}>

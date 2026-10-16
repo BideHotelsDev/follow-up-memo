@@ -64,7 +64,6 @@ export default function TodayPage() {
   if (!data) return <Loading />
 
   const isReviewer = data.viewer.role !== "member"
-  const you = scope.as ? `${data.viewer.name}’s` : "Your"
   const followed = data.meetings.filter((m) => m.status === "done" || m.status === "partial").length
   const where = property ? ` at ${property}` : ""
 
@@ -197,7 +196,7 @@ export default function TodayPage() {
           ) : null}
 
           <section>
-            <SectionTitle title={`${you} next tasks`}>
+            <SectionTitle title="Your next tasks">
               <Link to="/tasks" className="text-sm underline underline-offset-2">
                 All tasks
               </Link>

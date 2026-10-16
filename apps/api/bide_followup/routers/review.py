@@ -15,7 +15,7 @@ from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
 from bide_followup.integrations import gmail, google_api, google_oauth, llm, slack
-from bide_followup.models import ActionItem, LlmJob, Meeting, Output, Question, Run, User
+from bide_followup.models import ActionItem, Attendee, LlmJob, Meeting, Output, Question, Run, User
 from bide_followup.pipeline import outputs as pipeline_outputs
 from bide_followup.pipeline import run as pipeline
 from bide_followup.schemas.api import (
@@ -88,11 +88,10 @@ def _tasks_for(session: Session, person: User) -> list[ActionItem]:
 def today(
     session: SessionDep,
     user: CurrentUser,
-    as_user: Annotated[uuid.UUID | None, Query(alias="as")] = None,
     property: str | None = None,
 ) -> TodayOut:
     """The Today page (FR-30): today's meetings, what waits for review, open questions, the viewer's next tasks."""
-    person = views.viewer(session, user, as_user)
+    person = user
     day = clock.today()
     reviewer = views.is_reviewer(person)
     start, end = _day_bounds(day)
@@ -199,10 +198,20 @@ def list_meetings(
     from_: Annotated[date | None, Query(alias="from")] = None,
     to: date | None = None,
     q: str | None = None,
+    person: Annotated[
+        uuid.UUID | None, Query(description="Meetings this person attended or got an action from")
+    ] = None,
 ) -> list[MeetingSummaryOut]:
-    """Meetings, newest first, with property, status, date and text filters (FR-31)."""
+    """Meetings, newest first, with property, status, date, person and text filters (FR-31)."""
     views.require_reviewer(user)
     query = select(Meeting).order_by(Meeting.started_at.desc()).limit(300)
+    if person:
+        query = query.where(
+            or_(
+                Meeting.id.in_(select(Attendee.meeting_id).where(Attendee.user_id == person)),
+                Meeting.id.in_(select(ActionItem.meeting_id).where(ActionItem.owner_user_id == person)),
+            )
+        )
     if status:
         query = query.where(Meeting.status == status)
     if from_:
@@ -395,10 +404,9 @@ def list_tasks(
     bucket: Bucket | None = None,
     property: str | None = None,
     q: str | None = None,
-    as_user: Annotated[uuid.UUID | None, Query(alias="as")] = None,
 ) -> list[TaskOut]:
-    """Every action from every meeting (FR-34). Members, and anyone viewed as a member, get only their own."""
-    person = views.viewer(session, user, as_user)
+    """Every action from every meeting (FR-34), filtered by owner. Members get only their own."""
+    person = user
     query = select(ActionItem).join(Meeting).order_by(ActionItem.due_date.is_(None), ActionItem.due_date)
     if not views.is_reviewer(person):
         query = query.where(ActionItem.owner_user_id == person.id)

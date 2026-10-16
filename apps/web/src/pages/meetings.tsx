@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Meeting, type MeetingSummary } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
@@ -255,13 +256,17 @@ function Item({ m, selected }: { m: MeetingSummary; selected: boolean }) {
   )
 }
 
+const EVERYONE = "everyone"
+
 export default function MeetingsPage() {
   const { id } = useParams()
   const { scope } = useScope()
   const [q, setQ] = useState("")
+  const [person, setPerson] = useState(EVERYONE)
+  const people = useQuery({ queryKey: ["people"], queryFn: api.people })
   const list = useQuery({
-    queryKey: ["meetings", scope.property, q],
-    queryFn: () => api.meetings({ property: scope.property, q }),
+    queryKey: ["meetings", scope.property, q, person],
+    queryFn: () => api.meetings({ property: scope.property, q, person: person === EVERYONE ? undefined : person }),
   })
   const selectedId = id ?? list.data?.[0]?.id
   const detail = useQuery({
@@ -282,6 +287,21 @@ export default function MeetingsPage() {
       <PageHead title="Meetings" lede="What Gemini recorded, and where every point ended up." />
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <div className="grid gap-5">
+          <Select value={person} onValueChange={setPerson}>
+            <SelectTrigger aria-label="Employee" className="w-full bg-card">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={EVERYONE}>Everyone’s meetings</SelectItem>
+              {(people.data ?? [])
+                .filter((p) => p.role !== "admin")
+                .map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}’s meetings
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
           <Input
             type="search"
             placeholder="Search meetings"

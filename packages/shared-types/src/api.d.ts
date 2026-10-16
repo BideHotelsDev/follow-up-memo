@@ -294,7 +294,7 @@ export interface paths {
         };
         /**
          * List Meetings
-         * @description Meetings, newest first, with property, status, date and text filters (FR-31).
+         * @description Meetings, newest first, with property, status, date, person and text filters (FR-31).
          */
         get: operations["list_meetings_api_meetings_get"];
         put?: never;
@@ -448,7 +448,7 @@ export interface paths {
         };
         /**
          * List Tasks
-         * @description Every action from every meeting (FR-34). Members, and anyone viewed as a member, get only their own.
+         * @description Every action from every meeting (FR-34), filtered by owner. Members get only their own.
          */
         get: operations["list_tasks_api_tasks_get"];
         put?: never;
@@ -1764,7 +1764,6 @@ export interface operations {
     today_api_today_get: {
         parameters: {
             query?: {
-                as?: string | null;
                 property?: string | null;
             };
             header?: never;
@@ -1833,6 +1832,8 @@ export interface operations {
                 from?: string | null;
                 to?: string | null;
                 q?: string | null;
+                /** @description Meetings this person attended or got an action from */
+                person?: string | null;
             };
             header?: never;
             path?: never;
@@ -2094,7 +2095,6 @@ export interface operations {
                 bucket?: ("late" | "today" | "week" | "later" | "nodate" | "done") | null;
                 property?: string | null;
                 q?: string | null;
-                as?: string | null;
             };
             header?: never;
             path?: never;

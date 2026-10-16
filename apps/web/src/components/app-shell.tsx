@@ -1,6 +1,5 @@
-import { useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Eye, LogOut, Settings2 } from "lucide-react"
+import { LogOut, Settings2 } from "lucide-react"
 import { NavLink, Outlet } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useScope } from "@/hooks/use-scope"
-import { useViewer } from "@/hooks/use-viewer"
 import { api, type User } from "@/lib/api"
 import { time } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -61,18 +59,11 @@ function Tabs({ tabs }: { tabs: Tab[] }) {
 
 export function AppShell({ me }: { me: User }) {
   const queryClient = useQueryClient()
-  const { property, setProperty, viewingAs, setViewingAs, scope } = useScope()
-  const { reviewer, people, asMember } = useViewer()
+  const { property, setProperty, scope } = useScope()
+  const reviewer = me.role !== "member"
   const today = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope), refetchInterval: 60_000 })
   const counts = today.data?.counts
-  const viewed = viewingAs ? people.find((p) => p.id === viewingAs) : undefined
-
-  // A remembered choice that no longer applies (the person was removed, or you aren't a reviewer) is dropped.
-  useEffect(() => {
-    if (viewingAs && (!reviewer || viewingAs === me.id || (people.length > 0 && !viewed))) setViewingAs(null)
-  }, [viewingAs, reviewer, people.length, viewed, me.id, setViewingAs])
-
-  const tabs: Tab[] = !asMember
+  const tabs: Tab[] = reviewer
     ? [
         { to: "/", label: "Today", count: counts?.questions, hot: true },
         { to: "/impact", label: "Impact" },
@@ -109,11 +100,11 @@ export function AppShell({ me }: { me: User }) {
                 </span>
               ) : null}
               <Select value={property ?? ALL} onValueChange={(v) => setProperty(v === ALL ? null : v)}>
-                <SelectTrigger aria-label="Hotel" className="h-9 w-auto rounded-full bg-card">
+                <SelectTrigger aria-label="Property" className="h-9 w-auto rounded-full bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="end">
-                  <SelectItem value={ALL}>All hotels</SelectItem>
+                  <SelectItem value={ALL}>All properties</SelectItem>
                   {[...PROPERTIES, BIDE_WIDE].map((p) => (
                     <SelectItem key={p} value={p}>
                       {p}
@@ -121,23 +112,6 @@ export function AppShell({ me }: { me: User }) {
                   ))}
                 </SelectContent>
               </Select>
-              {reviewer && people.length ? (
-                <Select value={viewingAs ?? me.id} onValueChange={(v) => setViewingAs(v === me.id ? null : v)}>
-                  <SelectTrigger aria-label="Viewing as" className="h-9 w-auto rounded-full bg-card">
-                    <span className="hidden text-muted-foreground md:inline">Viewing as</span>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent align="end">
-                    {people
-                      .filter((p) => p.id === me.id || p.role !== "admin")
-                      .map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              ) : null}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" aria-label="Account">
@@ -149,7 +123,6 @@ export function AppShell({ me }: { me: User }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={async () => {
-                      setViewingAs(null)
                       await api.logout()
                       queryClient.setQueryData(["me"], null)
                     }}
@@ -163,20 +136,6 @@ export function AppShell({ me }: { me: User }) {
           <Tabs tabs={tabs} />
         </div>
       </header>
-      {viewed ? (
-        <div className="border-b bg-attention-subtle px-4 py-2 text-sm text-foreground">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1">
-            <Eye className="size-4" aria-hidden />
-            <span>
-              You’re seeing the app as <b className="font-medium">{viewed.name}</b> sees it. Nothing you do here is done
-              as them.
-            </span>
-            <button className="underline underline-offset-2" onClick={() => setViewingAs(null)}>
-              Back to your own view
-            </button>
-          </div>
-        </div>
-      ) : null}
       <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
         <Outlet />
       </main>

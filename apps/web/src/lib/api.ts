@@ -59,8 +59,8 @@ function qs(params: Record<string, string | null | undefined>): string {
   return entries.length ? `?${new URLSearchParams(entries)}` : ""
 }
 
-/** Filters every review page shares: the hotel (a property name, or "Bide-wide") and who the page is viewed as. */
-export type Scope = { property?: string | null; as?: string | null }
+/** The filter every review page shares: a property name, or "Bide-wide" for meetings tagged with none. */
+export type Scope = { property?: string | null }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   // Same origin in dev (Vite proxy) and production (the API serves the app), so the session cookie just works.
@@ -87,7 +87,8 @@ export const api = {
   people: () => request<Person[]>("GET", "/people"),
   impact: (params: { property?: string | null; weeks?: string }) => request<Impact>("GET", `/impact${qs(params)}`),
   today: (scope: Scope) => request<Today>("GET", `/today${qs(scope)}`),
-  meetings: (scope: Scope & { q?: string }) => request<MeetingSummary[]>("GET", `/meetings${qs(scope)}`),
+  meetings: (params: Scope & { q?: string; person?: string }) =>
+    request<MeetingSummary[]>("GET", `/meetings${qs(params)}`),
   meeting: (id: string) => request<Meeting>("GET", `/meetings/${id}`),
   reprocess: (id: string) => request<Meeting>("POST", `/meetings/${id}/reprocess`),
   outputs: (params: Scope & { type?: string; status?: string }) => request<Output[]>("GET", `/outputs${qs(params)}`),

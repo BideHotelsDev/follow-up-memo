@@ -17,7 +17,7 @@ const STEPS: [string, string][] = [
   ],
   [
     "It drafts everything.",
-    "A Gmail draft for people outside Bide, Slack messages for the team, and tasks, each tagged with its hotel.",
+    "A Gmail draft for people outside Bide, Slack messages for the team, and tasks, each tagged with its property.",
   ],
   ["David gets one Slack message.", "A summary with links to the drafts and anything that needs his answer."],
 ]

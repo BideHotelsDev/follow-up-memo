@@ -1,7 +1,8 @@
 """Shared pieces of the review API: who can see what, task buckets, the audit trail, and turning rows into responses.
 
 Roles (PRD §5): David is the owner and reviews everything; Admin (Kyle) can do the same for support; members
-(Russell, Sam) see only their own tasks (FR-37). An owner or Admin can view the app as a member (FR-36).
+(Russell, Sam) see only their own tasks (FR-37). Reviewers filter tasks and meetings by person instead of viewing the
+app as someone else (FR-36, as Bide asked).
 """
 
 import uuid
@@ -12,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from bide_followup import clock
-from bide_followup.errors import forbidden, not_found
+from bide_followup.errors import forbidden
 from bide_followup.integrations import gmail
 from bide_followup.models import ActionItem, AuditLog, ChannelMap, Meeting, Output, Question, User
 from bide_followup.pipeline.outputs import notes_url
@@ -37,18 +38,6 @@ def is_reviewer(user: User) -> bool:
 def require_reviewer(user: User) -> None:
     if not is_reviewer(user):
         raise forbidden("Only David can review drafts")
-
-
-def viewer(session: Session, user: User, as_user: uuid.UUID | None) -> User:
-    """The person the page is shown for: yourself, or (reviewers only) someone you are viewing as."""
-    if as_user is None or as_user == user.id:
-        return user
-    if not is_reviewer(user):
-        raise forbidden("You can only see your own tasks")
-    other = session.get(User, as_user)
-    if other is None:
-        raise not_found("Person")
-    return other
 
 
 def local_day(moment) -> date | None:

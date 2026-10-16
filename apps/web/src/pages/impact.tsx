@@ -128,7 +128,7 @@ export default function ImpactPage() {
   const captured = actions.reduce((s, p) => s + p.value, 0)
   const openTotal = data.owners.reduce((s, o) => s + o.open + o.overdue, 0)
   const overdueTotal = data.owners.reduce((s, o) => s + o.overdue, 0)
-  const scope = property ?? "All hotels"
+  const scope = property ?? "All properties"
 
   return (
     <>
@@ -155,7 +155,7 @@ export default function ImpactPage() {
           </button>
         ))}
         <span className="ml-auto text-sm text-muted-foreground">
-          Showing <b className="font-medium text-foreground">{scope}</b> · change it from the hotel menu
+          Showing <b className="font-medium text-foreground">{scope}</b> · change it from the property menu
         </span>
       </div>
 
@@ -335,14 +335,14 @@ export default function ImpactPage() {
 
           {data.hotels.length ? (
             <section>
-              <SectionTitle title="By hotel">
+              <SectionTitle title="By property">
                 <span className="text-sm text-muted-foreground">This period</span>
               </SectionTitle>
               <div className={cn(surface, "overflow-x-auto")}>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Hotel</TableHead>
+                      <TableHead>Property</TableHead>
                       <TableHead className="text-right">Meetings</TableHead>
                       <TableHead className="text-right">Followed up in 24 h</TableHead>
                       <TableHead className="text-right">Actions</TableHead>

@@ -127,7 +127,7 @@ export default function SlackPage() {
       return [...dms, ...digests]
     },
   })
-  // Only what's on screen: with a hotel chosen, the other hotels' drafts stay waiting.
+  // Only what's on screen: with a property chosen, the other properties' drafts stay waiting.
   const approveAll = useMutation({
     mutationFn: async (meetingIds: string[]) => {
       const done = []

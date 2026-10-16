@@ -62,18 +62,22 @@ test("David answers a question and approves a channel update", async ({ page }) 
   await expect(card.getByText("Approved · posted")).toBeVisible()
 })
 
-test("Viewing as Sam shows only Sam's tasks", async ({ page }) => {
+test("Tasks and meetings filter by employee", async ({ page }) => {
   await signIn(page, DAVID)
-  await page.goto("/")
-  await page.getByRole("combobox", { name: "Viewing as" }).click()
-  await page.getByRole("option", { name: "Sam" }).click()
-  await expect(page.getByRole("heading", { level: 1, name: /, Sam\./ })).toBeVisible()
-  await expect(page.getByRole("link", { name: /Meetings/ })).toHaveCount(0)
-  await page.getByRole("link", { name: /^Tasks/ }).click()
+  await page.goto("/tasks")
+  await page.getByRole("group", { name: "Owner" }).getByRole("button", { name: "Sam", exact: true }).click()
   await expect(page.getByText("Update the PriceLabs minimum-stay rule for The View to two nights")).toBeVisible()
   await expect(page.getByText("Ask the laundry about a second delivery day")).toHaveCount(0)
-  await page.getByRole("combobox", { name: "Viewing as" }).click()
-  await page.getByRole("option", { name: "David" }).click()
+
+  await page.goto("/meetings")
+  const items = page.locator('a[href^="/meetings/"]')
+  await expect(items.first()).toBeVisible()
+  const everyone = await items.count()
+  await page.getByRole("combobox", { name: "Employee" }).click()
+  await page.getByRole("option", { name: "Russell’s meetings" }).click()
+  await expect(items).not.toHaveCount(everyone)
+  await expect(page.getByRole("link", { name: /Housekeeping sync/ }).first()).toBeVisible()
+  await expect(page.getByRole("combobox", { name: "Viewing as" })).toHaveCount(0)
 })
 
 test("A task's due date changes from its drawer", async ({ page }) => {

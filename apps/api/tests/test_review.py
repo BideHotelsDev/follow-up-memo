@@ -39,10 +39,10 @@ def test_members_see_only_their_own_tasks(sign_in, processed, db):
     today = client.get("/api/today").json()
     assert today["counts"]["tasks_open"] == 1 and today["meetings"] == [] and today["questions"] == []
     russell = ids(db)["Russell"]
-    assert client.get(f"/api/tasks?as={russell}").status_code == 403
+    assert [t["owner"]["name"] for t in client.get(f"/api/tasks?owner={russell}").json()] == ["Sam"]  # still own
 
 
-def test_today_for_david_and_viewing_as_sam(sign_in, processed, db):
+def test_today_for_david(sign_in, processed, db):
     client = sign_in("david@liddellpropertyinvestments.com")
     today = client.get("/api/today").json()
     assert today["date"] == "2026-10-13" and [m["title"] for m in today["meetings"]] == [
@@ -51,10 +51,18 @@ def test_today_for_david_and_viewing_as_sam(sign_in, processed, db):
     ]
     assert today["counts"] == {"questions": 1, "emails": 1, "slack": 4, "tasks_open": 1, "tasks_overdue": 0}
     assert today["last_run"]["processed"] == 2
-    as_sam = client.get(f"/api/today?as={ids(db)['Sam']}").json()
-    assert as_sam["viewer"]["name"] == "Sam" and as_sam["counts"]["tasks_open"] == 1 and as_sam["meetings"] == []
     villa = client.get("/api/today?property=The Villa").json()
     assert [m["title"] for m in villa["meetings"]] == ["Housekeeping sync"]
+
+
+def test_meetings_by_person(sign_in, processed, db):
+    client = sign_in("david@liddellpropertyinvestments.com")
+    people = ids(db)
+    by = lambda name: [m["title"] for m in client.get(f"/api/meetings?person={people[name]}").json()]
+    assert by("Sam") == ["Weekly revenue"]  # attended, and owns an action
+    assert by("Russell") == ["Housekeeping sync"]
+    assert by("David") == ["Housekeeping sync", "Weekly revenue"]
+    assert by("Kyle") == []
 
 
 def test_meeting_detail(sign_in, processed, db):

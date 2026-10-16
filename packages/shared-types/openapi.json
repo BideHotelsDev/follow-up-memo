@@ -548,23 +548,6 @@
         "operationId": "today_api_today_get",
         "parameters": [
           {
-            "name": "as",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "As"
-            }
-          },
-          {
             "name": "property",
             "in": "query",
             "required": false,
@@ -673,7 +656,7 @@
           "review"
         ],
         "summary": "List Meetings",
-        "description": "Meetings, newest first, with property, status, date and text filters (FR-31).",
+        "description": "Meetings, newest first, with property, status, date, person and text filters (FR-31).",
         "operationId": "list_meetings_api_meetings_get",
         "parameters": [
           {
@@ -766,6 +749,25 @@
               ],
               "title": "Q"
             }
+          },
+          {
+            "name": "person",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Meetings this person attended or got an action from",
+              "title": "Person"
+            },
+            "description": "Meetings this person attended or got an action from"
           }
         ],
         "responses": {
@@ -1170,7 +1172,7 @@
           "review"
         ],
         "summary": "List Tasks",
-        "description": "Every action from every meeting (FR-34). Members, and anyone viewed as a member, get only their own.",
+        "description": "Every action from every meeting (FR-34), filtered by owner. Members get only their own.",
         "operationId": "list_tasks_api_tasks_get",
         "parameters": [
           {
@@ -1245,23 +1247,6 @@
                 }
               ],
               "title": "Q"
-            }
-          },
-          {
-            "name": "as",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "As"
             }
           }
         ],

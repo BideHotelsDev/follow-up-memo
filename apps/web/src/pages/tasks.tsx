@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useScope } from "@/hooks/use-scope"
-import { useViewer } from "@/hooks/use-viewer"
+import { useMe } from "@/hooks/use-me"
 import { api, HttpError, type Task, type TaskIn } from "@/lib/api"
 import { day, dayOf, localDate, time } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -170,12 +170,13 @@ function Drawer({ task, onClose, canEdit }: { task: Task; onClose: () => void; c
 }
 
 export default function TasksPage() {
-  const { asMember, people } = useViewer()
+  const me = useMe().data
+  const canEdit = me?.role !== "member"
+  const people = useQuery({ queryKey: ["people"], queryFn: api.people, enabled: canEdit }).data ?? []
   const { scope } = useScope()
   const [owner, setOwner] = useState("all")
   const [q, setQ] = useState("")
   const [openId, setOpenId] = useState<string | null>(null)
-  const canEdit = !asMember
   const { data } = useQuery({
     queryKey: ["tasks", scope, owner, q],
     queryFn: () => api.tasks({ ...scope, owner: owner === "all" ? undefined : owner, q }),

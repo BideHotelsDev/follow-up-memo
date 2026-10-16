@@ -77,7 +77,7 @@
   --state-open: #cf9a17;
   --state-overdue: #b8432d;
 
-  /* Hotel tags (from the approved demo): one hue per property, always with the name written on it. */
+  /* Property tags (from the approved demo): one hue per property, always with the name written on it. */
   --view: #2f5d76;
   --view-subtle: #e0ebf1;
   --hearth: #94461f;
