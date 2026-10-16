@@ -1,6 +1,6 @@
 """Seed data. `python -m bide_followup.seed` makes the owner and Admin (safe to re-run). `--demo` adds Russell and
 Sam with sample addresses, a channel map and skip rules for a local demo; `--mock` also connects a pretend Google
-account for the mock services. Never run --demo or --mock against production."""
+account and Slack bot for the mock services. Never run --demo or --mock against production."""
 
 import sys
 
@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from bide_followup.db import SessionLocal
-from bide_followup.integrations import google_oauth
+from bide_followup.integrations import google_oauth, slack
 from bide_followup.models import ChannelMap, SkipRule, User
 
 PEOPLE = [
@@ -63,6 +63,10 @@ def mock_google(session: Session) -> None:
     if google_oauth.integration(session) is None:
         token = {"access_token": "mock", "refresh_token": "mock-refresh", "expires_in": 0}
         google_oauth.save(session, "david@liddellpropertyinvestments.com", token)
+    if slack.integration(session) is None:
+        slack.save(
+            session, {"access_token": "xoxb-mock", "scope": ",".join(slack.BOT_SCOPES), "team": {"name": "Mock"}}
+        )
 
 
 if __name__ == "__main__":

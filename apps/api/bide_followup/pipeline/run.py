@@ -1,5 +1,5 @@
-"""One polling run (PRD §6 Pipeline stages): Discover new Gemini notes, then Fetch and Extract each queued meeting,
-and Log the run. Each meeting is processed on its own, so one failure never blocks the others.
+"""One polling run (PRD §6 Pipeline stages): Discover new Gemini notes; Fetch, Extract and Generate each queued
+meeting's outputs; send David the run Summary; Log the run. Each meeting is processed on its own, so one failure never blocks the others.
 
 Logs carry IDs and counts only, never note content (PRD §5 Privacy).
 """
@@ -15,7 +15,7 @@ from bide_followup import clock
 from bide_followup.config import settings
 from bide_followup.integrations import google_api, google_oauth, llm
 from bide_followup.models import ActionItem, Attendee, Meeting, Question, Run, SkipRule, User
-from bide_followup.pipeline import extract
+from bide_followup.pipeline import extract, outputs, summary
 from bide_followup.schemas.extraction import NEEDS_DAVID
 
 log = logging.getLogger(__name__)
@@ -147,15 +147,18 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
     meeting.output_tokens += result.output_tokens
     meeting.raw_text = notes
     meeting.raw_text_expires_at = clock.utcnow() + timedelta(days=settings.raw_text_days)
-    meeting.status, meeting.error = "done", None
+    meeting.status, meeting.error = "done", None  # until its outputs are generated
 
 
 def run(session: Session) -> Run:
     record = Run(started_at=clock.utcnow())
     session.add(record)
     session.commit()
+    touched: list = []
     try:
         token = google_oauth.access_token(session)
+        outputs.retry_failed(session)
+        summary.retry_failed(session)
         discover(session, token, record)
         if not llm.enabled():
             record.error = "Extraction is off (ANTHROPIC_API_KEY not set); meetings wait in the queue"
@@ -165,7 +168,7 @@ def run(session: Session) -> Run:
                 select(Meeting).where(Meeting.status.in_(("queued", "processing"))).order_by(Meeting.started_at)
             ).all()
             for meeting in queued:
-                _process_one(session, token, meeting, record)
+                _process_one(session, token, meeting, record, touched)
     except google_oauth.GoogleAuthError as exc:
         session.rollback()
         record.error = f"Paused: {exc}"
@@ -175,6 +178,8 @@ def run(session: Session) -> Run:
     record.finished_at = clock.utcnow()
     session.add(record)
     session.commit()
+    summary.send(session, record, touched)
+    summary.alert_if_failing(session, record)
     log.info(
         "run %s: found %s, processed %s, skipped %s, failed %s%s",
         record.id,
@@ -187,7 +192,7 @@ def run(session: Session) -> Run:
     return record
 
 
-def _process_one(session: Session, token: str, meeting: Meeting, record: Run) -> None:
+def _process_one(session: Session, token: str, meeting: Meeting, record: Run, touched: list) -> None:
     meeting.status = "processing"
     meeting.attempts += 1
     session.commit()
@@ -196,8 +201,12 @@ def _process_one(session: Session, token: str, meeting: Meeting, record: Run) ->
         session.commit()
         if meeting.status == "skipped":
             record.skipped += 1
-        else:
-            record.processed += 1
+            return
+        # The extraction is saved first, so an output failure never loses it; outputs record their own failures.
+        outputs.generate(session, meeting)
+        session.commit()
+        record.processed += 1
+        touched.append(meeting.id)
     except google_oauth.GoogleAuthError:
         session.rollback()
         meeting.status = "queued"
@@ -210,6 +219,7 @@ def _process_one(session: Session, token: str, meeting: Meeting, record: Run) ->
         if meeting.attempts >= settings.max_attempts:
             meeting.status = "failed"
             record.failed += 1
+            touched.append(meeting.id)
         else:
             meeting.status = "queued"  # the next run retries it
         session.commit()

@@ -122,6 +122,7 @@ def mocks(monkeypatch):
     monkeypatch.setattr(settings, "google_api_url", "http://mock/google")
     monkeypatch.setattr(settings, "google_token_url", "http://mock/google/token")
     monkeypatch.setattr(settings, "anthropic_api_key", "mock-key")
+    monkeypatch.setattr(settings, "gmail_api_url", "http://mock/gmail")
 
     def get(url, **kwargs):
         return mock.get(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
@@ -129,8 +130,17 @@ def mocks(monkeypatch):
     def post(url, **kwargs):
         return mock.post(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
 
+    def put(url, **kwargs):
+        return mock.put(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
+
+    def delete(url, **kwargs):
+        return mock.delete(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
+
+    # One httpx module serves every integration, so these patches cover Google, Gmail and the token refresh.
     monkeypatch.setattr(google_api.httpx, "get", get)
     monkeypatch.setattr(google_oauth.httpx, "post", post)
+    monkeypatch.setattr(google_api.httpx, "put", put)
+    monkeypatch.setattr(google_api.httpx, "delete", delete)
     monkeypatch.setattr(
         llm,
         "client",
@@ -151,3 +161,39 @@ def connected(db):
             "david@liddellpropertyinvestments.com",
             {"access_token": "old", "refresh_token": "1//r", "expires_in": 0},
         )
+
+
+class MockSlack:
+    """The parts of slack_sdk's WebClient the app uses, served by the mock (WebClient itself uses urllib, which
+    can't reach an in-process TestClient)."""
+
+    def __init__(self, mock: TestClient):
+        self.mock = mock
+        self.token = "xoxb-mock"
+
+    def _call(self, method: str, **kwargs):
+        from slack_sdk.errors import SlackApiError
+
+        body = self.mock.post(f"/slack/api/{method}", json=kwargs).json()
+        if not body.get("ok"):
+            raise SlackApiError(body.get("error", "error"), body)
+        return body
+
+    def conversations_open(self, **kwargs):
+        return self._call("conversations.open", **kwargs)
+
+    def chat_postMessage(self, **kwargs):  # slack_sdk's name
+        return self._call("chat.postMessage", **kwargs)
+
+    def users_lookupByEmail(self, **kwargs):
+        return self._call("users.lookupByEmail", **kwargs)
+
+
+@pytest.fixture
+def slack_bot(monkeypatch, mocks):
+    """The Slack bot installed, posting to the mock (read back from mocks.state["slack"])."""
+    from bide_followup.integrations import slack
+
+    bot = MockSlack(TestClient(mocks.app, base_url="http://mock"))
+    monkeypatch.setattr(slack, "client", lambda session: bot)
+    return mocks.state["slack"]

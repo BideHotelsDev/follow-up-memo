@@ -30,8 +30,9 @@ Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`. A
 
 ### With the mock services
 
-`apps/api/mocks` stands in for Google (Drive, Calendar, OAuth) and Claude, serving two made-up meetings, so the
-whole pipeline runs with no accounts or API key:
+`apps/api/mocks` stands in for Google (Drive, Calendar, OAuth, Gmail), Slack and Claude, serving two made-up
+meetings, so the whole pipeline runs with no accounts or API key. What would have gone to Gmail and Slack is at
+http://localhost:8400/inbox.
 
 ```sh
 pnpm seed:mock        # a separate SQLite database, with a pretend Google connection
@@ -57,7 +58,16 @@ Every 10 minutes the worker (`bide_followup.worker`) runs `pipeline/run.py`:
 4. **Ground** (`pipeline/validate.py`): ungrounded actions are dropped, unsupported dates and emails cleared, and
    unowned or undated items become questions for David (5 at most).
 
-A meeting that fails is retried on the next run and marked failed after 3 attempts. Without Google connected the run
+5. **Generate** (`pipeline/outputs.py`): a Gmail draft to the external attendees, written by Claude from the
+   validated summary (never the notes) in David's tone and signature (`prompts/email_v1.md`); a Slack DM draft per
+   internal owner; a channel digest draft for the mapped topic or property. Sensitive meetings get no DMs or digest,
+   and the email is flagged "review carefully". Outputs are upserted by (meeting, type, recipient), so a rerun updates
+   drafts rather than duplicating them, and anything David has approved or discarded is left alone.
+6. **Summarise** (`pipeline/summary.py`): one Slack DM to David listing the meetings processed. With failure alerts
+   to `ADMIN_ALERT_SLACK_CHANNEL` (after two failed runs in a row), the only message posted without approval.
+
+A meeting that fails is retried on the next run and marked failed after 3 attempts; a failed output (a Gmail draft,
+the summary) is retried the same way and the meeting shows as partial meanwhile. Without Google connected the run
 pauses; without `ANTHROPIC_API_KEY` meetings wait in the queue. Stored note text is deleted after 30 days.
 
 ## Golden set

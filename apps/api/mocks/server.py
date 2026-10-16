@@ -1,4 +1,5 @@
-"""Stand-ins for Google (OAuth token, Drive, Calendar) and Claude, for local development and tests.
+"""Stand-ins for Google (OAuth token, Drive, Calendar, Gmail drafts), Slack and Claude, for local development and
+tests. Gmail drafts and Slack posts are kept in `state` (and listed at /inbox) so you can see what would have gone out.
 
     pnpm dev:mocks          # http://localhost:8400
     pnpm dev:api:mock       # the API wired to it (.env.mock)
@@ -27,6 +28,8 @@ def reset(now: datetime | None = None) -> None:
     now = now or datetime.now(UTC)
     state["now"] = now
     state["files"] = {}
+    state["drafts"] = {}
+    state["slack"] = []
     for s in SAMPLES:
         start = now + s["start_offset"]
         end = start + timedelta(minutes=s["minutes"])
@@ -125,12 +128,24 @@ def _extraction_for(prompt: str) -> dict:
     }
 
 
+def _email_for(prompt: str) -> dict:
+    meeting = json.loads(prompt)
+    first = ", ".join(n.split()[0] for n in meeting["recipients"])
+    steps = "\n".join(f"- {s['action']} ({s['owner']})" for s in meeting["next_steps"])
+    return {
+        "subject": f"Follow-up: {meeting['meeting']['title']}",
+        "body": f"Hi {first},\n\nThanks for your time today. Next steps:\n{steps}\n\nBest,\nDavid",
+    }
+
+
 @app.post("/anthropic/v1/messages")
 async def messages(request: Request) -> dict:
     body = await request.json()
-    state["last_request"] = {"body": body, "beta": request.headers.get("anthropic-beta", "")}
     prompt = "\n".join(m["content"] for m in body["messages"] if m["role"] == "user" and isinstance(m["content"], str))
-    text = json.dumps(_extraction_for(prompt))
+    is_email = "subject" in body["output_config"]["format"]["schema"]["properties"]
+    if not is_email:
+        state["last_request"] = {"body": body, "beta": request.headers.get("anthropic-beta", "")}
+    text = json.dumps(_email_for(prompt) if is_email else _extraction_for(prompt))
     return {
         "id": f"msg_mock_{uuid.uuid4().hex[:12]}",
         "type": "message",
@@ -141,3 +156,68 @@ async def messages(request: Request) -> dict:
         "stop_sequence": None,
         "usage": {"input_tokens": len(prompt) // 4, "output_tokens": len(text) // 4},
     }
+
+
+@app.post("/gmail/gmail/v1/users/me/drafts")
+async def gmail_create(request: Request) -> dict:
+    draft_id = f"r-{uuid.uuid4().hex[:10]}"
+    state["drafts"][draft_id] = _decode((await request.json())["message"]["raw"])
+    return {"id": draft_id, "message": {"id": f"m-{draft_id}"}}
+
+
+@app.put("/gmail/gmail/v1/users/me/drafts/{draft_id}")
+async def gmail_update(draft_id: str, request: Request) -> dict:
+    if draft_id not in state["drafts"]:
+        raise HTTPException(status_code=404, detail={"error": {"status": "NOT_FOUND"}})
+    state["drafts"][draft_id] = _decode((await request.json())["message"]["raw"])
+    return {"id": draft_id}
+
+
+@app.get("/gmail/gmail/v1/users/me/drafts/{draft_id}")
+def gmail_get(draft_id: str) -> dict:
+    if draft_id not in state["drafts"]:
+        raise HTTPException(status_code=404, detail={"error": {"status": "NOT_FOUND"}})
+    return {"id": draft_id}
+
+
+@app.delete("/gmail/gmail/v1/users/me/drafts/{draft_id}", status_code=204)
+def gmail_delete(draft_id: str) -> None:
+    if state["drafts"].pop(draft_id, None) is None:
+        raise HTTPException(status_code=404)
+
+
+def _decode(raw: str) -> dict:
+    import base64
+    from email import message_from_bytes, policy
+
+    message = message_from_bytes(base64.urlsafe_b64decode(raw), policy=policy.default)
+    return {"to": message["To"], "subject": message["Subject"], "body": message.get_content()}
+
+
+SLACK_USERS = {"david@liddellpropertyinvestments.com": "U0DAVID"}
+
+
+@app.post("/slack/api/{method}")
+async def slack_api(method: str, request: Request) -> dict:
+    from urllib.parse import parse_qsl
+
+    raw = (await request.body()).decode()
+    form = dict(request.query_params)
+    if raw:
+        form |= json.loads(raw) if raw.lstrip().startswith("{") else dict(parse_qsl(raw))
+    if method == "conversations.open":
+        return {"ok": True, "channel": {"id": f"D-{form['users']}"}}
+    if method == "chat.postMessage":
+        ts = f"{len(state['slack']) + 1}.000100"
+        state["slack"].append({"channel": form["channel"], "text": form["text"], "ts": ts})
+        return {"ok": True, "channel": form["channel"], "ts": ts}
+    if method == "users.lookupByEmail":
+        user = SLACK_USERS.get(form["email"])
+        return {"ok": True, "user": {"id": user}} if user else {"ok": False, "error": "users_not_found"}
+    return {"ok": False, "error": "unknown_method"}
+
+
+@app.get("/inbox")
+def inbox() -> dict:
+    """What the app would have put in Gmail and Slack."""
+    return {"gmail_drafts": state["drafts"], "slack": state["slack"]}
