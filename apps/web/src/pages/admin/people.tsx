@@ -24,7 +24,7 @@ function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () =
   const save = useMutation({
     mutationFn: (body: UserIn) => (person === "new" ? api.addPerson(body) : api.updatePerson(person.id, body)),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["people"] })
+      queryClient.invalidateQueries({ queryKey: ["admin-people"] })
       toast.success("Saved")
       onClose()
     },
@@ -114,14 +114,14 @@ function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () =
 }
 
 export default function PeoplePage() {
-  const { data = [] } = useQuery({ queryKey: ["people"], queryFn: api.people })
+  const { data = [] } = useQuery({ queryKey: ["admin-people"], queryFn: api.adminPeople })
   const [editing, setEditing] = useState<User | "new" | null>(null)
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl">People</h1>
+          <h2 className="text-2xl">People</h2>
           <p className="text-muted-foreground">Who can sign in, and who owns which kind of action.</p>
         </div>
         <Button onClick={() => setEditing("new")}>

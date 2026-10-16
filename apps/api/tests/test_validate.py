@@ -62,7 +62,7 @@ def test_ground_drops_ungrounded_and_unsupported_dates():
     g = validate.ground(e, NOTES, validate.emails_in(NOTES), DAY)
     assert [a.due for a in g.actions] == [date(2026, 10, 16), None]  # the boiler quote states no deadline
     assert g.dropped == ["Email investors"]
-    assert g.questions == [("When is this due: Do it?", 1)]
+    assert g.questions == [("When is this due: Do it?", 1, "due")]
     assert e.attendees[0].email is None
 
 
@@ -72,5 +72,5 @@ def test_needs_david_becomes_a_question_and_questions_cap_at_five():
         questions=[f"Q{i}?" for i in range(6)],
     )
     g = validate.ground(e, NOTES, set(), DAY)
-    assert g.questions[0] == ("Who should own this: Fix boiler?", 0)
+    assert g.questions[0] == ("Who should own this: Fix boiler?", 0, "owner")
     assert len(g.questions) == 5

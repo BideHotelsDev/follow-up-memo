@@ -1,89 +1,160 @@
-import { LogOut, Menu, PlugZap, Users } from "lucide-react"
-import { useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { LogOut, Settings2 } from "lucide-react"
 import { NavLink, Outlet } from "react-router-dom"
-import { useQueryClient } from "@tanstack/react-query"
 
-import { BrandLockup } from "@/components/brand"
+import { SpiralPin, Wordmark } from "@/components/brand"
+import { BIDE_WIDE, PROPERTIES } from "@/components/tags"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useScope } from "@/hooks/use-scope"
+import { useViewer } from "@/hooks/use-viewer"
 import { api, type User } from "@/lib/api"
+import { time } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-type Item = { to: string; label: string; icon: typeof Users; roles: User["role"][] }
+const ALL = "all"
 
-// Pages arrive with their phases (PRD §3): Today, Meetings, drafts and Tasks join this list in Phase 4.
-const NAV: Item[] = [
-  { to: "/admin/connections", label: "Connections", icon: PlugZap, roles: ["admin"] },
-  { to: "/admin/people", label: "People", icon: Users, roles: ["admin"] },
-]
+type Tab = { to: string; label: string; count?: number; hot?: boolean }
 
-function Nav({ me, onNavigate }: { me: User; onNavigate?: () => void }) {
-  const queryClient = useQueryClient()
-  const items = NAV.filter((item) => item.roles.includes(me.role))
+function Tabs({ tabs }: { tabs: Tab[] }) {
   return (
-    <div className="flex h-full flex-col gap-6 bg-sidebar p-4 text-sidebar-foreground">
-      <BrandLockup />
-      <nav className="flex flex-col gap-1" aria-label="Main">
-        {items.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              cn(
-                "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm",
-                isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "hover:bg-sidebar-accent/60",
-              )
-            }
-          >
-            <Icon className="size-4" aria-hidden />
-            {label}
-          </NavLink>
-        ))}
-      </nav>
-      <div className="mt-auto space-y-2 text-sm">
-        <p className="truncate opacity-80">{me.name}</p>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
-          onClick={async () => {
-            await api.logout()
-            queryClient.setQueryData(["me"], null)
-          }}
+    <nav aria-label="Pages" className="-mx-3 flex gap-1 overflow-x-auto [scrollbar-width:none]">
+      {tabs.map((tab) => (
+        <NavLink
+          key={tab.to}
+          to={tab.to}
+          end={tab.to === "/"}
+          className={({ isActive }) =>
+            cn(
+              "inline-flex shrink-0 items-center gap-1.5 border-b-[3px] px-3 pt-2 pb-2.5 text-[15px]",
+              isActive
+                ? "border-primary font-medium text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground",
+            )
+          }
         >
-          <LogOut className="size-4" aria-hidden />
-          Sign out
-        </Button>
-      </div>
-    </div>
+          {tab.label}
+          {tab.count ? (
+            <span
+              className={cn(
+                "tnum rounded-full px-1.5 text-xs font-medium",
+                tab.hot ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+              )}
+            >
+              {tab.count}
+            </span>
+          ) : null}
+        </NavLink>
+      ))}
+    </nav>
   )
 }
 
 export function AppShell({ me }: { me: User }) {
-  const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const { property, setProperty, viewingAs, setViewingAs, scope } = useScope()
+  const { reviewer, people, asMember } = useViewer()
+  const today = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope), refetchInterval: 60_000 })
+  const counts = today.data?.counts
+
+  const tabs: Tab[] = !asMember
+    ? [
+        { to: "/", label: "Today", count: counts?.questions, hot: true },
+        { to: "/meetings", label: "Meetings" },
+        { to: "/emails", label: "Email drafts", count: counts?.emails },
+        { to: "/slack", label: "Slack drafts", count: counts?.slack },
+        { to: "/tasks", label: "Tasks", count: counts?.tasks_open },
+        { to: "/how", label: "How it works" },
+      ]
+    : [
+        { to: "/", label: "Today" },
+        { to: "/tasks", label: "Tasks", count: counts?.tasks_open },
+        { to: "/how", label: "How it works" },
+      ]
+  if (me.role === "admin") tabs.push({ to: "/admin", label: "Admin" })
+
+  const run = today.data?.last_run
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[15rem_1fr]">
-      <aside className="hidden md:block">
-        <div className="sticky top-0 h-dvh">
-          <Nav me={me} />
+    <div className="min-h-dvh">
+      <header className="sticky top-0 z-20 border-b bg-background/95 px-4 backdrop-blur">
+        <div className="mx-auto max-w-6xl space-y-1 pt-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <SpiralPin className="size-7 shrink-0 text-primary" />
+              <Wordmark className="text-2xl" showTrademark={false} />
+              <span className="hidden truncate text-sm text-muted-foreground sm:inline">Meeting follow-up</span>
+            </div>
+            <div className="flex min-w-0 items-center gap-2">
+              {run ? (
+                <span className="hidden items-center gap-1.5 text-sm text-muted-foreground lg:inline-flex">
+                  <span aria-hidden className={cn("size-2 rounded-full", run.error ? "bg-destructive" : "bg-ok")} />
+                  Last run {time(run.started_at)}
+                  {today.data?.next_run_at ? ` · next ${time(today.data.next_run_at)}` : ""}
+                </span>
+              ) : null}
+              <Select value={property ?? ALL} onValueChange={(v) => setProperty(v === ALL ? null : v)}>
+                <SelectTrigger aria-label="Hotel" className="h-9 w-auto rounded-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectItem value={ALL}>All hotels</SelectItem>
+                  {[...PROPERTIES, BIDE_WIDE].map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {reviewer && people.length ? (
+                <Select value={viewingAs ?? me.id} onValueChange={(v) => setViewingAs(v === me.id ? null : v)}>
+                  <SelectTrigger aria-label="Viewing as" className="h-9 w-auto rounded-full bg-card">
+                    <span className="hidden text-muted-foreground md:inline">Viewing as</span>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent align="end">
+                    {people
+                      .filter((p) => p.id === me.id || p.role !== "admin")
+                      .map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              ) : null}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Account">
+                    <Settings2 className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>{me.name}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={async () => {
+                      await api.logout()
+                      queryClient.setQueryData(["me"], null)
+                    }}
+                  >
+                    <LogOut className="size-4" /> Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <Tabs tabs={tabs} />
         </div>
-      </aside>
-      <header className="flex items-center justify-between bg-sidebar px-4 py-2 md:hidden">
-        <BrandLockup compact />
-        <Sheet open={open} onOpenChange={setOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-sidebar-foreground" aria-label="Open menu">
-              <Menu className="size-5" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-64 border-0 p-0">
-            <SheetTitle className="sr-only">Menu</SheetTitle>
-            <Nav me={me} onNavigate={() => setOpen(false)} />
-          </SheetContent>
-        </Sheet>
       </header>
-      <main className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-10">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
         <Outlet />
       </main>
     </div>

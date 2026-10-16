@@ -205,10 +205,314 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/people": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People
+         * @description Everyone a task can be assigned to (owner pickers, the Viewing as switch).
+         */
+        get: operations["people_api_people_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/today": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Today
+         * @description The Today page (FR-30): today's meetings, what waits for review, open questions, the viewer's next tasks.
+         */
+        get: operations["today_api_today_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Meetings
+         * @description Meetings, newest first, with property, status, date and text filters (FR-31).
+         */
+        get: operations["list_meetings_api_meetings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetings/{meeting_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Meeting */
+        get: operations["get_meeting_api_meetings__meeting_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meetings/{meeting_id}/reprocess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprocess
+         * @description Run extraction again and replace the drafts David hasn't acted on (FR-7). Takes as long as a run does.
+         */
+        post: operations["reprocess_api_meetings__meeting_id__reprocess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/outputs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Outputs
+         * @description Email and Slack drafts (FR-32, FR-33), newest meeting first. Run summaries are not drafts and aren't listed.
+         */
+        get: operations["list_outputs_api_outputs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/outputs/{output_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Edit Output
+         * @description Edit a draft's text. An email edit updates the Gmail draft too.
+         */
+        patch: operations["edit_output_api_outputs__output_id__patch"];
+        trace?: never;
+    };
+    "/api/outputs/{output_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve */
+        post: operations["approve_api_outputs__output_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/outputs/approve-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve All
+         * @description Approve every waiting Slack draft, of one meeting or of all. Stops at the first Slack refusal.
+         */
+        post: operations["approve_all_api_outputs_approve_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/outputs/{output_id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Discard
+         * @description Discard a draft. An email's Gmail draft is deleted too.
+         */
+        post: operations["discard_api_outputs__output_id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Tasks
+         * @description Every action from every meeting (FR-34). Members, and anyone viewed as a member, get only their own.
+         */
+        get: operations["list_tasks_api_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Task
+         * @description Change a task's owner, due date or status. Members can only mark their own tasks done or open again.
+         */
+        patch: operations["update_task_api_tasks__task_id__patch"];
+        trace?: never;
+    };
+    "/api/questions/{question_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer
+         * @description Answer a question for David. An owner or due question updates its action, and the meeting's Slack drafts are
+         *     rebuilt to match (FR-35).
+         */
+        post: operations["answer_api_questions__question_id__answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/questions/{question_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reopen
+         * @description Undo an answer (the action keeps the value it was given; change it on the task).
+         */
+        post: operations["reopen_api_questions__question_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AnswerIn
+         * @description owner questions take owner_user_id, due questions due_date, the rest text.
+         */
+        AnswerIn: {
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /**
+         * ApproveAllIn
+         * @description Approve every Slack draft of one meeting, or (no meeting) every Slack draft waiting.
+         */
+        ApproveAllIn: {
+            /** Meeting Id */
+            meeting_id?: string | null;
+        };
+        /** AttendeeOut */
+        AttendeeOut: {
+            /** Name */
+            name: string;
+            /** Email */
+            email: string | null;
+            /** Is Internal */
+            is_internal: boolean;
+        };
         /** ChannelMapIn */
         ChannelMapIn: {
             /** Topic */
@@ -277,12 +581,204 @@ export interface components {
             /** Database */
             database: string;
         };
+        /** MeetingOut */
+        MeetingOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Started At */
+            started_at: string | null;
+            /** Ended At */
+            ended_at: string | null;
+            /** Properties */
+            properties: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "processing" | "done" | "partial" | "failed" | "skipped";
+            /** Skip Reason */
+            skip_reason: string | null;
+            /** Is Sensitive */
+            is_sensitive: boolean;
+            /** Attendee Count */
+            attendee_count: number;
+            /** Action Count */
+            action_count: number;
+            /** Open Questions */
+            open_questions: number;
+            /** Drafts Waiting */
+            drafts_waiting: number;
+            /** Notes Url */
+            notes_url: string;
+            /** Purpose */
+            purpose: string | null;
+            /** Key Points */
+            key_points: string[];
+            /** Decisions */
+            decisions: string[];
+            /** Open Threads */
+            open_threads: string[];
+            /** Systems Mentioned */
+            systems_mentioned: string[];
+            /** Notes Quality */
+            notes_quality: string | null;
+            /** Dropped Actions */
+            dropped_actions: string[];
+            /** Error */
+            error: string | null;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /** Attendees */
+            attendees: components["schemas"]["AttendeeOut"][];
+            /** Tasks */
+            tasks: components["schemas"]["TaskOut"][];
+            /** Questions */
+            questions: components["schemas"]["QuestionOut"][];
+            /** Outputs */
+            outputs: components["schemas"]["OutputOut"][];
+        };
+        /** MeetingRef */
+        MeetingRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Started At */
+            started_at: string | null;
+            /** Properties */
+            properties: string[];
+        };
+        /** MeetingSummaryOut */
+        MeetingSummaryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Started At */
+            started_at: string | null;
+            /** Ended At */
+            ended_at: string | null;
+            /** Properties */
+            properties: string[];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "processing" | "done" | "partial" | "failed" | "skipped";
+            /** Skip Reason */
+            skip_reason: string | null;
+            /** Is Sensitive */
+            is_sensitive: boolean;
+            /** Attendee Count */
+            attendee_count: number;
+            /** Action Count */
+            action_count: number;
+            /** Open Questions */
+            open_questions: number;
+            /** Drafts Waiting */
+            drafts_waiting: number;
+        };
+        /** OutputIn */
+        OutputIn: {
+            /** Subject */
+            subject?: string | null;
+            /** Body */
+            body?: string | null;
+        };
+        /** OutputOut */
+        OutputOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            meeting: components["schemas"]["MeetingRef"] | null;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "email_draft" | "slack_dm" | "slack_digest" | "run_summary";
+            /** Recipient */
+            recipient: string;
+            /** Recipient Label */
+            recipient_label: string;
+            /** Subject */
+            subject: string | null;
+            /** Body */
+            body: string;
+            /** Review Carefully */
+            review_carefully: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "draft" | "approved" | "posted" | "discarded" | "failed" | "closed_in_gmail";
+            /** Error */
+            error: string | null;
+            /** Gmail Url */
+            gmail_url: string | null;
+            /** Approved At */
+            approved_at: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** PersonOut */
+        PersonOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "admin" | "owner" | "member";
+        };
         /** ProvidersOut */
         ProvidersOut: {
             /** Google */
             google: boolean;
             /** Dev */
             dev: boolean;
+        };
+        /** QuestionOut */
+        QuestionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            meeting: components["schemas"]["MeetingRef"];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "owner" | "due" | "other";
+            /** Text */
+            text: string;
+            /** Action Item Id */
+            action_item_id: string | null;
+            /** Answer */
+            answer: string | null;
+            /** Answered At */
+            answered_at: string | null;
         };
         /** RunOut */
         RunOut: {
@@ -356,6 +852,85 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /**
+         * TaskIn
+         * @description Only the fields sent are changed. owner_user_id null (with the field sent) makes the task Needs David.
+         */
+        TaskIn: {
+            /** Owner User Id */
+            owner_user_id?: string | null;
+            /** Due Date */
+            due_date?: string | null;
+            /** Status */
+            status?: ("open" | "done" | "dismissed") | null;
+        };
+        /** TaskOut */
+        TaskOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            meeting: components["schemas"]["MeetingRef"];
+            /** Description */
+            description: string;
+            owner: components["schemas"]["PersonOut"] | null;
+            /** Owner Name */
+            owner_name: string | null;
+            /**
+             * Owner Status
+             * @enum {string}
+             */
+            owner_status: "assigned" | "needs_david";
+            /** Due Date */
+            due_date: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "open" | "done" | "dismissed";
+            /** Source Quote */
+            source_quote: string | null;
+            /**
+             * Bucket
+             * @enum {string}
+             */
+            bucket: "late" | "today" | "week" | "later" | "nodate" | "done";
+        };
+        /** TodayCounts */
+        TodayCounts: {
+            /** Questions */
+            questions: number;
+            /** Emails */
+            emails: number;
+            /** Slack */
+            slack: number;
+            /** Tasks Open */
+            tasks_open: number;
+            /** Tasks Overdue */
+            tasks_overdue: number;
+        };
+        /** TodayOut */
+        TodayOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            viewer: components["schemas"]["PersonOut"];
+            counts: components["schemas"]["TodayCounts"];
+            /** Meetings */
+            meetings: components["schemas"]["MeetingSummaryOut"][];
+            /** Questions */
+            questions: components["schemas"]["QuestionOut"][];
+            /** Next Tasks */
+            next_tasks: components["schemas"]["TaskOut"][];
+            /** Problems */
+            problems: components["schemas"]["MeetingSummaryOut"][];
+            last_run: components["schemas"]["RunOut"] | null;
+            /** Next Run At */
+            next_run_at: string | null;
         };
         /** UserIn */
         UserIn: {
@@ -819,6 +1394,456 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunOut"];
+                };
+            };
+        };
+    };
+    people_api_people_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonOut"][];
+                };
+            };
+        };
+    };
+    today_api_today_get: {
+        parameters: {
+            query?: {
+                as?: string | null;
+                property?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodayOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_meetings_api_meetings_get: {
+        parameters: {
+            query?: {
+                property?: string | null;
+                status?: ("queued" | "processing" | "done" | "partial" | "failed" | "skipped") | null;
+                from?: string | null;
+                to?: string | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetingSummaryOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_meeting_api_meetings__meeting_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meeting_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reprocess_api_meetings__meeting_id__reprocess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meeting_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeetingOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_outputs_api_outputs_get: {
+        parameters: {
+            query?: {
+                type?: ("email_draft" | "slack_dm" | "slack_digest" | "run_summary") | null;
+                /** @description Comma-separated statuses */
+                status?: string | null;
+                property?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_output_api_outputs__output_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                output_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OutputIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_api_outputs__output_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                output_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_all_api_outputs_approve_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveAllIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_api_outputs__output_id__discard_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                output_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OutputOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tasks_api_tasks_get: {
+        parameters: {
+            query?: {
+                /** @description A person's id, 'needs_david' or 'external' */
+                owner?: string | null;
+                bucket?: ("late" | "today" | "week" | "later" | "nodate" | "done") | null;
+                property?: string | null;
+                q?: string | null;
+                as?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_task_api_tasks__task_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TaskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_api_questions__question_id__answer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_api_questions__question_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                question_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

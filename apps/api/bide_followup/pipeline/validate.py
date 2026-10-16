@@ -78,14 +78,14 @@ class GroundedAction:
 class Grounded:
     extraction: Extraction
     actions: list[GroundedAction]
-    questions: list[tuple[str, int | None]]  # question text, index into actions it is about
+    questions: list[tuple[str, int | None, str]]  # text, index into actions it is about, kind (owner/due/other)
     dropped: list[str] = field(default_factory=list)
 
 
 def ground(extraction: Extraction, notes: str, known_emails: set[str], meeting_day: date) -> Grounded:
     dropped: list[str] = []
     actions: list[GroundedAction] = []
-    questions: list[tuple[str, int | None]] = []
+    questions: list[tuple[str, int | None, str]] = []
     for action in extraction.action_items:
         if not grounded(action.source_quote, notes):
             dropped.append(action.description)
@@ -94,18 +94,18 @@ def ground(extraction: Extraction, notes: str, known_emails: set[str], meeting_d
         if due is not None and not DEADLINE.search(action.source_quote):
             # Claude gave a date the quote doesn't support: keep the action, drop the date, ask.
             due = None
-            questions.append((f"When is this due: {action.description}?", len(actions)))
+            questions.append((f"When is this due: {action.description}?", len(actions), "due"))
         actions.append(GroundedAction(action=action, due=due))
     for attendee in extraction.attendees:
         if attendee.email and attendee.email.lower() not in known_emails:
             attendee.email = None
     owners = [
-        (f"Who should own this: {item.action.description}?", i)
+        (f"Who should own this: {item.action.description}?", i, "owner")
         for i, item in enumerate(actions)
         if item.action.owner == NEEDS_DAVID
     ]
     # Questions tied to an action come first: answering them updates the action (FR-35).
-    questions = owners + questions + [(q, None) for q in extraction.questions_for_david]
+    questions = owners + questions + [(q, None, "other") for q in extraction.questions_for_david]
     return Grounded(extraction=extraction, actions=actions, questions=questions[:MAX_QUESTIONS], dropped=dropped)
 
 

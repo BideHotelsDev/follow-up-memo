@@ -13,7 +13,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 from bide_followup import runtime_settings
 from bide_followup.config import settings
 from bide_followup.db import SessionLocal
-from bide_followup.pipeline import run
+from bide_followup.integrations import google_oauth
+from bide_followup.pipeline import outputs, run
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 log = logging.getLogger(__name__)
@@ -22,6 +23,16 @@ log = logging.getLogger(__name__)
 def poll() -> None:
     with SessionLocal() as session:
         run.run(session)
+
+
+def sync_gmail() -> None:
+    with SessionLocal() as session:
+        try:
+            closed = outputs.sync_gmail(session)
+        except google_oauth.GoogleAuthError:
+            return  # the next poll reports the connection problem
+        if closed:
+            log.info("%s email drafts were sent or deleted in Gmail", closed)
 
 
 def purge() -> None:
@@ -33,7 +44,11 @@ def main() -> None:
     with SessionLocal() as session:
         minutes = int(runtime_settings.get(session, "poll_interval_minutes"))
     scheduler = BlockingScheduler(timezone=settings.timezone)
-    jobs = {"poll": (poll, IntervalTrigger(minutes=minutes)), "purge": (purge, CronTrigger(hour=3, minute=0))}
+    jobs = {
+        "poll": (poll, IntervalTrigger(minutes=minutes)),
+        "sync_gmail": (sync_gmail, IntervalTrigger(minutes=30)),
+        "purge": (purge, CronTrigger(hour=3, minute=0)),
+    }
     for name, (job, trigger) in jobs.items():
         scheduler.add_job(job, trigger, id=name, max_instances=1, coalesce=True, misfire_grace_time=600)
     log.info("worker started: polling every %s minutes", minutes)

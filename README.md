@@ -25,7 +25,9 @@ pnpm dev:web                      # http://localhost:5175 (proxies /api to the A
 With `AUTH_DEV_LOGIN=true` the sign-in page lets you sign in as any seeded person (e.g. `kyle@bidehotels.com`, Admin)
 without Google.
 
-Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`. After changing an API model, run
+Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`, and the browser tests
+(`pnpm --filter @bide-followup/web e2e`, with the mock services and `E2E_BASE_URL` pointing at the app; desktop and
+390 px phone widths, with an axe accessibility check). After changing an API model, run
 `pnpm gen:types` and commit the result; CI fails if the types are out of date.
 
 ### With the mock services
@@ -43,6 +45,16 @@ pnpm dev:web
 
 Sign in as `kyle@bidehotels.com` and run the pipeline with `POST /api/admin/runs` (or `pnpm dev:worker:mock` to run
 it on the schedule).
+
+## The web app
+
+The pages follow the approved demo ("Meeting Follow-up Demo" artifact): **Today** (what waits for David, today's calls,
+questions answered in place, next tasks), **Meetings** (what Gemini recorded and where each point went; reprocess),
+**Email drafts** (preview, edit, open in Gmail, discard), **Slack drafts** (approve and post, approve all, edit,
+discard), **Tasks** (by due date; a drawer to change owner, date and status), **How it works** and **Admin**
+(connections, people, channels, skip rules, email tone and schedule, run log). A hotel filter and a "Viewing as"
+switch sit in the header. Members (Russell, Sam) see only Today and their own tasks. Every approve, edit, discard,
+answer and task change is recorded in `audit_log`.
 
 ## Pipeline
 

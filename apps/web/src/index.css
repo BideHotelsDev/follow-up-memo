@@ -69,6 +69,16 @@
 
   --danger-subtle: #f9e8e6;
 
+  /* Hotel tags (from the approved demo): one hue per property, always with the name written on it. */
+  --view: #2f5d76;
+  --view-subtle: #e0ebf1;
+  --hearth: #94461f;
+  --hearth-subtle: #f6e4d9;
+  --villa: #4a5c20;
+  --villa-subtle: #e8eed6;
+  --bide: #172d23;
+  --bide-subtle: #e1ece8;
+
   --chart-1: #172d23;
   --chart-2: #fab30c;
   --chart-3: #5c8a72;
@@ -123,6 +133,15 @@
 
   --danger-subtle: #3a1e1b;
 
+  --view: #9cc3d8;
+  --view-subtle: #1c2e38;
+  --hearth: #e3a67f;
+  --hearth-subtle: #3a2419;
+  --villa: #b9cc85;
+  --villa-subtle: #2a3219;
+  --bide: #b6d3c6;
+  --bide-subtle: #1e3328;
+
   --sidebar: #0d1512;
   --sidebar-foreground: #f2efe7;
   --sidebar-primary: #fab30c;
@@ -161,6 +180,14 @@
   --color-attention-foreground: var(--attention-foreground);
   --color-attention-subtle: var(--attention-subtle);
   --color-danger-subtle: var(--danger-subtle);
+  --color-view: var(--view);
+  --color-view-subtle: var(--view-subtle);
+  --color-hearth: var(--hearth);
+  --color-hearth-subtle: var(--hearth-subtle);
+  --color-villa: var(--villa);
+  --color-villa-subtle: var(--villa-subtle);
+  --color-bide: var(--bide);
+  --color-bide-subtle: var(--bide-subtle);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

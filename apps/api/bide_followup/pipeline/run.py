@@ -136,8 +136,9 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
         meeting.action_items.append(item)
         items.append(item)
     session.flush()
-    for text, index in grounded.questions:
-        meeting.questions.append(Question(text=text, action_item_id=items[index].id if index is not None else None))
+    for text, index, kind in grounded.questions:
+        action_id = items[index].id if index is not None else None
+        meeting.questions.append(Question(text=text, kind=kind, action_item_id=action_id))
 
     meeting.properties = list(info.meeting.properties)
     meeting.is_sensitive = info.meeting.is_sensitive

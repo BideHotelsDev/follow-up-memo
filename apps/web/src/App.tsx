@@ -4,9 +4,20 @@ import { Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/use-me"
+import ChannelsPage from "@/pages/admin/channels"
 import ConnectionsPage from "@/pages/admin/connections"
+import AdminLayout from "@/pages/admin/layout"
 import PeoplePage from "@/pages/admin/people"
+import RunsPage from "@/pages/admin/runs"
+import SettingsPage from "@/pages/admin/settings"
+import SkipRulesPage from "@/pages/admin/skip-rules"
+import EmailsPage from "@/pages/emails"
+import HowPage from "@/pages/how"
+import MeetingsPage from "@/pages/meetings"
 import SignInPage from "@/pages/sign-in"
+import SlackPage from "@/pages/slack"
+import TasksPage from "@/pages/tasks"
+import TodayPage from "@/pages/today"
 
 export default function App() {
   const me = useMe()
@@ -30,25 +41,33 @@ export default function App() {
   }
   if (!me.data) return <SignInPage />
 
-  const isAdmin = me.data.role === "admin"
+  const reviewer = me.data.role !== "member"
   return (
     <Routes>
       <Route element={<AppShell me={me.data} />}>
-        {isAdmin ? (
+        <Route index element={<TodayPage />} />
+        <Route path="tasks" element={<TasksPage />} />
+        <Route path="how" element={<HowPage />} />
+        {reviewer ? (
           <>
-            <Route path="/admin/connections" element={<ConnectionsPage />} />
-            <Route path="/admin/people" element={<PeoplePage />} />
-            <Route path="*" element={<Navigate to="/admin/connections" replace />} />
+            <Route path="meetings" element={<MeetingsPage />} />
+            <Route path="meetings/:id" element={<MeetingsPage />} />
+            <Route path="emails" element={<EmailsPage />} />
+            <Route path="slack" element={<SlackPage />} />
           </>
-        ) : (
-          // Until the review pages land (Phase 4), only Admin has anything to do here.
-          <Route
-            path="*"
-            element={
-              <p className="text-muted-foreground">Your meeting follow-ups will appear here once the app is live.</p>
-            }
-          />
-        )}
+        ) : null}
+        {me.data.role === "admin" ? (
+          <Route path="admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="connections" replace />} />
+            <Route path="connections" element={<ConnectionsPage />} />
+            <Route path="people" element={<PeoplePage />} />
+            <Route path="channels" element={<ChannelsPage />} />
+            <Route path="skip-rules" element={<SkipRulesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="runs" element={<RunsPage />} />
+          </Route>
+        ) : null}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   )

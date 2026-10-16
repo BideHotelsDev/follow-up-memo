@@ -5,6 +5,23 @@ export type UserIn = Schemas["UserIn"]
 export type Providers = Schemas["ProvidersOut"]
 export type Connections = Schemas["ConnectionsOut"]
 export type Connection = Schemas["ConnectionOut"]
+export type Person = Schemas["PersonOut"]
+export type Today = Schemas["TodayOut"]
+export type MeetingSummary = Schemas["MeetingSummaryOut"]
+export type Meeting = Schemas["MeetingOut"]
+export type Task = Schemas["TaskOut"]
+export type TaskIn = Schemas["TaskIn"]
+export type Question = Schemas["QuestionOut"]
+export type AnswerIn = Schemas["AnswerIn"]
+export type Output = Schemas["OutputOut"]
+export type OutputIn = Schemas["OutputIn"]
+export type Run = Schemas["RunOut"]
+export type Settings = Schemas["SettingsOut"]
+export type SettingsIn = Schemas["SettingsIn"]
+export type ChannelMap = Schemas["ChannelMapOut"]
+export type ChannelMapIn = Schemas["ChannelMapIn"]
+export type SkipRule = Schemas["SkipRuleOut"]
+export type SkipRuleIn = Schemas["SkipRuleIn"]
 
 /** An API error: the HTTP status, the domain `code` from a problem-details body, and a readable message. */
 export class HttpError extends Error {
@@ -34,6 +51,15 @@ function readDetail(body: unknown, fallback: string): string {
   return fallback
 }
 
+/** A query string from the set values only. */
+function qs(params: Record<string, string | null | undefined>): string {
+  const entries = Object.entries(params).filter((e): e is [string, string] => Boolean(e[1]))
+  return entries.length ? `?${new URLSearchParams(entries)}` : ""
+}
+
+/** Filters every review page shares: the hotel (a property name, or "Bide-wide") and who the page is viewed as. */
+export type Scope = { property?: string | null; as?: string | null }
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   // Same origin in dev (Vite proxy) and production (the API serves the app), so the session cookie just works.
   const resp = await fetch(`/api${path}`, {
@@ -56,10 +82,34 @@ export const api = {
   devLogin: (email: string) => request<void>("POST", "/auth/dev-login", { email }),
   logout: () => request<void>("POST", "/auth/logout"),
 
+  people: () => request<Person[]>("GET", "/people"),
+  today: (scope: Scope) => request<Today>("GET", `/today${qs(scope)}`),
+  meetings: (scope: Scope & { q?: string }) => request<MeetingSummary[]>("GET", `/meetings${qs(scope)}`),
+  meeting: (id: string) => request<Meeting>("GET", `/meetings/${id}`),
+  reprocess: (id: string) => request<Meeting>("POST", `/meetings/${id}/reprocess`),
+  outputs: (params: Scope & { type?: string; status?: string }) => request<Output[]>("GET", `/outputs${qs(params)}`),
+  editOutput: (id: string, body: OutputIn) => request<Output>("PATCH", `/outputs/${id}`, body),
+  approve: (id: string) => request<Output>("POST", `/outputs/${id}/approve`),
+  approveAll: (meetingId?: string) =>
+    request<Output[]>("POST", "/outputs/approve-all", { meeting_id: meetingId ?? null }),
+  discard: (id: string) => request<Output>("POST", `/outputs/${id}/discard`),
+  tasks: (params: Scope & { owner?: string; q?: string }) => request<Task[]>("GET", `/tasks${qs(params)}`),
+  updateTask: (id: string, body: TaskIn) => request<Task>("PATCH", `/tasks/${id}`, body),
+  answer: (id: string, body: AnswerIn) => request<Question>("POST", `/questions/${id}/answer`, body),
+  reopen: (id: string) => request<Question>("POST", `/questions/${id}/reopen`),
+
   connections: () => request<Connections>("GET", "/admin/connections"),
-  people: () => request<User[]>("GET", "/admin/people"),
+  adminPeople: () => request<User[]>("GET", "/admin/people"),
   addPerson: (body: UserIn) => request<User>("POST", "/admin/people", body),
   updatePerson: (id: string, body: UserIn) => request<User>("PUT", `/admin/people/${id}`, body),
+  settings: () => request<Settings>("GET", "/admin/settings"),
+  putSettings: (body: SettingsIn) => request<Settings>("PUT", "/admin/settings", body),
+  channels: () => request<ChannelMap[]>("GET", "/admin/channels"),
+  putChannels: (body: ChannelMapIn[]) => request<ChannelMap[]>("PUT", "/admin/channels", body),
+  skipRules: () => request<SkipRule[]>("GET", "/admin/skip-rules"),
+  putSkipRules: (body: SkipRuleIn[]) => request<SkipRule[]>("PUT", "/admin/skip-rules", body),
+  runs: () => request<Run[]>("GET", "/admin/runs"),
+  runNow: () => request<Run>("POST", "/admin/runs"),
 }
 
 /** Full-page navigations (OAuth redirects), not fetches. */

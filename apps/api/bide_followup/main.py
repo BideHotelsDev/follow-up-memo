@@ -11,7 +11,7 @@ from bide_followup import auth
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, domain_error_handler
-from bide_followup.routers import admin, connections
+from bide_followup.routers import admin, connections, review
 from bide_followup.schemas.api import HealthOut
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
@@ -47,6 +47,7 @@ app.include_router(health_router)
 app.include_router(auth.router)
 app.include_router(connections.router)
 app.include_router(admin.router)
+app.include_router(review.router)
 
 # In production the API serves the built web app on the same origin (no CORS, one cookie).
 if settings.web_dist_dir and settings.web_dist_dir.is_dir():

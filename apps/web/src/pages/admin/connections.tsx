@@ -31,7 +31,7 @@ export default function ConnectionsPage() {
   return (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h1 className="text-3xl">Connections</h1>
+        <h2 className="text-2xl">Connections</h2>
         <p className="text-muted-foreground">
           The app reads David's meeting notes and writes Gmail drafts as David, and posts approved messages as the bot.
           Both are set up once.

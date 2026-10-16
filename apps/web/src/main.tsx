@@ -6,6 +6,7 @@ import { BrowserRouter } from "react-router-dom"
 import App from "./App"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { Toaster } from "@/components/ui/sonner"
+import { ScopeProvider } from "@/hooks/use-scope"
 import { HttpError } from "@/lib/api"
 import "./index.css"
 
@@ -29,10 +30,12 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <TooltipProvider delayDuration={200}>
-          <App />
-          <Toaster position="top-right" richColors closeButton />
-        </TooltipProvider>
+        <ScopeProvider>
+          <TooltipProvider delayDuration={200}>
+            <App />
+            <Toaster position="bottom-center" closeButton />
+          </TooltipProvider>
+        </ScopeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   </StrictMode>,

@@ -102,3 +102,56 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm build:web
+
+  e2e:
+    name: Browser tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          cache-suffix: ${{ github.job }}
+      - run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm --filter @bide-followup/web exec playwright install --with-deps chromium
+      - run: pnpm build:web
+
+      # The same set-up as local development with the mock services (see README), the API serving the built app.
+      - name: Database and demo data
+        run: pnpm seed:mock
+      - name: Start the mocks and the API
+        run: |
+          mkdir -p logs
+          nohup pnpm dev:mocks > logs/mocks.log 2>&1 &
+          WEB_DIST_DIR=$PWD/apps/web/dist nohup pnpm dev:api:mock > logs/api.log 2>&1 &
+          for url in http://localhost:8400/inbox http://localhost:8300/api/health; do
+            for i in $(seq 1 60); do curl -sf "$url" > /dev/null && break; sleep 1; done
+            curl -sf "$url" > /dev/null || (echo "::error::$url didn't start" && exit 1)
+          done
+
+      - name: Playwright
+        run: pnpm --filter @bide-followup/web e2e
+        env:
+          E2E_BASE_URL: http://localhost:8300
+
+      # The API and mocks run under uv; left running, they hold uv's cache lock and setup-uv's clean-up waits forever.
+      - name: Stop the servers
+        if: always()
+        run: pkill -f "uv run|uvicorn" || true
+
+      - name: Keep the report and server logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            logs
+          retention-days: 7

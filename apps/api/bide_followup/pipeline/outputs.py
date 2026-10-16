@@ -218,32 +218,55 @@ def _failed(session: Session, meeting: Meeting, type_: str, recipient: str, exc:
         row.attempts += 1
 
 
-def generate(session: Session, meeting: Meeting) -> None:
-    """Build and store every output for a meeting, then set its status: done, or partial if any output failed."""
-    david = session.scalar(select(User).where(User.role == "owner", User.is_active).order_by(User.created_at))
-    _missing_email_questions(meeting)
-    specs: list[dict] = []
-    try:
-        if email := email_draft(session, meeting):
-            specs.append(email)
-    except Exception as exc:  # noqa: BLE001 - Claude unreachable, declined or malformed: the email retries, the rest go on
-        recipients = ", ".join(sorted({a.email for a in meeting.attendees if not a.is_internal and a.email}))
-        _failed(session, meeting, "email_draft", recipients, exc)
-        log.warning("meeting %s: email draft failed (%s)", meeting.id, exc.__class__.__name__)
-    specs += slack_dms(meeting, david)
-    if digest := slack_digest(session, meeting):
-        specs.append(digest)
+def _david(session: Session) -> User | None:
+    return session.scalar(select(User).where(User.role == "owner", User.is_active).order_by(User.created_at))
 
-    keep = {(s["type"], s["recipient"]) for s in specs}
+
+def _store(session: Session, meeting: Meeting, specs: list[dict], types: tuple[str, ...], keep: set) -> None:
+    """Upsert the specs and remove drafts of these types that are no longer wanted (a recipient gone after a
+    reprocess, an owner changed by David); deliver email drafts to Gmail."""
+    keep = keep | {(s["type"], s["recipient"]) for s in specs}
     for row in list(meeting.outputs):
-        if row.status == "draft" and (row.type, row.recipient) not in keep:
-            remove_draft(session, row)  # e.g. a recipient no longer in the meeting after a reprocess
+        if row.type in types and row.status == "draft" and (row.type, row.recipient) not in keep:
+            remove_draft(session, row)
     for spec in specs:
         row = upsert(session, meeting, spec)
         if row is not None and row.type == "email_draft":
             session.flush()
             deliver_email(session, row)
     session.flush()
+
+
+def refresh_slack(session: Session, meeting: Meeting) -> None:
+    """Rebuild a meeting's Slack drafts after its actions change (an answered question, a task edit). Drafts David
+    already approved or discarded are left alone."""
+    specs = slack_dms(meeting, _david(session))
+    if digest := slack_digest(session, meeting):
+        specs.append(digest)
+    _store(session, meeting, specs, ("slack_dm", "slack_digest"), set())
+
+
+def generate(session: Session, meeting: Meeting) -> None:
+    """Build and store every output for a meeting, then set its status: done, or partial if any output failed."""
+    _missing_email_questions(meeting)
+    specs: list[dict] = []
+    keep: set = set()
+    try:
+        if email := email_draft(session, meeting):
+            specs.append(email)
+    except Exception as exc:  # noqa: BLE001 - Claude unreachable, declined or malformed: the email retries, the rest go on
+        log.warning("meeting %s: email draft failed (%s)", meeting.id, exc.__class__.__name__)
+        recipients = ", ".join(sorted({a.email for a in meeting.attendees if not a.is_internal and a.email}))
+        previous = next((o for o in meeting.outputs if o.type == "email_draft" and o.recipient == recipients), None)
+        if previous is not None and previous.status == "draft" and previous.body:
+            keep.add(("email_draft", recipients))  # a rewrite failed: keep the draft David already has
+        else:
+            _failed(session, meeting, "email_draft", recipients, exc)
+            keep.add(("email_draft", recipients))
+    specs += slack_dms(meeting, _david(session))
+    if digest := slack_digest(session, meeting):
+        specs.append(digest)
+    _store(session, meeting, specs, ("email_draft", "slack_dm", "slack_digest"), keep)
     meeting.status = "partial" if any(o.status == "failed" for o in meeting.outputs) else "done"
 
 
@@ -275,3 +298,20 @@ def retry_failed(session: Session) -> int:
         meeting.status = "partial" if any(o.status == "failed" for o in meeting.outputs) else "done"
     session.commit()
     return len(rows)
+
+
+def sync_gmail(session: Session) -> int:
+    """Mark email drafts David has sent or deleted in Gmail (PRD §9 Edge cases). Returns the drafts closed."""
+    rows = session.scalars(
+        select(Output).where(Output.type == "email_draft", Output.status == "draft", Output.external_id.is_not(None))
+    ).all()
+    if not rows:
+        return 0
+    token = google_oauth.access_token(session)
+    closed = 0
+    for row in rows:
+        if not gmail.draft_exists(token, row.external_id):
+            row.status = "closed_in_gmail"
+            closed += 1
+    session.commit()
+    return closed

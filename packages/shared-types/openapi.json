@@ -489,10 +489,972 @@
           }
         }
       }
+    },
+    "/api/people": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "People",
+        "description": "Everyone a task can be assigned to (owner pickers, the Viewing as switch).",
+        "operationId": "people_api_people_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PersonOut"
+                  },
+                  "type": "array",
+                  "title": "Response People Api People Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/today": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Today",
+        "description": "The Today page (FR-30): today's meetings, what waits for review, open questions, the viewer's next tasks.",
+        "operationId": "today_api_today_get",
+        "parameters": [
+          {
+            "name": "as",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As"
+            }
+          },
+          {
+            "name": "property",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodayOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meetings": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "List Meetings",
+        "description": "Meetings, newest first, with property, status, date and text filters (FR-31).",
+        "operationId": "list_meetings_api_meetings_get",
+        "parameters": [
+          {
+            "name": "property",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "queued",
+                    "processing",
+                    "done",
+                    "partial",
+                    "failed",
+                    "skipped"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MeetingSummaryOut"
+                  },
+                  "title": "Response List Meetings Api Meetings Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meetings/{meeting_id}": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Get Meeting",
+        "operationId": "get_meeting_api_meetings__meeting_id__get",
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meetings/{meeting_id}/reprocess": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Reprocess",
+        "description": "Run extraction again and replace the drafts David hasn't acted on (FR-7). Takes as long as a run does.",
+        "operationId": "reprocess_api_meetings__meeting_id__reprocess_post",
+        "parameters": [
+          {
+            "name": "meeting_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Meeting Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeetingOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outputs": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "List Outputs",
+        "description": "Email and Slack drafts (FR-32, FR-33), newest meeting first. Run summaries are not drafts and aren't listed.",
+        "operationId": "list_outputs_api_outputs_get",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "email_draft",
+                    "slack_dm",
+                    "slack_digest",
+                    "run_summary"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Comma-separated statuses",
+              "title": "Status"
+            },
+            "description": "Comma-separated statuses"
+          },
+          {
+            "name": "property",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OutputOut"
+                  },
+                  "title": "Response List Outputs Api Outputs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outputs/{output_id}": {
+      "patch": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Edit Output",
+        "description": "Edit a draft's text. An email edit updates the Gmail draft too.",
+        "operationId": "edit_output_api_outputs__output_id__patch",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutputIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outputs/{output_id}/approve": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Approve",
+        "operationId": "approve_api_outputs__output_id__approve_post",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outputs/approve-all": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Approve All",
+        "description": "Approve every waiting Slack draft, of one meeting or of all. Stops at the first Slack refusal.",
+        "operationId": "approve_all_api_outputs_approve_all_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveAllIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OutputOut"
+                  },
+                  "type": "array",
+                  "title": "Response Approve All Api Outputs Approve All Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outputs/{output_id}/discard": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Discard",
+        "description": "Discard a draft. An email's Gmail draft is deleted too.",
+        "operationId": "discard_api_outputs__output_id__discard_post",
+        "parameters": [
+          {
+            "name": "output_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Output Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutputOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "List Tasks",
+        "description": "Every action from every meeting (FR-34). Members, and anyone viewed as a member, get only their own.",
+        "operationId": "list_tasks_api_tasks_get",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "A person's id, 'needs_david' or 'external'",
+              "title": "Owner"
+            },
+            "description": "A person's id, 'needs_david' or 'external'"
+          },
+          {
+            "name": "bucket",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "late",
+                    "today",
+                    "week",
+                    "later",
+                    "nodate",
+                    "done"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bucket"
+            }
+          },
+          {
+            "name": "property",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Property"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "as",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "As"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskOut"
+                  },
+                  "title": "Response List Tasks Api Tasks Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{task_id}": {
+      "patch": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Update Task",
+        "description": "Change a task's owner, due date or status. Members can only mark their own tasks done or open again.",
+        "operationId": "update_task_api_tasks__task_id__patch",
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/questions/{question_id}/answer": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Answer",
+        "description": "Answer a question for David. An owner or due question updates its action, and the meeting's Slack drafts are\nrebuilt to match (FR-35).",
+        "operationId": "answer_api_questions__question_id__answer_post",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnswerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/questions/{question_id}/reopen": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Reopen",
+        "description": "Undo an answer (the action keeps the value it was given; change it on the task).",
+        "operationId": "reopen_api_questions__question_id__reopen_post",
+        "parameters": [
+          {
+            "name": "question_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Question Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuestionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AnswerIn": {
+        "properties": {
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "text": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "title": "AnswerIn",
+        "description": "owner questions take owner_user_id, due questions due_date, the rest text."
+      },
+      "ApproveAllIn": {
+        "properties": {
+          "meeting_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meeting Id"
+          }
+        },
+        "type": "object",
+        "title": "ApproveAllIn",
+        "description": "Approve every Slack draft of one meeting, or (no meeting) every Slack draft waiting."
+      },
+      "AttendeeOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "is_internal": {
+            "type": "boolean",
+            "title": "Is Internal"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "is_internal"
+        ],
+        "title": "AttendeeOut"
+      },
       "ChannelMapIn": {
         "properties": {
           "topic": {
@@ -719,6 +1681,561 @@
         ],
         "title": "HealthOut"
       },
+      "MeetingOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "properties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Properties"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "done",
+              "partial",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
+          "is_sensitive": {
+            "type": "boolean",
+            "title": "Is Sensitive"
+          },
+          "attendee_count": {
+            "type": "integer",
+            "title": "Attendee Count"
+          },
+          "action_count": {
+            "type": "integer",
+            "title": "Action Count"
+          },
+          "open_questions": {
+            "type": "integer",
+            "title": "Open Questions"
+          },
+          "drafts_waiting": {
+            "type": "integer",
+            "title": "Drafts Waiting"
+          },
+          "notes_url": {
+            "type": "string",
+            "title": "Notes Url"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose"
+          },
+          "key_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Key Points"
+          },
+          "decisions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Decisions"
+          },
+          "open_threads": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Open Threads"
+          },
+          "systems_mentioned": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Systems Mentioned"
+          },
+          "notes_quality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes Quality"
+          },
+          "dropped_actions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dropped Actions"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "attendees": {
+            "items": {
+              "$ref": "#/components/schemas/AttendeeOut"
+            },
+            "type": "array",
+            "title": "Attendees"
+          },
+          "tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "type": "array",
+            "title": "Tasks"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOut"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "outputs": {
+            "items": {
+              "$ref": "#/components/schemas/OutputOut"
+            },
+            "type": "array",
+            "title": "Outputs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "started_at",
+          "ended_at",
+          "properties",
+          "status",
+          "skip_reason",
+          "is_sensitive",
+          "attendee_count",
+          "action_count",
+          "open_questions",
+          "drafts_waiting",
+          "notes_url",
+          "purpose",
+          "key_points",
+          "decisions",
+          "open_threads",
+          "systems_mentioned",
+          "notes_quality",
+          "dropped_actions",
+          "error",
+          "prompt_version",
+          "attendees",
+          "tasks",
+          "questions",
+          "outputs"
+        ],
+        "title": "MeetingOut"
+      },
+      "MeetingRef": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "properties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Properties"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "started_at",
+          "properties"
+        ],
+        "title": "MeetingRef"
+      },
+      "MeetingSummaryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "properties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Properties"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "processing",
+              "done",
+              "partial",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status"
+          },
+          "skip_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skip Reason"
+          },
+          "is_sensitive": {
+            "type": "boolean",
+            "title": "Is Sensitive"
+          },
+          "attendee_count": {
+            "type": "integer",
+            "title": "Attendee Count"
+          },
+          "action_count": {
+            "type": "integer",
+            "title": "Action Count"
+          },
+          "open_questions": {
+            "type": "integer",
+            "title": "Open Questions"
+          },
+          "drafts_waiting": {
+            "type": "integer",
+            "title": "Drafts Waiting"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "started_at",
+          "ended_at",
+          "properties",
+          "status",
+          "skip_reason",
+          "is_sensitive",
+          "attendee_count",
+          "action_count",
+          "open_questions",
+          "drafts_waiting"
+        ],
+        "title": "MeetingSummaryOut"
+      },
+      "OutputIn": {
+        "properties": {
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "title": "OutputIn"
+      },
+      "OutputOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "meeting": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MeetingRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "email_draft",
+              "slack_dm",
+              "slack_digest",
+              "run_summary"
+            ],
+            "title": "Type"
+          },
+          "recipient": {
+            "type": "string",
+            "title": "Recipient"
+          },
+          "recipient_label": {
+            "type": "string",
+            "title": "Recipient Label"
+          },
+          "subject": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "review_carefully": {
+            "type": "boolean",
+            "title": "Review Carefully"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "approved",
+              "posted",
+              "discarded",
+              "failed",
+              "closed_in_gmail"
+            ],
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "gmail_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gmail Url"
+          },
+          "approved_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "meeting",
+          "type",
+          "recipient",
+          "recipient_label",
+          "subject",
+          "body",
+          "review_carefully",
+          "status",
+          "error",
+          "gmail_url",
+          "approved_at",
+          "updated_at"
+        ],
+        "title": "OutputOut"
+      },
+      "PersonOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "owner",
+              "member"
+            ],
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "title": "PersonOut"
+      },
       "ProvidersOut": {
         "properties": {
           "google": {
@@ -736,6 +2253,77 @@
           "dev"
         ],
         "title": "ProvidersOut"
+      },
+      "QuestionOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingRef"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "due",
+              "other"
+            ],
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "action_item_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Item Id"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer"
+          },
+          "answered_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answered At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "meeting",
+          "kind",
+          "text",
+          "action_item_id",
+          "answer",
+          "answered_at"
+        ],
+        "title": "QuestionOut"
       },
       "RunOut": {
         "properties": {
@@ -925,6 +2513,267 @@
           "id"
         ],
         "title": "SkipRuleOut"
+      },
+      "TaskIn": {
+        "properties": {
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "open",
+                  "done",
+                  "dismissed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "type": "object",
+        "title": "TaskIn",
+        "description": "Only the fields sent are changed. owner_user_id null (with the field sent) makes the task Needs David."
+      },
+      "TaskOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "meeting": {
+            "$ref": "#/components/schemas/MeetingRef"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "owner": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "owner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Name"
+          },
+          "owner_status": {
+            "type": "string",
+            "enum": [
+              "assigned",
+              "needs_david"
+            ],
+            "title": "Owner Status"
+          },
+          "due_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due Date"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "open",
+              "done",
+              "dismissed"
+            ],
+            "title": "Status"
+          },
+          "source_quote": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Quote"
+          },
+          "bucket": {
+            "type": "string",
+            "enum": [
+              "late",
+              "today",
+              "week",
+              "later",
+              "nodate",
+              "done"
+            ],
+            "title": "Bucket"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "meeting",
+          "description",
+          "owner",
+          "owner_name",
+          "owner_status",
+          "due_date",
+          "status",
+          "source_quote",
+          "bucket"
+        ],
+        "title": "TaskOut"
+      },
+      "TodayCounts": {
+        "properties": {
+          "questions": {
+            "type": "integer",
+            "title": "Questions"
+          },
+          "emails": {
+            "type": "integer",
+            "title": "Emails"
+          },
+          "slack": {
+            "type": "integer",
+            "title": "Slack"
+          },
+          "tasks_open": {
+            "type": "integer",
+            "title": "Tasks Open"
+          },
+          "tasks_overdue": {
+            "type": "integer",
+            "title": "Tasks Overdue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "questions",
+          "emails",
+          "slack",
+          "tasks_open",
+          "tasks_overdue"
+        ],
+        "title": "TodayCounts"
+      },
+      "TodayOut": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "title": "Date"
+          },
+          "viewer": {
+            "$ref": "#/components/schemas/PersonOut"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/TodayCounts"
+          },
+          "meetings": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingSummaryOut"
+            },
+            "type": "array",
+            "title": "Meetings"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/QuestionOut"
+            },
+            "type": "array",
+            "title": "Questions"
+          },
+          "next_tasks": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "type": "array",
+            "title": "Next Tasks"
+          },
+          "problems": {
+            "items": {
+              "$ref": "#/components/schemas/MeetingSummaryOut"
+            },
+            "type": "array",
+            "title": "Problems"
+          },
+          "last_run": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RunOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "next_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Run At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "viewer",
+          "counts",
+          "meetings",
+          "questions",
+          "next_tasks",
+          "problems",
+          "last_run",
+          "next_run_at"
+        ],
+        "title": "TodayOut"
       },
       "UserIn": {
         "properties": {

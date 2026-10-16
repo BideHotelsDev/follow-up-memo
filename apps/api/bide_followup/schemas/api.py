@@ -1,7 +1,7 @@
 """Request and response bodies for the REST API (and, through OpenAPI, the web app's types)."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -110,3 +110,148 @@ class RunOut(Orm):
     skipped: int
     failed: int
     error: str | None
+
+
+# --- review (PRD §8 Internal REST API) ---------------------------------------------------------------------------
+
+Bucket = Literal["late", "today", "week", "later", "nodate", "done"]
+MeetingStatus = Literal["queued", "processing", "done", "partial", "failed", "skipped"]
+OutputType = Literal["email_draft", "slack_dm", "slack_digest", "run_summary"]
+OutputStatus = Literal["draft", "approved", "posted", "discarded", "failed", "closed_in_gmail"]
+
+
+class PersonOut(Orm):
+    id: uuid.UUID
+    name: str
+    role: Role
+
+
+class AttendeeOut(Orm):
+    name: str
+    email: str | None
+    is_internal: bool
+
+
+class MeetingRef(BaseModel):
+    id: uuid.UUID
+    title: str
+    started_at: datetime | None
+    properties: list[str]
+
+
+class TaskOut(BaseModel):
+    id: uuid.UUID
+    meeting: MeetingRef
+    description: str
+    owner: PersonOut | None
+    owner_name: str | None  # an external person named in the notes
+    owner_status: Literal["assigned", "needs_david"]
+    due_date: date | None
+    status: Literal["open", "done", "dismissed"]
+    source_quote: str | None
+    bucket: Bucket
+
+
+class TaskIn(BaseModel):
+    """Only the fields sent are changed. owner_user_id null (with the field sent) makes the task Needs David."""
+
+    owner_user_id: uuid.UUID | None = None
+    due_date: date | None = None
+    status: Literal["open", "done", "dismissed"] | None = None
+
+
+class QuestionOut(BaseModel):
+    id: uuid.UUID
+    meeting: MeetingRef
+    kind: Literal["owner", "due", "other"]
+    text: str
+    action_item_id: uuid.UUID | None
+    answer: str | None
+    answered_at: datetime | None
+
+
+class AnswerIn(BaseModel):
+    """owner questions take owner_user_id, due questions due_date, the rest text."""
+
+    owner_user_id: uuid.UUID | None = None
+    due_date: date | None = None
+    text: str | None = Field(default=None, max_length=2000)
+
+
+class OutputOut(BaseModel):
+    id: uuid.UUID
+    meeting: MeetingRef | None
+    type: OutputType
+    recipient: str
+    recipient_label: str
+    subject: str | None
+    body: str
+    review_carefully: bool
+    status: OutputStatus
+    error: str | None
+    gmail_url: str | None
+    approved_at: datetime | None
+    updated_at: datetime
+
+
+class OutputIn(BaseModel):
+    subject: str | None = Field(default=None, max_length=300)
+    body: str | None = Field(default=None, min_length=1, max_length=20000)
+
+
+class ApproveAllIn(BaseModel):
+    """Approve every Slack draft of one meeting, or (no meeting) every Slack draft waiting."""
+
+    meeting_id: uuid.UUID | None = None
+
+
+class MeetingSummaryOut(BaseModel):
+    id: uuid.UUID
+    title: str
+    started_at: datetime | None
+    ended_at: datetime | None
+    properties: list[str]
+    status: MeetingStatus
+    skip_reason: str | None
+    is_sensitive: bool
+    attendee_count: int
+    action_count: int
+    open_questions: int
+    drafts_waiting: int
+
+
+class MeetingOut(MeetingSummaryOut):
+    notes_url: str
+    purpose: str | None
+    key_points: list[str]
+    decisions: list[str]
+    open_threads: list[str]
+    systems_mentioned: list[str]
+    notes_quality: str | None
+    dropped_actions: list[str]
+    error: str | None
+    prompt_version: str | None
+    attendees: list[AttendeeOut]
+    tasks: list[TaskOut]
+    questions: list[QuestionOut]
+    outputs: list[OutputOut]
+
+
+class TodayCounts(BaseModel):
+    questions: int
+    emails: int
+    slack: int
+    tasks_open: int
+    tasks_overdue: int
+
+
+class TodayOut(BaseModel):
+    date: date
+    viewer: PersonOut
+    counts: TodayCounts
+    meetings: list[MeetingSummaryOut]
+    questions: list[QuestionOut]
+    next_tasks: list[TaskOut]
+    problems: list[MeetingSummaryOut]
+    last_run: RunOut | None
+    next_run_at: datetime | None

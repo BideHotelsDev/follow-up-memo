@@ -267,13 +267,19 @@ class Output(Timestamped, Base):
     meeting: Mapped[Meeting | None] = relationship(back_populates="outputs")
 
 
+QUESTION_KINDS = ("owner", "due", "other")
+
+
 class Question(Timestamped, Base):
-    """Up to 5 per meeting: unowned items, unclear deadlines, sensitive points."""
+    """Up to 5 per meeting: unowned items, unclear deadlines, sensitive points. An owner or due question is tied to
+    an action, and answering it updates that action (FR-35)."""
 
     __tablename__ = "questions"
+    __table_args__ = (CheckConstraint(_in("kind", QUESTION_KINDS), name="kind"),)
 
     meeting_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("meetings.id", ondelete="CASCADE"), index=True)
     action_item_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("action_items.id", ondelete="SET NULL"))
+    kind: Mapped[str] = mapped_column(String(8), default="other", server_default="other")
     text: Mapped[str] = mapped_column(Text)
     answer: Mapped[str | None] = mapped_column(Text)
     answered_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
