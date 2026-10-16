@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { api, links, type Connection } from "@/lib/api"
+import { day, localDate, time } from "@/lib/format"
 
 const ERRORS: Record<string, string> = {
   scopes_missing: "Google didn't grant every permission. Connect again and tick all the boxes.",
@@ -21,6 +22,57 @@ function Status({ row }: { row: Connection | null | undefined }) {
   if (!row) return <Badge variant="outline">Not connected</Badge>
   if (row.status === "connected") return <Badge className="bg-ok-subtle text-ok-foreground">Connected</Badge>
   return <Badge variant="destructive">{row.status === "revoked" ? "Access revoked" : "Error"}</Badge>
+}
+
+function ClaudeCard() {
+  const { data } = useQuery({ queryKey: ["claude"], queryFn: api.claude, refetchInterval: 60_000 })
+  if (!data) return null
+  const routine = data.mode === "routine"
+  const stuck = data.oldest_pending_at && Date.now() - new Date(data.oldest_pending_at).getTime() > 3 * 3600_000
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle>Claude</CardTitle>
+          {!data.enabled ? (
+            <Badge variant="outline">Off</Badge>
+          ) : stuck ? (
+            <Badge variant="destructive">Routine not answering</Badge>
+          ) : (
+            <Badge className="bg-ok-subtle text-ok-foreground">On</Badge>
+          )}
+        </div>
+        <CardDescription>
+          {routine
+            ? "Reads the notes and writes the emails through a scheduled Claude Code routine on Bide’s Claude plan."
+            : "Reads the notes and writes the emails through the Claude API."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-1 text-sm">
+        <p>{data.model}</p>
+        {routine ? (
+          <>
+            <p className="text-muted-foreground">
+              {data.pending ? `${data.pending} request${data.pending === 1 ? "" : "s"} waiting` : "Nothing waiting"}
+              {data.oldest_pending_at ? `, oldest from ${time(data.oldest_pending_at)}` : ""}
+            </p>
+            <p className="text-muted-foreground">
+              {data.last_answer_at
+                ? `Last answer ${day(localDate(data.last_answer_at))} ${time(data.last_answer_at)}`
+                : "No answers yet"}
+            </p>
+          </>
+        ) : null}
+        {!data.enabled ? (
+          <p className="text-muted-foreground">
+            {routine
+              ? "Set SERVICE_API_TOKEN and set up the routine (routine/README.md)."
+              : "Set ANTHROPIC_API_KEY to turn it on."}
+          </p>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default function ConnectionsPage() {
@@ -83,6 +135,7 @@ export default function ConnectionsPage() {
             </Button>
           </CardFooter>
         </Card>
+        <ClaudeCard />
       </div>
     </div>
   )

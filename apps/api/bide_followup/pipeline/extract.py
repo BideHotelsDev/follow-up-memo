@@ -67,14 +67,21 @@ def _parse(text: str) -> tuple[Extraction | None, list[str]]:
         return None, [f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in exc.errors()[:20]]
 
 
-def extract(session: Session, title: str, meeting_day: date, attendees: list[tuple[str, str]], notes: str) -> Result:
+def extract(
+    session: Session,
+    title: str,
+    meeting_day: date,
+    attendees: list[tuple[str, str]],
+    notes: str,
+    meeting_id=None,
+) -> Result:
     system = system_prompt(session)
     messages = [{"role": "user", "content": user_message(title, meeting_day, attendees, notes)}]
     known_emails = validate.emails_in(notes) | {email for _, email in attendees}
     tokens_in = tokens_out = 0
 
     for attempt in range(2):
-        completion = llm.complete(system, messages, SCHEMA)
+        completion = llm.complete(system, messages, SCHEMA, session=session, kind="extract", meeting_id=meeting_id)
         tokens_in += completion.input_tokens
         tokens_out += completion.output_tokens
         extraction, problems = _parse(completion.text)

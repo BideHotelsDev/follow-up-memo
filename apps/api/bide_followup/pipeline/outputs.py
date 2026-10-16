@@ -81,7 +81,8 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
             tone=runtime_settings.get(session, "email_tone"), signature=runtime_settings.get(session, "email_signature")
         )
     )
-    completion = llm.complete(system, [{"role": "user", "content": json.dumps(payload, indent=2)}], EMAIL_SCHEMA)
+    messages = [{"role": "user", "content": json.dumps(payload, indent=2)}]
+    completion = llm.complete(system, messages, EMAIL_SCHEMA, session=session, kind="email", meeting_id=meeting.id)
     meeting.input_tokens += completion.input_tokens
     meeting.output_tokens += completion.output_tokens
     written = json.loads(completion.text)
@@ -251,9 +252,14 @@ def generate(session: Session, meeting: Meeting) -> None:
     _missing_email_questions(meeting)
     specs: list[dict] = []
     keep: set = set()
+    email_waiting = False
     try:
         if email := email_draft(session, meeting):
             specs.append(email)
+    except llm.Pending:
+        email_waiting = True  # with the Claude Code routine; keep any earlier draft until the new one arrives
+        recipients = ", ".join(sorted({a.email for a in meeting.attendees if not a.is_internal and a.email}))
+        keep.add(("email_draft", recipients))
     except Exception as exc:  # noqa: BLE001 - Claude unreachable, declined or malformed: the email retries, the rest go on
         log.warning("meeting %s: email draft failed (%s)", meeting.id, exc.__class__.__name__)
         recipients = ", ".join(sorted({a.email for a in meeting.attendees if not a.is_internal and a.email}))
@@ -267,7 +273,10 @@ def generate(session: Session, meeting: Meeting) -> None:
     if digest := slack_digest(session, meeting):
         specs.append(digest)
     _store(session, meeting, specs, ("email_draft", "slack_dm", "slack_digest"), keep)
-    meeting.status = "partial" if any(o.status == "failed" for o in meeting.outputs) else "done"
+    if email_waiting:
+        meeting.status = "waiting"
+    else:
+        meeting.status = "partial" if any(o.status == "failed" for o in meeting.outputs) else "done"
 
 
 def remove_draft(session: Session, row: Output) -> None:

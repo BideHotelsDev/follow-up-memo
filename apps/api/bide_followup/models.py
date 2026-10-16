@@ -154,7 +154,8 @@ class SkipRule(Timestamped, Base):
     value: Mapped[str] = mapped_column(String(254))
 
 
-MEETING_STATUSES = ("queued", "processing", "done", "partial", "failed", "skipped")
+# waiting: in routine mode, a Claude request is queued for the Claude Code routine to answer.
+MEETING_STATUSES = ("queued", "processing", "waiting", "done", "partial", "failed", "skipped")
 
 
 class Meeting(Timestamped, Base):
@@ -322,3 +323,34 @@ class AuditLog(Timestamped, Base):
     action: Mapped[str] = mapped_column(String(16))
     before: Mapped[dict[str, Any] | None] = mapped_column(JsonType)
     after: Mapped[dict[str, Any] | None] = mapped_column(JsonType)
+
+
+LLM_JOB_KINDS = ("extract", "email")
+LLM_JOB_STATUSES = ("pending", "answered", "failed")
+
+
+class LlmJob(Timestamped, Base):
+    """A Claude request waiting for the Claude Code routine (EXTRACTION_MODE=routine). The pipeline replays: it builds
+    the same request again, finds the answer by the request's hash, and carries on as if the API had answered.
+
+    Requests carry meeting notes, so they are purged with the notes (PRD §5 Privacy)."""
+
+    __tablename__ = "llm_jobs"
+    __table_args__ = (
+        CheckConstraint(_in("kind", LLM_JOB_KINDS), name="kind"),
+        CheckConstraint(_in("status", LLM_JOB_STATUSES), name="status"),
+        Index("ix_llm_jobs_status", "status"),
+    )
+
+    meeting_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("meetings.id", ondelete="CASCADE"))
+    kind: Mapped[str] = mapped_column(String(8))
+    request_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    system: Mapped[str] = mapped_column(Text)
+    messages: Mapped[list[dict[str, Any]]] = mapped_column(JsonType)
+    schema: Mapped[dict[str, Any]] = mapped_column(JsonType)
+    status: Mapped[str] = mapped_column(String(8), default="pending")
+    answer: Mapped[str | None] = mapped_column(Text)
+    error: Mapped[str | None] = mapped_column(Text)
+    model: Mapped[str | None] = mapped_column(String(64))
+    claimed_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    answered_at: Mapped[datetime | None] = mapped_column(UtcDateTime())

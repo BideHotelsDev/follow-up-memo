@@ -15,7 +15,7 @@ from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
 from bide_followup.integrations import gmail, google_api, google_oauth, llm, slack
-from bide_followup.models import ActionItem, Meeting, Output, Question, Run, User
+from bide_followup.models import ActionItem, LlmJob, Meeting, Output, Question, Run, User
 from bide_followup.pipeline import outputs as pipeline_outputs
 from bide_followup.pipeline import run as pipeline
 from bide_followup.schemas.api import (
@@ -125,9 +125,22 @@ def today(
             )
             if keep(q.meeting)
         ]
+        # Failed or partial meetings, and (routine mode) meetings Claude hasn't answered for hours: the routine may
+        # have stopped.
+        stuck = clock.utcnow() - timedelta(hours=3)
         problems = _property_filter(
             session.scalars(
-                select(Meeting).where(Meeting.status.in_(("failed", "partial"))).order_by(Meeting.started_at)
+                select(Meeting)
+                .where(
+                    or_(
+                        Meeting.status.in_(("failed", "partial")),
+                        (Meeting.status == "waiting")
+                        & Meeting.id.in_(
+                            select(LlmJob.meeting_id).where(LlmJob.status == "pending", LlmJob.created_at < stuck)
+                        ),
+                    )
+                )
+                .order_by(Meeting.started_at)
             ).all(),
             property,
         )
@@ -213,7 +226,7 @@ def reprocess(meeting_id: uuid.UUID, session: SessionDep, user: CurrentUser) -> 
     views.require_reviewer(user)
     meeting = _meeting(session, meeting_id)
     if not llm.enabled():
-        raise DomainError("extraction_off", "Extraction is switched off (ANTHROPIC_API_KEY not set)", 503)
+        raise DomainError("extraction_off", llm.off_reason(), 503)
     before = {"status": meeting.status, "actions": len(meeting.action_items)}
     try:
         token = google_oauth.access_token(session)
@@ -222,6 +235,14 @@ def reprocess(meeting_id: uuid.UUID, session: SessionDep, user: CurrentUser) -> 
         session.commit()
         if meeting.status != "skipped":
             pipeline_outputs.generate(session, meeting)
+    except llm.Pending as exc:
+        # Routine mode: the new request is queued; the routine answers it and the drafts follow.
+        meeting.status = "waiting"
+        if exc.args and exc.args[0] == "extract":
+            meeting.prompt_version = None
+        views.audit(session, user, "meeting", meeting.id, "reprocess", before, {"status": "waiting"})
+        session.commit()
+        return views.meeting_out(session, meeting)
     except google_oauth.GoogleAuthError as exc:
         session.rollback()
         raise DomainError("google_not_connected", str(exc), 503)

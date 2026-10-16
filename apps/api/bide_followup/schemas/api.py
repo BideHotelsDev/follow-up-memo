@@ -123,7 +123,7 @@ class RunOut(Orm):
 # --- review (PRD §8 Internal REST API) ---------------------------------------------------------------------------
 
 Bucket = Literal["late", "today", "week", "later", "nodate", "done"]
-MeetingStatus = Literal["queued", "processing", "done", "partial", "failed", "skipped"]
+MeetingStatus = Literal["queued", "processing", "waiting", "done", "partial", "failed", "skipped"]
 OutputType = Literal["email_draft", "slack_dm", "slack_digest", "run_summary"]
 OutputStatus = Literal["draft", "approved", "posted", "discarded", "failed", "closed_in_gmail"]
 
@@ -323,3 +323,40 @@ class ImpactOut(BaseModel):
     baseline_followup_rate: int | None
     baseline_followup_days: float | None
     hotels: list[ImpactHotel]
+
+
+# --- service API (the Claude Code routine) -----------------------------------------------------------------------
+
+
+class LlmJobOut(BaseModel):
+    id: uuid.UUID
+    kind: Literal["extract", "email"]
+    system: str
+    messages: list[dict]
+    schema_: dict = Field(alias="schema", serialization_alias="schema")
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class LlmAnswerIn(BaseModel):
+    text: str = Field(min_length=2, max_length=200_000, description="The JSON answer, exactly as the schema asks")
+    model: str | None = Field(default=None, max_length=64)
+
+
+class LlmFailIn(BaseModel):
+    reason: str = Field(min_length=1, max_length=2000)
+
+
+class QueueOut(BaseModel):
+    pending: int
+    oldest_pending_at: datetime | None
+
+
+class ClaudeStatusOut(BaseModel):
+    mode: Literal["api", "routine"]
+    enabled: bool
+    model: str
+    pending: int
+    oldest_pending_at: datetime | None
+    last_answer_at: datetime | None

@@ -17,6 +17,7 @@ export type Output = Schemas["OutputOut"]
 export type OutputIn = Schemas["OutputIn"]
 export type Run = Schemas["RunOut"]
 export type Impact = Schemas["ImpactOut"]
+export type ClaudeStatus = Schemas["ClaudeStatusOut"]
 export type Settings = Schemas["SettingsOut"]
 export type SettingsIn = Schemas["SettingsIn"]
 export type ChannelMap = Schemas["ChannelMapOut"]
@@ -101,6 +102,7 @@ export const api = {
   reopen: (id: string) => request<Question>("POST", `/questions/${id}/reopen`),
 
   connections: () => request<Connections>("GET", "/admin/connections"),
+  claude: () => request<ClaudeStatus>("GET", "/admin/claude"),
   adminPeople: () => request<User[]>("GET", "/admin/people"),
   addPerson: (body: UserIn) => request<User>("POST", "/admin/people", body),
   updatePerson: (id: string, body: UserIn) => request<User>("PUT", `/admin/people/${id}`, body),

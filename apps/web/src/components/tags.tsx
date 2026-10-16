@@ -70,6 +70,7 @@ const MEETING: Record<string, [Tone, string]> = {
   failed: ["late", "Couldn't process"],
   queued: ["wait", "In the next run"],
   processing: ["wait", "Processing"],
+  waiting: ["wait", "Waiting for Claude"],
   skipped: ["skip", "Skipped"],
 }
 

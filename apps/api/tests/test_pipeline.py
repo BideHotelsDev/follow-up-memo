@@ -149,7 +149,7 @@ def test_extraction_retries_once_with_the_problems(db, mocks, connected, monkeyp
     bad["action_items"][0]["source_quote"] = "Russell promised a new boiler"
     calls = []
 
-    def complete(system, messages, schema):
+    def complete(system, messages, schema, **kwargs):
         calls.append(messages)
         answer = bad if len(calls) % 2 else good
         return llm.Completion(text=json.dumps(answer), model="m", input_tokens=10, output_tokens=5)

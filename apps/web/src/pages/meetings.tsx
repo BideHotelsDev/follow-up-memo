@@ -143,6 +143,10 @@ function Detail({ meeting }: { meeting: Meeting }) {
           <p className="rounded-lg bg-secondary p-4">{meeting.skip_reason ?? "Skipped."}</p>
         ) : meeting.status === "queued" || meeting.status === "processing" ? (
           <p className="rounded-lg bg-attention-subtle p-4 text-foreground">Waiting for the next run.</p>
+        ) : meeting.status === "waiting" && !meeting.purpose ? (
+          <p className="rounded-lg bg-attention-subtle p-4 text-foreground">
+            Waiting for Claude to read the notes. The Claude Code routine picks it up on its next run.
+          </p>
         ) : meeting.status === "failed" ? (
           <p className="rounded-lg bg-danger-subtle p-4 text-foreground">
             This meeting couldn’t be processed after three tries.{" "}

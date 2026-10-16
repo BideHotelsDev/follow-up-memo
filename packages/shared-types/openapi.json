@@ -101,6 +101,28 @@
         }
       }
     },
+    "/api/admin/claude": {
+      "get": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Claude Status",
+        "description": "How the app reaches Claude, and (routine mode) whether the routine is keeping up.",
+        "operationId": "claude_status_api_admin_claude_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaudeStatusOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/settings": {
       "get": {
         "tags": [
@@ -680,6 +702,7 @@
                   "enum": [
                     "queued",
                     "processing",
+                    "waiting",
                     "done",
                     "partial",
                     "failed",
@@ -1421,6 +1444,267 @@
           }
         }
       }
+    },
+    "/api/service/v1/queue": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Queue",
+        "operationId": "queue_api_service_v1_queue_get",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service/v1/llm-jobs": {
+      "get": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Jobs",
+        "description": "The oldest Claude requests waiting for an answer. Each is a system prompt, a conversation and a JSON schema:\nanswer it as the API would, with JSON matching the schema and nothing else.",
+        "operationId": "jobs_api_service_v1_llm_jobs_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 20,
+              "minimum": 1,
+              "default": 5,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LlmJobOut"
+                  },
+                  "title": "Response Jobs Api Service V1 Llm Jobs Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service/v1/llm-jobs/{job_id}/answer": {
+      "post": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Answer",
+        "description": "Store an answer. It must parse as JSON; the pipeline then checks it against the schema and the notes exactly\nas it checks an API answer, and asks again (a new request) when something is wrong.",
+        "operationId": "answer_api_service_v1_llm_jobs__job_id__answer_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmAnswerIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service/v1/llm-jobs/{job_id}/fail": {
+      "post": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Fail",
+        "description": "Give up on a request (for example, Claude declined it). The meeting counts an attempt and is asked again.",
+        "operationId": "fail_api_service_v1_llm_jobs__job_id__fail_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LlmFailIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/service/v1/run": {
+      "post": {
+        "tags": [
+          "service"
+        ],
+        "summary": "Run Now",
+        "description": "Run the pipeline now, so answers just given become drafts and David's summary without waiting for the\nworker's next poll.",
+        "operationId": "run_now_api_service_v1_run_post",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1616,6 +1900,64 @@
           "id"
         ],
         "title": "ChannelMapOut"
+      },
+      "ClaudeStatusOut": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "api",
+              "routine"
+            ],
+            "title": "Mode"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "oldest_pending_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Pending At"
+          },
+          "last_answer_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Answer At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode",
+          "enabled",
+          "model",
+          "pending",
+          "oldest_pending_at",
+          "last_answer_at"
+        ],
+        "title": "ClaudeStatusOut"
       },
       "ConnectionOut": {
         "properties": {
@@ -2058,6 +2400,98 @@
         ],
         "title": "ImpactWeek"
       },
+      "LlmAnswerIn": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 200000,
+            "minLength": 2,
+            "title": "Text",
+            "description": "The JSON answer, exactly as the schema asks"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "LlmAnswerIn"
+      },
+      "LlmFailIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "LlmFailIn"
+      },
+      "LlmJobOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "extract",
+              "email"
+            ],
+            "title": "Kind"
+          },
+          "system": {
+            "type": "string",
+            "title": "System"
+          },
+          "messages": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Messages"
+          },
+          "schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Schema"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "system",
+          "messages",
+          "schema",
+          "created_at"
+        ],
+        "title": "LlmJobOut"
+      },
       "MeetingOut": {
         "properties": {
           "id": {
@@ -2105,6 +2539,7 @@
             "enum": [
               "queued",
               "processing",
+              "waiting",
               "done",
               "partial",
               "failed",
@@ -2373,6 +2808,7 @@
             "enum": [
               "queued",
               "processing",
+              "waiting",
               "done",
               "partial",
               "failed",
@@ -2701,6 +3137,32 @@
           "answered_at"
         ],
         "title": "QuestionOut"
+      },
+      "QueueOut": {
+        "properties": {
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "oldest_pending_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Pending At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pending",
+          "oldest_pending_at"
+        ],
+        "title": "QueueOut"
       },
       "RunOut": {
         "properties": {

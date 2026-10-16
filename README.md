@@ -92,6 +92,15 @@ A meeting that fails is retried on the next run and marked failed after 3 attemp
 the summary) is retried the same way and the meeting shows as partial meanwhile. Without Google connected the run
 pauses; without `ANTHROPIC_API_KEY` meetings wait in the queue. Stored note text is deleted after 30 days.
 
+## Claude: API or the Claude Code routine
+
+`EXTRACTION_MODE=api` (the default) calls the Claude API with `ANTHROPIC_API_KEY`. `EXTRACTION_MODE=routine` runs on
+Bide's Claude plan instead: each Claude request waits in a queue (`llm_jobs`), a scheduled Claude Code routine
+answers it through the token-protected service API (`/api/service/v1`), and the pipeline carries on exactly as with
+an API answer, checks included. Routines run at most hourly, so drafts arrive within about an hour. Setup, prompt and
+trade-offs: `routine/README.md` and `routine/prompt.md`. Admin → Connections shows the mode and the queue; Today flags
+meetings Claude hasn't answered for over 3 hours.
+
 ## Golden set
 
 `pnpm eval` runs extraction on the cases in `apps/api/eval/cases` and scores actions found, owners, due dates and

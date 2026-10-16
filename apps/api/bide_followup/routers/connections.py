@@ -7,13 +7,14 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy import func, select
 
 from bide_followup import auth
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
-from bide_followup.integrations import google_oauth, slack
-from bide_followup.models import User
-from bide_followup.schemas.api import ConnectionOut, ConnectionsOut
+from bide_followup.integrations import google_oauth, llm, slack
+from bide_followup.models import LlmJob, User
+from bide_followup.schemas.api import ClaudeStatusOut, ConnectionOut, ConnectionsOut
 
 router = APIRouter(prefix="/api", tags=["connections"])
 
@@ -121,3 +122,17 @@ def connections(session: SessionDep, _: Admin) -> ConnectionsOut:
         return ConnectionOut.model_validate(row) if row else None
 
     return ConnectionsOut(google=out(google_oauth.integration(session)), slack=out(slack.integration(session)))
+
+
+@router.get("/admin/claude")
+def claude_status(session: SessionDep, _: Admin) -> ClaudeStatusOut:
+    """How the app reaches Claude, and (routine mode) whether the routine is keeping up."""
+    pending = select(LlmJob).where(LlmJob.status == "pending")
+    return ClaudeStatusOut(
+        mode="routine" if llm.routine() else "api",
+        enabled=llm.enabled(),
+        model="Claude Code routine" if llm.routine() else settings.llm_model,
+        pending=session.scalar(select(func.count()).select_from(pending.subquery())) or 0,
+        oldest_pending_at=session.scalar(select(func.min(LlmJob.created_at)).where(LlmJob.status == "pending")),
+        last_answer_at=session.scalar(select(func.max(LlmJob.answered_at))),
+    )

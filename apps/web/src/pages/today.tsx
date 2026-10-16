@@ -127,7 +127,12 @@ export default function TodayPage() {
                   {m.title}
                 </Link>{" "}
                 <span className="text-muted-foreground">
-                  · {m.status === "failed" ? "couldn’t be processed" : "some drafts failed and will retry"}
+                  ·{" "}
+                  {m.status === "failed"
+                    ? "couldn’t be processed"
+                    : m.status === "waiting"
+                      ? "Claude hasn’t answered for over 3 hours: check the Claude Code routine is running"
+                      : "some drafts failed and will retry"}
                 </span>
               </p>
             ))}

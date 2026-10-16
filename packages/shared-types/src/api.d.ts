@@ -92,6 +92,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/claude": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Claude Status
+         * @description How the app reaches Claude, and (routine mode) whether the routine is keeping up.
+         */
+        get: operations["claude_status_api_admin_claude_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/settings": {
         parameters: {
             query?: never;
@@ -500,6 +520,106 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/service/v1/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Queue */
+        get: operations["queue_api_service_v1_queue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service/v1/llm-jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Jobs
+         * @description The oldest Claude requests waiting for an answer. Each is a system prompt, a conversation and a JSON schema:
+         *     answer it as the API would, with JSON matching the schema and nothing else.
+         */
+        get: operations["jobs_api_service_v1_llm_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service/v1/llm-jobs/{job_id}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Answer
+         * @description Store an answer. It must parse as JSON; the pipeline then checks it against the schema and the notes exactly
+         *     as it checks an API answer, and asks again (a new request) when something is wrong.
+         */
+        post: operations["answer_api_service_v1_llm_jobs__job_id__answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service/v1/llm-jobs/{job_id}/fail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fail
+         * @description Give up on a request (for example, Claude declined it). The meeting counts an attempt and is asked again.
+         */
+        post: operations["fail_api_service_v1_llm_jobs__job_id__fail_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/service/v1/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Now
+         * @description Run the pipeline now, so answers just given become drafts and David's summary without waiting for the
+         *     worker's next poll.
+         */
+        post: operations["run_now_api_service_v1_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -559,6 +679,24 @@ export interface components {
              * Format: uuid
              */
             id: string;
+        };
+        /** ClaudeStatusOut */
+        ClaudeStatusOut: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "api" | "routine";
+            /** Enabled */
+            enabled: boolean;
+            /** Model */
+            model: string;
+            /** Pending */
+            pending: number;
+            /** Oldest Pending At */
+            oldest_pending_at: string | null;
+            /** Last Answer At */
+            last_answer_at: string | null;
         };
         /** ConnectionOut */
         ConnectionOut: {
@@ -701,6 +839,49 @@ export interface components {
             /** In Progress */
             in_progress: boolean;
         };
+        /** LlmAnswerIn */
+        LlmAnswerIn: {
+            /**
+             * Text
+             * @description The JSON answer, exactly as the schema asks
+             */
+            text: string;
+            /** Model */
+            model?: string | null;
+        };
+        /** LlmFailIn */
+        LlmFailIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** LlmJobOut */
+        LlmJobOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "extract" | "email";
+            /** System */
+            system: string;
+            /** Messages */
+            messages: {
+                [key: string]: unknown;
+            }[];
+            /** Schema */
+            schema: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /** MeetingOut */
         MeetingOut: {
             /**
@@ -720,7 +901,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "queued" | "processing" | "done" | "partial" | "failed" | "skipped";
+            status: "queued" | "processing" | "waiting" | "done" | "partial" | "failed" | "skipped";
             /** Skip Reason */
             skip_reason: string | null;
             /** Is Sensitive */
@@ -795,7 +976,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "queued" | "processing" | "done" | "partial" | "failed" | "skipped";
+            status: "queued" | "processing" | "waiting" | "done" | "partial" | "failed" | "skipped";
             /** Skip Reason */
             skip_reason: string | null;
             /** Is Sensitive */
@@ -899,6 +1080,13 @@ export interface components {
             answer: string | null;
             /** Answered At */
             answered_at: string | null;
+        };
+        /** QueueOut */
+        QueueOut: {
+            /** Pending */
+            pending: number;
+            /** Oldest Pending At */
+            oldest_pending_at: string | null;
         };
         /** RunOut */
         RunOut: {
@@ -1231,6 +1419,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionsOut"];
+                };
+            };
+        };
+    };
+    claude_status_api_admin_claude_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaudeStatusOut"];
                 };
             };
         };
@@ -1621,7 +1829,7 @@ export interface operations {
         parameters: {
             query?: {
                 property?: string | null;
-                status?: ("queued" | "processing" | "done" | "partial" | "failed" | "skipped") | null;
+                status?: ("queued" | "processing" | "waiting" | "done" | "partial" | "failed" | "skipped") | null;
                 from?: string | null;
                 to?: string | null;
                 q?: string | null;
@@ -2002,6 +2210,171 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuestionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    queue_api_service_v1_queue_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    jobs_api_service_v1_llm_jobs_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LlmJobOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_api_service_v1_llm_jobs__job_id__answer_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LlmAnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fail_api_service_v1_llm_jobs__job_id__fail_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LlmFailIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_now_api_service_v1_run_post: {
+        parameters: {
+            query?: never;
+            header?: {
+                authorization?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"];
                 };
             };
             /** @description Validation Error */

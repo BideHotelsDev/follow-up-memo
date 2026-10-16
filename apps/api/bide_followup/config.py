@@ -50,7 +50,11 @@ class Settings(BaseSettings):
     # Channel for run-failure alerts to Admin.
     admin_alert_slack_channel: str = ""
 
-    # Claude (PRD decision D1). Without a key, extraction is switched off and meetings wait in the queue.
+    # Claude (PRD decision D1). "api": the app calls the Claude API with ANTHROPIC_API_KEY. "routine": Claude requests
+    # wait in a queue that a scheduled Claude Code routine answers on Bide's Claude plan, calling the service API with
+    # SERVICE_API_TOKEN (routine/README.md). Without the key or token, meetings wait in the queue.
+    extraction_mode: str = "api"
+    service_api_token: str = ""
     anthropic_api_key: str = ""
     anthropic_base_url: str | None = None
     llm_model: str = "claude-opus-5-5"

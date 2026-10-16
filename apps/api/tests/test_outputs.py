@@ -131,10 +131,10 @@ def test_email_writing_failure_is_retried(db, mocks, connected, slack_bot, monke
 
     real = llm.complete
 
-    def declined(system, messages, schema):
+    def declined(system, messages, schema, **kwargs):
         if schema is pipeline_outputs.EMAIL_SCHEMA:
             raise llm.LlmError("declined")
-        return real(system, messages, schema)
+        return real(system, messages, schema, **kwargs)
 
     monkeypatch.setattr(llm, "complete", declined)
     with db() as s:

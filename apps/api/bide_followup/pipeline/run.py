@@ -8,13 +8,13 @@ import logging
 import re
 from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from bide_followup import clock
 from bide_followup.config import settings
 from bide_followup.integrations import google_api, google_oauth, llm
-from bide_followup.models import ActionItem, Attendee, Meeting, Question, Run, SkipRule, User
+from bide_followup.models import ActionItem, Attendee, LlmJob, Meeting, Question, Run, SkipRule, User
 from bide_followup.pipeline import extract, outputs, summary
 from bide_followup.schemas.extraction import NEEDS_DAVID
 
@@ -95,7 +95,7 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
         return
 
     meeting_day = (meeting.started_at or clock.utcnow()).astimezone(clock.now().tzinfo).date()
-    result = extract.extract(session, meeting.title, meeting_day, invite, notes)
+    result = extract.extract(session, meeting.title, meeting_day, invite, notes, meeting_id=meeting.id)
     grounded = result.grounded
     info = grounded.extraction
 
@@ -162,11 +162,13 @@ def run(session: Session) -> Run:
         summary.retry_failed(session)
         discover(session, token, record)
         if not llm.enabled():
-            record.error = "Extraction is off (ANTHROPIC_API_KEY not set); meetings wait in the queue"
+            record.error = llm.off_reason()
         else:
             # A meeting left "processing" was interrupted by a restart; the worker runs one job at a time.
             queued = session.scalars(
-                select(Meeting).where(Meeting.status.in_(("queued", "processing"))).order_by(Meeting.started_at)
+                select(Meeting)
+                .where(Meeting.status.in_(("queued", "processing", "waiting")))
+                .order_by(Meeting.started_at)
             ).all()
             for meeting in queued:
                 _process_one(session, token, meeting, record, touched)
@@ -194,20 +196,34 @@ def run(session: Session) -> Run:
 
 
 def _process_one(session: Session, token: str, meeting: Meeting, record: Run, touched: list) -> None:
+    # Routine mode: a meeting already extracted is only waiting for its email; don't extract it again (that would
+    # also undo anything David has answered since).
+    extracted = meeting.status == "waiting" and meeting.prompt_version is not None
+    if meeting.status != "waiting":
+        meeting.attempts += 1
     meeting.status = "processing"
-    meeting.attempts += 1
     session.commit()
     try:
-        process(session, token, meeting)
-        session.commit()
-        if meeting.status == "skipped":
-            record.skipped += 1
-            return
+        if not extracted:
+            process(session, token, meeting)
+            session.commit()
+            if meeting.status == "skipped":
+                record.skipped += 1
+                return
         # The extraction is saved first, so an output failure never loses it; outputs record their own failures.
         outputs.generate(session, meeting)
         session.commit()
+        if meeting.status == "waiting":
+            return  # the email is with the Claude Code routine
         record.processed += 1
         touched.append(meeting.id)
+    except llm.Pending as exc:
+        # Queued for the Claude Code routine (routine mode): not a failure, and not an attempt used up. While the
+        # extraction itself waits, the meeting is not yet extracted (whatever an earlier extraction left stays shown).
+        meeting.status = "waiting"
+        if exc.args and exc.args[0] == "extract":
+            meeting.prompt_version = None
+        session.commit()
     except google_oauth.GoogleAuthError:
         session.rollback()
         meeting.status = "queued"
@@ -217,6 +233,8 @@ def _process_one(session: Session, token: str, meeting: Meeting, record: Run, to
         session.rollback()
         log.warning("meeting %s attempt %s failed: %s", meeting.id, meeting.attempts, exc.__class__.__name__)
         meeting.error = f"{exc.__class__.__name__}: {exc}"[:2000]
+        # A request the routine gave up on is cleared, so the next attempt asks again.
+        session.execute(delete(LlmJob).where(LlmJob.meeting_id == meeting.id, LlmJob.status == "failed"))
         if meeting.attempts >= settings.max_attempts:
             meeting.status = "failed"
             record.failed += 1
@@ -227,11 +245,14 @@ def _process_one(session: Session, token: str, meeting: Meeting, record: Run, to
 
 
 def purge_raw_text(session: Session) -> int:
-    """Delete stored note text past its expiry (PRD §5 Privacy). Returns the meetings cleared."""
+    """Delete stored note text past its expiry, and routine requests (which quote the notes) as old (PRD §5
+    Privacy). Returns the meetings cleared."""
     expired = session.scalars(
         select(Meeting).where(Meeting.raw_text.is_not(None), Meeting.raw_text_expires_at <= clock.utcnow())
     ).all()
     for meeting in expired:
         meeting.raw_text = None
+    cutoff = clock.utcnow() - timedelta(days=settings.raw_text_days)
+    session.execute(delete(LlmJob).where(LlmJob.created_at < cutoff))
     session.commit()
     return len(expired)
