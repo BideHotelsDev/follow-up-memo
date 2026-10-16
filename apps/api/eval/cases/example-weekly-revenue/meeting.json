@@ -1,0 +1,18 @@
+{
+  "title": "Weekly revenue",
+  "date": "2026-10-13",
+  "attendees": [
+    {
+      "name": "David",
+      "email": "david@liddellpropertyinvestments.com"
+    },
+    {
+      "name": "Sam",
+      "email": "sam@bidehotels.com"
+    },
+    {
+      "name": "Priya Shah",
+      "email": "priya@pricelabs.example"
+    }
+  ]
+}

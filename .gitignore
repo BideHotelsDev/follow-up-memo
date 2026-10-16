@@ -14,3 +14,8 @@ apps/web/playwright-report/
 dist-demo/
 apps/web/dev-dist/
 .ruff_cache/
+apps/api/followup-mock.db
+# Golden-set notes are real meeting notes: keep them out of git (only the made-up example-* cases are committed).
+apps/api/eval/cases/*
+!apps/api/eval/cases/example-*
+apps/api/eval/results/

@@ -53,9 +53,17 @@ class Settings(BaseSettings):
     # Claude (PRD decision D1). Without a key, extraction is switched off and meetings wait in the queue.
     anthropic_api_key: str = ""
     anthropic_base_url: str | None = None
-    llm_model: str = "claude-sonnet-5-5"
+    llm_model: str = "claude-opus-5-5"
+    llm_effort: str = "medium"
 
     poll_interval_minutes: int = 10
+    # Gemini may still be writing a doc this soon after its last change (FR-3); notes older than this are not looked
+    # at (FR-1).
+    quiet_minutes: int = 15
+    lookback_days: int = 3
+    # A meeting that fails this many runs in a row is marked failed and surfaced (PRD §5 Reliability).
+    max_attempts: int = 3
+    raw_text_days: int = 30
 
 
 settings = Settings()

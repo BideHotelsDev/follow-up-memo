@@ -106,3 +106,48 @@ class FakeResponse:
 
     def json(self) -> dict:
         return self._body
+
+
+@pytest.fixture
+def mocks(monkeypatch):
+    """Google and Claude served by mocks/server.py in-process, with David's Google account connected."""
+    import anthropic
+    import httpx
+
+    from bide_followup.integrations import google_api, google_oauth, llm
+    from mocks import server
+
+    mock = TestClient(server.app, base_url="http://mock")
+    server.reset(NOW)
+    monkeypatch.setattr(settings, "google_api_url", "http://mock/google")
+    monkeypatch.setattr(settings, "google_token_url", "http://mock/google/token")
+    monkeypatch.setattr(settings, "anthropic_api_key", "mock-key")
+
+    def get(url, **kwargs):
+        return mock.get(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
+
+    def post(url, **kwargs):
+        return mock.post(url, **{k: v for k, v in kwargs.items() if k != "timeout"})
+
+    monkeypatch.setattr(google_api.httpx, "get", get)
+    monkeypatch.setattr(google_oauth.httpx, "post", post)
+    monkeypatch.setattr(
+        llm,
+        "client",
+        lambda: anthropic.Anthropic(api_key="mock-key", base_url="http://mock/anthropic", http_client=mock),
+    )
+    assert httpx  # imported for the patch targets above
+    return server
+
+
+@pytest.fixture
+def connected(db):
+    """David's Google account connected (an expired access token, so the first call refreshes through the mock)."""
+    from bide_followup.integrations import google_oauth
+
+    with db() as s:
+        google_oauth.save(
+            s,
+            "david@liddellpropertyinvestments.com",
+            {"access_token": "old", "refresh_token": "1//r", "expires_in": 0},
+        )

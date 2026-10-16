@@ -28,6 +28,44 @@ without Google.
 Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`. After changing an API model, run
 `pnpm gen:types` and commit the result; CI fails if the types are out of date.
 
+### With the mock services
+
+`apps/api/mocks` stands in for Google (Drive, Calendar, OAuth) and Claude, serving two made-up meetings, so the
+whole pipeline runs with no accounts or API key:
+
+```sh
+pnpm seed:mock        # a separate SQLite database, with a pretend Google connection
+pnpm dev:mocks        # http://localhost:8400
+pnpm dev:api:mock     # the API wired to the mocks (.env.mock)
+pnpm dev:web
+```
+
+Sign in as `kyle@bidehotels.com` and run the pipeline with `POST /api/admin/runs` (or `pnpm dev:worker:mock` to run
+it on the schedule).
+
+## Pipeline
+
+Every 10 minutes the worker (`bide_followup.worker`) runs `pipeline/run.py`:
+
+1. **Discover**: Gemini notes in David's Drive changed in the last 3 days, not seen before and not changed in the last
+   15 minutes, become queued meetings. Title skip rules apply here.
+2. **Fetch**: the note as plain text and its Calendar event (by Gemini's attachment, else by title and time) for
+   attendees. Attendee skip rules apply here.
+3. **Extract**: one Claude call with the prompt in `prompts/extract_v1.md`, the Bide context from Admin settings and
+   the schema in `schemas/extraction.py`. Problems (invalid JSON, quotes not in the notes, impossible dates, emails
+   from nowhere) get one retry with the problems listed.
+4. **Ground** (`pipeline/validate.py`): ungrounded actions are dropped, unsupported dates and emails cleared, and
+   unowned or undated items become questions for David (5 at most).
+
+A meeting that fails is retried on the next run and marked failed after 3 attempts. Without Google connected the run
+pauses; without `ANTHROPIC_API_KEY` meetings wait in the queue. Stored note text is deleted after 30 days.
+
+## Golden set
+
+`pnpm eval` runs extraction on the cases in `apps/api/eval/cases` and scores actions found, owners, due dates and
+invented actions (see `apps/api/eval/run.py`). It calls the real Claude API and prints the cost. Real notes stay out
+of git: only the made-up `example-*` cases are committed.
+
 ## Deploy (Railway)
 
 One Docker image, two services, plus Railway Postgres:

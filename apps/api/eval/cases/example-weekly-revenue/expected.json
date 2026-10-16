@@ -1,0 +1,19 @@
+{
+  "action_items": [
+    {
+      "description": "Update the PriceLabs minimum-stay rule for The View to two nights",
+      "owner": "Sam",
+      "due_date": "2026-10-16"
+    },
+    {
+      "description": "Send David the comparison report for Highland short stays",
+      "owner": "Priya Shah",
+      "due_date": null
+    },
+    {
+      "description": "Check the Canary upsell settings for The Hearth",
+      "owner": "NEEDS_DAVID",
+      "due_date": null
+    }
+  ]
+}

@@ -10,10 +10,12 @@ from sqlalchemy.exc import IntegrityError
 from bide_followup import auth, runtime_settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
-from bide_followup.models import ChannelMap, SkipRule, User
+from bide_followup.models import ChannelMap, Run, SkipRule, User
+from bide_followup.pipeline import run as pipeline
 from bide_followup.schemas.api import (
     ChannelMapIn,
     ChannelMapOut,
+    RunOut,
     SettingsIn,
     SettingsOut,
     SkipRuleIn,
@@ -102,3 +104,16 @@ def replace_skip_rules(body: list[SkipRuleIn], session: SessionDep, _: Admin) ->
     session.add_all(rows)
     session.commit()
     return [SkipRuleOut.model_validate(r) for r in rows]
+
+
+@router.get("/runs")
+def list_runs(session: SessionDep, _: Admin, limit: int = 50) -> list[RunOut]:
+    """The run log (FR-41), newest first."""
+    rows = session.scalars(select(Run).order_by(Run.started_at.desc()).limit(min(limit, 200)))
+    return [RunOut.model_validate(r) for r in rows]
+
+
+@router.post("/runs", status_code=201)
+def run_now(session: SessionDep, _: Admin) -> RunOut:
+    """Run the pipeline now rather than waiting for the worker's next poll."""
+    return RunOut.model_validate(pipeline.run(session))

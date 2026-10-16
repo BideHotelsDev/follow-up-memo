@@ -99,3 +99,14 @@ class SettingsIn(BaseModel):
     email_tone: str | None = None
     email_signature: str | None = None
     poll_interval_minutes: int | None = Field(default=None, ge=5, le=60)
+
+
+class RunOut(Orm):
+    id: uuid.UUID
+    started_at: datetime
+    finished_at: datetime | None
+    found: int
+    processed: int
+    skipped: int
+    failed: int
+    error: str | None
