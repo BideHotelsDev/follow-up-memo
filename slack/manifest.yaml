@@ -1,0 +1,31 @@
+# Bide Follow-up Slack app. A workspace admin creates it at https://api.slack.com/apps →
+# "Create New App" → "From an app manifest" → Bide's workspace, pasting this file. Then copy the client ID, secret
+# and signing secret into Railway, and install from the app's Admin → Connections page (not from Slack's page), so
+# the bot token is stored encrypted. Replace followup.example.com with the app's domain.
+display_information:
+  name: Bide Follow-up
+  description: Meeting follow-ups for Bide, posted only after David approves them
+  background_color: "#172d23"
+features:
+  app_home:
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: true
+  bot_user:
+    display_name: Bide Follow-up
+    always_online: true
+oauth_config:
+  redirect_urls:
+    - https://followup.example.com/api/auth/slack/callback
+  scopes:
+    bot:
+      - chat:write
+      - chat:write.public # post a digest to a public channel without being invited first
+      - im:write
+      - users:read
+      - users:read.email
+      - channels:read
+      - groups:read # private channels the bot has been invited to
+settings:
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

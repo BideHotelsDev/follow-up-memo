@@ -1,0 +1,26 @@
+{
+  "name": "bide-meeting-followup",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.3.4",
+  "scripts": {
+    "dev:web": "pnpm --filter @bide-followup/web dev",
+    "dev:api": "uv run --directory apps/api uvicorn bide_followup.main:app --reload --port 8300",
+    "dev:worker": "uv run --directory apps/api python -m bide_followup.worker",
+    "db:migrate": "uv run --directory apps/api alembic upgrade head",
+    "db:revision": "uv run --directory apps/api alembic revision --autogenerate -m",
+    "seed": "uv run --directory apps/api python -m bide_followup.seed",
+    "seed:demo": "uv run --directory apps/api python -m bide_followup.seed --demo",
+    "gen:types": "uv run --directory apps/api python -m bide_followup.openapi ../../packages/shared-types/openapi.json && pnpm --filter @bide-followup/shared-types gen",
+    "test:api": "uv run --directory apps/api pytest",
+    "build:web": "pnpm --filter @bide-followup/web build",
+    "lint": "pnpm --filter @bide-followup/web lint && uv run --directory apps/api ruff check",
+    "format": "prettier --write . && uv run --directory apps/api ruff format",
+    "format:check": "prettier --check . && uv run --directory apps/api ruff format --check",
+    "typecheck": "pnpm --filter @bide-followup/web typecheck",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
+  }
+}

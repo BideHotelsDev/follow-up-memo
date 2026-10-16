@@ -1,0 +1,278 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Jost — the brand's secondary typeface, for body and all interface text.
+   Fraunces stands in for TT Ramillas, which is licensed and not redistributable.
+   See docs/reference/brand-guidelines.md §4. */
+@import "@fontsource-variable/jost";
+@import "@fontsource-variable/fraunces";
+/* Technical strings — Drive file IDs, Slack channel IDs, prompt versions. A real
+   mono rather than whatever the operating system happens to supply. */
+@import "@fontsource-variable/jetbrains-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  bide Meeting Follow-up — design tokens (copied from bide Linen Tracker).
+
+  Colours are the brand palette, used exactly as the guidelines specify:
+    Slate Black  #131D1B  primary text
+    Fir Green    #172D23  secondary branding, reversed surfaces
+    Gorse Yellow #FAB30C  calls-to-action and key brand moments only
+    Stone Grey   #FCF8F1  warm background
+    Peak White   #FFFFFF  clean surfaces
+
+  Gorse Yellow is deliberately NOT used for body text or thin strokes: at 1.9:1
+  against white it fails contrast. It appears as a filled surface with Slate Black
+  on top, which is how the guidelines describe it ("energy points").
+
+  Tap targets stay large: David reviews drafts on his phone between calls.
+*/
+
+:root {
+  --radius: 0.5rem;
+
+  --background: #fcf8f1; /* Stone Grey */
+  --foreground: #131d1b; /* Slate Black */
+
+  --card: #ffffff; /* Peak White */
+  --card-foreground: var(--foreground);
+  --popover: #ffffff;
+  --popover-foreground: var(--foreground);
+
+  /* Calls-to-action. Slate Black sits on it for contrast. */
+  --primary: #fab30c; /* Gorse Yellow */
+  --primary-foreground: #131d1b;
+
+  --secondary: #f2ebde;
+  --secondary-foreground: #172d23;
+  --muted: #f4eee2;
+  --muted-foreground: #5c6660;
+  --accent: #e9eee9;
+  --accent-foreground: #172d23; /* Fir Green */
+
+  --destructive: #a8342a;
+  --destructive-foreground: #ffffff;
+
+  --border: #e5ddcd;
+  --input: #dcd3c1;
+  --ring: #172d23;
+
+  /* Status. Never colour alone — every pill carries its own word. */
+  --ok: #2f5c42;
+  --ok-foreground: #14261c; /* reads on --ok-subtle, not on solid --ok */
+  --ok-subtle: #dfe9e1;
+
+  --attention: #b8820a;
+  --attention-foreground: #4a3403;
+  --attention-subtle: #fdf1d6;
+
+  --danger-subtle: #f9e8e6;
+
+  --chart-1: #172d23;
+  --chart-2: #fab30c;
+  --chart-3: #5c8a72;
+  --chart-4: #b8820a;
+  --chart-5: #8fa89a;
+
+  /* The sidebar is a reversed brand surface: Peak White on Fir Green, which the
+     guidelines name as an approved logo application. */
+  --sidebar: #172d23;
+  --sidebar-foreground: #f2efe7;
+  --sidebar-primary: #fab30c;
+  --sidebar-primary-foreground: #131d1b;
+  --sidebar-accent: #24402f;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #2c4a37;
+  --sidebar-ring: #fab30c;
+}
+
+.dark {
+  --background: #101816;
+  --foreground: #f2efe7;
+
+  --card: #172d23; /* Fir Green as the lifted surface */
+  --card-foreground: var(--foreground);
+  --popover: #1a3227;
+  --popover-foreground: var(--foreground);
+
+  --primary: #fab30c;
+  --primary-foreground: #131d1b;
+
+  --secondary: #21382c;
+  --secondary-foreground: var(--foreground);
+  --muted: #1e3328;
+  --muted-foreground: #9aa89f;
+  --accent: #24402f;
+  --accent-foreground: #f2efe7;
+
+  --destructive: #d4564a;
+  --destructive-foreground: #ffffff;
+
+  --border: #2b4536;
+  --input: #345140;
+  --ring: #fab30c;
+
+  --ok: #6fae87;
+  --ok-foreground: #cfe6d7; /* reads on the dark --ok-subtle */
+  --ok-subtle: #1f3a2a;
+
+  --attention: #fab30c;
+  --attention-foreground: #fbe9c0;
+  --attention-subtle: #33290f;
+
+  --danger-subtle: #3a1e1b;
+
+  --sidebar: #0d1512;
+  --sidebar-foreground: #f2efe7;
+  --sidebar-primary: #fab30c;
+  --sidebar-primary-foreground: #131d1b;
+  --sidebar-accent: #1e3328;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #24402f;
+  --sidebar-ring: #fab30c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ok: var(--ok);
+  --color-ok-foreground: var(--ok-foreground);
+  --color-ok-subtle: var(--ok-subtle);
+  --color-attention: var(--attention);
+  --color-attention-foreground: var(--attention-foreground);
+  --color-attention-subtle: var(--attention-subtle);
+  --color-danger-subtle: var(--danger-subtle);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Jost for everything interface. Fraunces stands in for TT Ramillas on
+     headings and the wordmark. */
+  --font-sans: "Jost Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-xs: calc(var(--radius) * 0.5);
+  --radius-sm: calc(var(--radius) * 0.75);
+  --radius-md: calc(var(--radius) * 0.875);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.5);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    /* Jost is a geometric sans with a small x-height, so it reads thin at
+       interface sizes. A hair of extra tracking and a slightly open line-height
+       is what stops it looking like body copy shrunk down. */
+    letter-spacing: 0.005em;
+    line-height: 1.5;
+  }
+
+  /*
+    Four type roles, and nothing else:
+
+      display   Fraunces   page titles and the wordmark
+      title     Jost 600   card and section headings
+      body      Jost 400   everything you read
+      eyebrow   Jost 500   uppercase micro-labels above a group
+
+    Anything reaching for a fifth is usually a body size in disguise.
+  */
+
+  /* Headings carry the brand voice. SOFT and WONK stay at 0 to keep the serifs
+     short and upright, which is the character TT Ramillas is described as
+     having — but opsz is left to the browser. Pinning it disables optical
+     sizing altogether, which is why the titles were reading heavy. */
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-variation-settings:
+      "SOFT" 0,
+      "WONK" 0;
+    letter-spacing: -0.01em;
+  }
+
+  /* The label above a group of things. One definition, so the sidebar sections,
+     the property switcher and the explainer panels all agree. */
+  .eyebrow {
+    font-size: 0.6875rem; /* 11px */
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Counts and dates in lists. Jost's tabular figures keep columns aligned. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    letter-spacing: 0.01em;
+  }
+
+  /* Technical strings only — IDs, prompt versions. */
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 0.92em; /* JetBrains Mono runs large beside Jost */
+    letter-spacing: 0;
+  }
+
+  /* No spinner, no scroll-to-change on number inputs. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-demo
+test-results
+playwright-report
+pnpm-lock.yaml
+packages/shared-types/src/api.d.ts
+packages/shared-types/openapi.json
+apps/api

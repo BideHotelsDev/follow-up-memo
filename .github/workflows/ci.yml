@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or PR makes the older run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  FORCE_COLOR: "1"
+
+jobs:
+  check:
+    name: Lint, format, types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # version from package.json "packageManager"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - uses: astral-sh/setup-uv@v10.2.0 # exact tags only (no v10); caches by default on GitHub's runners
+        with:
+          cache-suffix: ${{ github.job }} # one cache per job, so parallel jobs don't race to save the same key
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - name: API types match the API
+        run: |
+          pnpm gen:types
+          git diff --exit-code -- packages/shared-types \
+            || (echo "::error::packages/shared-types is out of date. Run 'pnpm gen:types' and commit the result." && exit 1)
+
+  api:
+    name: API tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          cache-suffix: ${{ github.job }}
+      - run: uv run --directory apps/api pytest
+
+  postgres:
+    name: Migrations on Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Production runs on Postgres; the tests use SQLite.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bide_followup
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/bide_followup
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          cache-suffix: ${{ github.job }}
+      - name: Migrate up
+        run: uv run alembic upgrade head
+      - name: Models match the migrations
+        run: uv run alembic check
+      - name: Migrate down and up again
+        run: uv run alembic downgrade base && uv run alembic upgrade head
+      - name: Demo seed loads
+        run: uv run python -m bide_followup.seed --demo
+
+  web:
+    name: Web build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:web

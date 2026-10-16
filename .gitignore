@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.env
+*.secrets.env
+*:Zone.Identifier
+apps/api/followup.db
+apps/web/test-results/
+apps/web/playwright-report/
+dist-demo/
+apps/web/dev-dist/
+.ruff_cache/
