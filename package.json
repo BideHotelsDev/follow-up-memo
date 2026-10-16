@@ -11,6 +11,7 @@
     "db:revision": "uv run --directory apps/api alembic revision --autogenerate -m",
     "seed": "uv run --directory apps/api python -m bide_followup.seed",
     "seed:demo": "uv run --directory apps/api python -m bide_followup.seed --demo",
+    "slack:token": "uv run --directory apps/api python -m bide_followup.slack_token",
     "gen:types": "uv run --directory apps/api python -m bide_followup.openapi ../../packages/shared-types/openapi.json && pnpm --filter @bide-followup/shared-types gen",
     "test:api": "uv run --directory apps/api pytest",
     "build:web": "pnpm --filter @bide-followup/web build",
