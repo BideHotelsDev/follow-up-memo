@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/use-me"
+import { ScopeProvider } from "@/hooks/use-scope"
 import ChannelsPage from "@/pages/admin/channels"
 import ConnectionsPage from "@/pages/admin/connections"
 import AdminLayout from "@/pages/admin/layout"
@@ -44,33 +45,35 @@ export default function App() {
 
   const reviewer = me.data.role !== "member"
   return (
-    <Routes>
-      <Route element={<AppShell me={me.data} />}>
-        <Route index element={<TodayPage />} />
-        <Route path="tasks" element={<TasksPage />} />
-        <Route path="how" element={<HowPage />} />
-        {reviewer ? (
-          <>
-            <Route path="impact" element={<ImpactPage />} />
-            <Route path="meetings" element={<MeetingsPage />} />
-            <Route path="meetings/:id" element={<MeetingsPage />} />
-            <Route path="emails" element={<EmailsPage />} />
-            <Route path="slack" element={<SlackPage />} />
-          </>
-        ) : null}
-        {me.data.role === "admin" ? (
-          <Route path="admin" element={<AdminLayout />}>
-            <Route index element={<Navigate to="connections" replace />} />
-            <Route path="connections" element={<ConnectionsPage />} />
-            <Route path="people" element={<PeoplePage />} />
-            <Route path="channels" element={<ChannelsPage />} />
-            <Route path="skip-rules" element={<SkipRulesPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="runs" element={<RunsPage />} />
-          </Route>
-        ) : null}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
+    <ScopeProvider key={me.data.id} userId={me.data.id}>
+      <Routes>
+        <Route element={<AppShell me={me.data} />}>
+          <Route index element={<TodayPage />} />
+          <Route path="tasks" element={<TasksPage />} />
+          <Route path="how" element={<HowPage />} />
+          {reviewer ? (
+            <>
+              <Route path="impact" element={<ImpactPage />} />
+              <Route path="meetings" element={<MeetingsPage />} />
+              <Route path="meetings/:id" element={<MeetingsPage />} />
+              <Route path="emails" element={<EmailsPage />} />
+              <Route path="slack" element={<SlackPage />} />
+            </>
+          ) : null}
+          {me.data.role === "admin" ? (
+            <Route path="admin" element={<AdminLayout />}>
+              <Route index element={<Navigate to="connections" replace />} />
+              <Route path="connections" element={<ConnectionsPage />} />
+              <Route path="people" element={<PeoplePage />} />
+              <Route path="channels" element={<ChannelsPage />} />
+              <Route path="skip-rules" element={<SkipRulesPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="runs" element={<RunsPage />} />
+            </Route>
+          ) : null}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </ScopeProvider>
   )
 }

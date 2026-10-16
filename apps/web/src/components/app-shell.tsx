@@ -1,5 +1,6 @@
+import { useEffect } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { LogOut, Settings2 } from "lucide-react"
+import { Eye, LogOut, Settings2 } from "lucide-react"
 import { NavLink, Outlet } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
@@ -64,6 +65,12 @@ export function AppShell({ me }: { me: User }) {
   const { reviewer, people, asMember } = useViewer()
   const today = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope), refetchInterval: 60_000 })
   const counts = today.data?.counts
+  const viewed = viewingAs ? people.find((p) => p.id === viewingAs) : undefined
+
+  // A remembered choice that no longer applies (the person was removed, or you aren't a reviewer) is dropped.
+  useEffect(() => {
+    if (viewingAs && (!reviewer || viewingAs === me.id || (people.length > 0 && !viewed))) setViewingAs(null)
+  }, [viewingAs, reviewer, people.length, viewed, me.id, setViewingAs])
 
   const tabs: Tab[] = !asMember
     ? [
@@ -142,6 +149,7 @@ export function AppShell({ me }: { me: User }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={async () => {
+                      setViewingAs(null)
                       await api.logout()
                       queryClient.setQueryData(["me"], null)
                     }}
@@ -155,6 +163,20 @@ export function AppShell({ me }: { me: User }) {
           <Tabs tabs={tabs} />
         </div>
       </header>
+      {viewed ? (
+        <div className="border-b bg-attention-subtle px-4 py-2 text-sm text-foreground">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-1">
+            <Eye className="size-4" aria-hidden />
+            <span>
+              You’re seeing the app as <b className="font-medium">{viewed.name}</b> sees it. Nothing you do here is done
+              as them.
+            </span>
+            <button className="underline underline-offset-2" onClick={() => setViewingAs(null)}>
+              Back to your own view
+            </button>
+          </div>
+        </div>
+      ) : null}
       <main className="mx-auto w-full max-w-6xl px-4 py-8 md:py-10">
         <Outlet />
       </main>
