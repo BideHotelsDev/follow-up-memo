@@ -34,3 +34,43 @@ def test_channels_and_skip_rules(sign_in):
     assert client.put("/api/admin/channels", json=[{"slack_channel_id": "C1"}]).status_code == 422
     rules = [{"type": "title_keyword", "value": "1:1"}, {"type": "title_keyword", "value": "1:1 "}]
     assert len(client.put("/api/admin/skip-rules", json=rules).json()) == 1
+
+
+def test_pipeline_settings(sign_in):
+    client = sign_in("kyle@bidehotels.com")
+    resp = client.put("/api/admin/settings", json={"internal_domains": ["liddellpropertyinvestments.com"]})
+    assert resp.json()["code"] == "own_access"
+    assert client.put("/api/admin/settings", json={"internal_domains": ["not a domain"]}).status_code == 422
+    resp = client.put(
+        "/api/admin/settings",
+        json={
+            "internal_domains": [" @BideHotels.com", "bide.example"],
+            "quiet_minutes": 20,
+            "sensitive_topics": ["HR"],
+        },
+    )
+    assert resp.json()["internal_domains"] == ["bidehotels.com", "bide.example"]
+    pipeline = client.get("/api/app").json()["pipeline"]
+    assert pipeline["quiet_minutes"] == 20 and pipeline["sensitive_topics"] == ["HR"]
+    assert pipeline["internal_domains"] == ["bidehotels.com", "bide.example"]
+
+
+def test_worker_follows_interval_changes(db, monkeypatch):
+    from bide_followup import runtime_settings, worker
+
+    monkeypatch.setattr(worker, "SessionLocal", db)
+    moved = {}
+
+    class Scheduler:
+        def reschedule_job(self, job, trigger):
+            moved[job] = trigger.interval.total_seconds() / 60
+
+    current = worker.intervals()
+    assert current == {"poll": 10, "sync_gmail": 30}
+    worker.follow_settings(Scheduler(), current)
+    assert moved == {}
+    with db() as s:
+        runtime_settings.put(s, "gmail_sync_minutes", 60)
+        s.commit()
+    worker.follow_settings(Scheduler(), current)
+    assert moved == {"sync_gmail": 60} and current["sync_gmail"] == 60

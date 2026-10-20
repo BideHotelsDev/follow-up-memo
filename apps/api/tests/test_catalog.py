@@ -57,6 +57,26 @@ def test_claude_is_given_the_current_lists_and_owner(db, mocks, connected, sign_
     assert enum["enum"] == ["The View", "The Hearth", "The Villa", "The Lodge"]
     assert "Davie, the owner of Bide" in body["system"]
     assert "4 short-stay properties in Scotland: The View, The Hearth, The Villa and The Lodge" in body["system"]
+    assert "pricing negotiations, contracts, staff performance, legal matters, HR or investors" in body["system"]
+    assert "Anyone whose email is at @bidehotels.com or @liddellpropertyinvestments.com" in body["system"]
+
+
+def test_claude_is_given_the_business_settings(db, mocks, connected, sign_in):
+    client = sign_in("kyle@bidehotels.com")
+    client.put(
+        "/api/admin/settings",
+        json={
+            "property_region": "the Highlands",
+            "sensitive_topics": ["HR", "investors"],
+            "internal_domains": ["bidehotels.com", "bide.example"],
+        },
+    )
+    with db() as s:
+        run.run(s)
+    system = mocks.state["last_request"]["body"]["system"]
+    assert "3 short-stay properties in the Highlands" in system
+    assert "when it covers HR or investors," in system
+    assert "@bidehotels.com or @bide.example" in system
 
 
 def test_unlisted_properties_are_asked_about_then_dropped(db, mocks, connected, monkeypatch):

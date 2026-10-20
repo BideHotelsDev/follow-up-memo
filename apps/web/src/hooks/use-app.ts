@@ -2,9 +2,25 @@ import { useQuery } from "@tanstack/react-query"
 
 import { api, type AppSettings } from "@/lib/api"
 
-const FALLBACK: AppSettings = { owner_name: "the owner", owner_email: null, properties: [], systems: [] }
+const FALLBACK: AppSettings = {
+  owner_name: "the owner",
+  owner_email: null,
+  properties: [],
+  systems: [],
+  pipeline: {
+    poll_interval_minutes: 10,
+    quiet_minutes: 15,
+    gmail_sync_minutes: 30,
+    max_attempts: 3,
+    raw_text_days: 30,
+    internal_domains: [],
+    sensitive_topics: [],
+    skip_rules: 0,
+    channels: 0,
+  },
+}
 
-/** The owner's name, the properties and the systems, as Bide set them in Admin. */
+/** The owner's name, the properties, the systems and how the pipeline runs, as Bide set them in Admin. */
 export function useApp(): AppSettings {
   const { data } = useQuery({ queryKey: ["app"], queryFn: api.app, staleTime: 5 * 60_000 })
   return data ?? FALLBACK

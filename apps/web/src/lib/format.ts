@@ -42,3 +42,18 @@ export function greeting(moment = new Date()): string {
 export function plural(n: number, word: string, many = `${word}s`): string {
   return `${n} ${n === 1 ? word : many}`
 }
+
+/** "30 minutes", "1 hour", "90 minutes", "2 hours". */
+export function minutes(n: number): string {
+  return n % 60 === 0 ? plural(n / 60, "hour") : plural(n, "minute")
+}
+
+/** "every 10 minutes", "every hour". */
+export function every(n: number): string {
+  return n === 60 ? "every hour" : `every ${minutes(n)}`
+}
+
+/** "a, b and c", or "a, b or c". */
+export function listOf(words: string[], last = "and"): string {
+  return words.length < 2 ? (words[0] ?? "") : `${words.slice(0, -1).join(", ")} ${last} ${words[words.length - 1]}`
+}

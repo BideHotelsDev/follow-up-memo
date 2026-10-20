@@ -35,7 +35,9 @@ def get_settings(session: SessionDep, _: Admin) -> SettingsOut:
 
 
 @router.put("/settings")
-def put_settings(body: SettingsIn, session: SessionDep, _: Admin) -> SettingsOut:
+def put_settings(body: SettingsIn, session: SessionDep, user: Admin) -> SettingsOut:
+    if body.internal_domains is not None and user.email.rsplit("@", 1)[-1].lower() not in body.internal_domains:
+        raise DomainError("own_access", "Keep your own email domain on the list, or you couldn't sign in again")
     for key in body.model_fields_set:
         value = getattr(body, key)
         if value is not None or key.startswith("baseline_"):

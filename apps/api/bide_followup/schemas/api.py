@@ -2,11 +2,21 @@
 
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 Role = Literal["admin", "owner", "member"]
+
+
+def _domain(value: str) -> str:
+    value = value.strip().lower().lstrip("@")
+    if "." not in value or " " in value or "@" in value:
+        raise ValueError("not an email domain")
+    return value
+
+
+Domain = Annotated[str, AfterValidator(_domain)]
 
 
 class Orm(BaseModel):
@@ -102,6 +112,14 @@ class SettingsOut(BaseModel):
     target_active_days: float
     followup_within_hours: float
     routine_stuck_hours: float
+    internal_domains: list[str]
+    property_region: str
+    sensitive_topics: list[str]
+    quiet_minutes: int
+    lookback_days: int
+    max_attempts: int
+    gmail_sync_minutes: int
+    raw_text_days: int
 
 
 class SettingsIn(BaseModel):
@@ -119,6 +137,16 @@ class SettingsIn(BaseModel):
     target_active_days: float | None = Field(default=None, ge=0, le=7)
     followup_within_hours: float | None = Field(default=None, ge=1, le=168)
     routine_stuck_hours: float | None = Field(default=None, ge=1, le=48)
+    internal_domains: list[Domain] | None = Field(default=None, min_length=1, max_length=20)
+    property_region: str | None = Field(default=None, max_length=80)
+    sensitive_topics: (
+        list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]] | None
+    ) = Field(default=None, max_length=20)
+    quiet_minutes: int | None = Field(default=None, ge=5, le=120)
+    lookback_days: int | None = Field(default=None, ge=1, le=14)
+    max_attempts: int | None = Field(default=None, ge=1, le=10)
+    gmail_sync_minutes: int | None = Field(default=None, ge=10, le=240)
+    raw_text_days: int | None = Field(default=None, ge=1, le=365)
 
 
 class RunOut(Orm):
@@ -417,10 +445,26 @@ class SystemIn(PropertyIn):
     """Same fields as a property."""
 
 
+class PipelineOut(BaseModel):
+    """How the app is set to run, for How it works and the Impact definitions."""
+
+    poll_interval_minutes: int
+    quiet_minutes: int
+    gmail_sync_minutes: int
+    max_attempts: int
+    raw_text_days: int
+    internal_domains: list[str]
+    sensitive_topics: list[str]
+    skip_rules: int
+    channels: int
+
+
 class AppOut(BaseModel):
-    """What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems."""
+    """What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,
+    and how the pipeline is set to run."""
 
     owner_name: str
     owner_email: str | None
     properties: list[PropertyOut]
     systems: list[str]
+    pipeline: PipelineOut

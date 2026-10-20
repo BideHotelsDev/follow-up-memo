@@ -2023,6 +2023,9 @@
             },
             "type": "array",
             "title": "Systems"
+          },
+          "pipeline": {
+            "$ref": "#/components/schemas/PipelineOut"
           }
         },
         "type": "object",
@@ -2030,10 +2033,11 @@
           "owner_name",
           "owner_email",
           "properties",
-          "systems"
+          "systems",
+          "pipeline"
         ],
         "title": "AppOut",
-        "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems."
+        "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,\nand how the pipeline is set to run."
       },
       "ApproveAllIn": {
         "properties": {
@@ -3379,6 +3383,66 @@
         ],
         "title": "PersonOut"
       },
+      "PipelineOut": {
+        "properties": {
+          "poll_interval_minutes": {
+            "type": "integer",
+            "title": "Poll Interval Minutes"
+          },
+          "quiet_minutes": {
+            "type": "integer",
+            "title": "Quiet Minutes"
+          },
+          "gmail_sync_minutes": {
+            "type": "integer",
+            "title": "Gmail Sync Minutes"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "title": "Max Attempts"
+          },
+          "raw_text_days": {
+            "type": "integer",
+            "title": "Raw Text Days"
+          },
+          "internal_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Internal Domains"
+          },
+          "sensitive_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sensitive Topics"
+          },
+          "skip_rules": {
+            "type": "integer",
+            "title": "Skip Rules"
+          },
+          "channels": {
+            "type": "integer",
+            "title": "Channels"
+          }
+        },
+        "type": "object",
+        "required": [
+          "poll_interval_minutes",
+          "quiet_minutes",
+          "gmail_sync_minutes",
+          "max_attempts",
+          "raw_text_days",
+          "internal_domains",
+          "sensitive_topics",
+          "skip_rules",
+          "channels"
+        ],
+        "title": "PipelineOut",
+        "description": "How the app is set to run, for How it works and the Impact definitions."
+      },
       "PropertyIn": {
         "properties": {
           "name": {
@@ -3777,6 +3841,116 @@
               }
             ],
             "title": "Routine Stuck Hours"
+          },
+          "internal_domains": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 20,
+                "minItems": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Domains"
+          },
+          "property_region": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Property Region"
+          },
+          "sensitive_topics": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "maxLength": 60,
+                  "minLength": 1
+                },
+                "type": "array",
+                "maxItems": 20
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensitive Topics"
+          },
+          "quiet_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 120.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quiet Minutes"
+          },
+          "lookback_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 14.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lookback Days"
+          },
+          "max_attempts": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 10.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Attempts"
+          },
+          "gmail_sync_minutes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 240.0,
+                "minimum": 10.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gmail Sync Minutes"
+          },
+          "raw_text_days": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 365.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw Text Days"
           }
         },
         "type": "object",
@@ -3851,6 +4025,44 @@
           "routine_stuck_hours": {
             "type": "number",
             "title": "Routine Stuck Hours"
+          },
+          "internal_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Internal Domains"
+          },
+          "property_region": {
+            "type": "string",
+            "title": "Property Region"
+          },
+          "sensitive_topics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sensitive Topics"
+          },
+          "quiet_minutes": {
+            "type": "integer",
+            "title": "Quiet Minutes"
+          },
+          "lookback_days": {
+            "type": "integer",
+            "title": "Lookback Days"
+          },
+          "max_attempts": {
+            "type": "integer",
+            "title": "Max Attempts"
+          },
+          "gmail_sync_minutes": {
+            "type": "integer",
+            "title": "Gmail Sync Minutes"
+          },
+          "raw_text_days": {
+            "type": "integer",
+            "title": "Raw Text Days"
           }
         },
         "type": "object",
@@ -3867,7 +4079,15 @@
           "target_reassigned_rate",
           "target_active_days",
           "followup_within_hours",
-          "routine_stuck_hours"
+          "routine_stuck_hours",
+          "internal_domains",
+          "property_region",
+          "sensitive_topics",
+          "quiet_minutes",
+          "lookback_days",
+          "max_attempts",
+          "gmail_sync_minutes",
+          "raw_text_days"
         ],
         "title": "SettingsOut"
       },

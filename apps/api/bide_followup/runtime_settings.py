@@ -14,6 +14,19 @@ DEFAULTS: dict[str, Any] = {
     # Slack items always wait for approval in v1 (PRD D4); kept as a setting so the Admin page can show it.
     "slack_mode": "approve",
     "poll_interval_minutes": env.poll_interval_minutes,
+    # Who counts as internal (attendees) and may sign in. Starts from BIDE_DOMAINS.
+    "internal_domains": env.bide_domain_list,
+    # What Claude is told about the business and which meetings it should treat as sensitive.
+    "property_region": "Scotland",
+    "sensitive_topics": ["pricing negotiations", "contracts", "staff performance", "legal matters", "HR", "investors"],
+    # Pipeline timings: how long a doc must sit unchanged before it is read (FR-3), how far back to look (FR-1),
+    # how many failed runs before a meeting is marked failed, how often Gmail drafts are checked, and how long
+    # the note text is kept.
+    "quiet_minutes": env.quiet_minutes,
+    "lookback_days": env.lookback_days,
+    "max_attempts": env.max_attempts,
+    "gmail_sync_minutes": 30,
+    "raw_text_days": env.raw_text_days,
     # Impact page: the minutes a meeting's follow-up took by hand (time saved = meetings × this), and optional
     # before-launch figures Admin can enter, since the app has no data from before it existed.
     "minutes_saved_per_meeting": 20,
@@ -32,6 +45,20 @@ DEFAULTS: dict[str, Any] = {
 def get(session: Session, key: str) -> Any:
     row = session.scalar(select(Setting).where(Setting.key == key))
     return row.value if row is not None else DEFAULTS[key]
+
+
+def domains(session: Session) -> list[str]:
+    return [d.lower() for d in get(session, "internal_domains")]
+
+
+def is_internal_email(session: Session, email: str | None) -> bool:
+    return bool(email) and email.rsplit("@", 1)[-1].strip().lower() in domains(session)
+
+
+def in_region(session: Session) -> str:
+    """ " in Scotland", or nothing when no region is set: for the prompts' description of the properties."""
+    region = get(session, "property_region").strip()
+    return f" in {region}" if region else ""
 
 
 def all_(session: Session) -> dict[str, Any]:

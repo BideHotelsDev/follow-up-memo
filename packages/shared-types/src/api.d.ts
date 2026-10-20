@@ -728,7 +728,8 @@ export interface components {
         };
         /**
          * AppOut
-         * @description What the web app needs on every page: the owner's name, the properties (with their tag colours) and systems.
+         * @description What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,
+         *     and how the pipeline is set to run.
          */
         AppOut: {
             /** Owner Name */
@@ -739,6 +740,7 @@ export interface components {
             properties: components["schemas"]["PropertyOut"][];
             /** Systems */
             systems: string[];
+            pipeline: components["schemas"]["PipelineOut"];
         };
         /**
          * ApproveAllIn
@@ -1174,6 +1176,30 @@ export interface components {
              */
             role: "admin" | "owner" | "member";
         };
+        /**
+         * PipelineOut
+         * @description How the app is set to run, for How it works and the Impact definitions.
+         */
+        PipelineOut: {
+            /** Poll Interval Minutes */
+            poll_interval_minutes: number;
+            /** Quiet Minutes */
+            quiet_minutes: number;
+            /** Gmail Sync Minutes */
+            gmail_sync_minutes: number;
+            /** Max Attempts */
+            max_attempts: number;
+            /** Raw Text Days */
+            raw_text_days: number;
+            /** Internal Domains */
+            internal_domains: string[];
+            /** Sensitive Topics */
+            sensitive_topics: string[];
+            /** Skip Rules */
+            skip_rules: number;
+            /** Channels */
+            channels: number;
+        };
         /** PropertyIn */
         PropertyIn: {
             /** Name */
@@ -1292,6 +1318,22 @@ export interface components {
             followup_within_hours?: number | null;
             /** Routine Stuck Hours */
             routine_stuck_hours?: number | null;
+            /** Internal Domains */
+            internal_domains?: string[] | null;
+            /** Property Region */
+            property_region?: string | null;
+            /** Sensitive Topics */
+            sensitive_topics?: string[] | null;
+            /** Quiet Minutes */
+            quiet_minutes?: number | null;
+            /** Lookback Days */
+            lookback_days?: number | null;
+            /** Max Attempts */
+            max_attempts?: number | null;
+            /** Gmail Sync Minutes */
+            gmail_sync_minutes?: number | null;
+            /** Raw Text Days */
+            raw_text_days?: number | null;
         };
         /** SettingsOut */
         SettingsOut: {
@@ -1324,6 +1366,22 @@ export interface components {
             followup_within_hours: number;
             /** Routine Stuck Hours */
             routine_stuck_hours: number;
+            /** Internal Domains */
+            internal_domains: string[];
+            /** Property Region */
+            property_region: string;
+            /** Sensitive Topics */
+            sensitive_topics: string[];
+            /** Quiet Minutes */
+            quiet_minutes: number;
+            /** Lookback Days */
+            lookback_days: number;
+            /** Max Attempts */
+            max_attempts: number;
+            /** Gmail Sync Minutes */
+            gmail_sync_minutes: number;
+            /** Raw Text Days */
+            raw_text_days: number;
         };
         /** SkipRuleIn */
         SkipRuleIn: {

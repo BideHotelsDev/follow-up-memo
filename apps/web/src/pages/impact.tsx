@@ -7,9 +7,10 @@ import { RateLine } from "@/components/charts/rate-line"
 import { Empty, Loading, PageHead, SectionTitle, surface } from "@/components/page"
 import { HotelTag } from "@/components/tags"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, type Impact } from "@/lib/api"
-import { day, plural } from "@/lib/format"
+import { day, every, minutes as minutesText, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const PERIODS: [string, string][] = [
@@ -108,7 +109,7 @@ function Targets({ data }: { data: Impact }) {
   )
 }
 
-function definitions(owner: string, hours: number): [string, string][] {
+function definitions(owner: string, hours: number, gmailMinutes: number): [string, string][] {
   return [
     [
       `Followed up within ${hours} hours`,
@@ -116,7 +117,7 @@ function definitions(owner: string, hours: number): [string, string][] {
     ],
     [
       "Time to follow-up",
-      `From the end of the meeting to ${owner}’s first approval, averaged over meetings acted on. For emails the app checks Gmail every 30 minutes, so this can read up to half an hour late.`,
+      `From the end of the meeting to ${owner}’s first approval, averaged over meetings acted on. For emails the app checks Gmail ${every(gmailMinutes)}, so this can read up to ${minutesText(gmailMinutes)} late.`,
     ],
     [
       "Emails",
@@ -140,6 +141,7 @@ function definitions(owner: string, hours: number): [string, string][] {
 }
 
 export default function ImpactPage() {
+  const app = useApp()
   const { property } = useScope()
   const [weeks, setWeeks] = useState("8")
   const [minutes, setMinutes] = useState<number | null>(null)
@@ -414,17 +416,19 @@ export default function ImpactPage() {
       <section className="mt-10">
         <SectionTitle title="How these numbers are measured" />
         <dl className={cn(surface, "grid gap-4 p-5")}>
-          {definitions(data?.owner_name ?? "the owner", data?.targets.followup_within_hours ?? 24).map(
-            ([term, text]) => (
-              <div
-                key={term}
-                className="grid gap-1 border-t pt-4 first:border-t-0 first:pt-0 sm:grid-cols-[14rem_1fr] sm:gap-4"
-              >
-                <dt className="font-medium text-foreground">{term}</dt>
-                <dd className="max-w-prose text-muted-foreground">{text}</dd>
-              </div>
-            ),
-          )}
+          {definitions(
+            data?.owner_name ?? "the owner",
+            data?.targets.followup_within_hours ?? 24,
+            app.pipeline.gmail_sync_minutes,
+          ).map(([term, text]) => (
+            <div
+              key={term}
+              className="grid gap-1 border-t pt-4 first:border-t-0 first:pt-0 sm:grid-cols-[14rem_1fr] sm:gap-4"
+            >
+              <dt className="font-medium text-foreground">{term}</dt>
+              <dd className="max-w-prose text-muted-foreground">{text}</dd>
+            </div>
+          ))}
         </dl>
       </section>
     </>

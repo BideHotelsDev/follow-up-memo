@@ -80,6 +80,7 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
         .read_text()
         .format(
             owner=catalog.owner_name(session),
+            where=runtime_settings.in_region(session),
             tone=runtime_settings.get(session, "email_tone"),
             signature=runtime_settings.get(session, "email_signature"),
         )
@@ -297,7 +298,9 @@ def retry_failed(session: Session) -> int:
     """Retry outputs that failed on an earlier run, up to the attempt limit (PRD §5 Reliability)."""
     rows = session.scalars(
         select(Output).where(
-            Output.status == "failed", Output.meeting_id.is_not(None), Output.attempts < settings.max_attempts
+            Output.status == "failed",
+            Output.meeting_id.is_not(None),
+            Output.attempts < runtime_settings.get(session, "max_attempts"),
         )
     ).all()
     for row in rows:

@@ -1,7 +1,7 @@
 """Sign in with Google (OpenID Connect) and the dependencies protected routes use. Adapted from bide-ecosystem.
 
 Sign-in is invite-only: a person must already exist in `users` (seeded or added in Admin) and their email must be on
-a Bide domain (BIDE_DOMAINS). On first sign-in their Google identity is linked by verified email; afterwards by sub.
+a Bide domain (Admin → Email and schedule; BIDE_DOMAINS until changed). On first sign-in their Google identity is linked by verified email; afterwards by sub.
 """
 
 import base64
@@ -18,7 +18,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock
+from bide_followup import clock, runtime_settings
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import forbidden
@@ -76,14 +76,10 @@ def claims_of(id_token: str) -> dict[str, Any]:
     return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
 
 
-def domain_allowed(email: str) -> bool:
-    return email.rsplit("@", 1)[-1].strip().lower() in settings.bide_domain_list
-
-
 def _sign_in(session: Session, user: User | None) -> User:
     if user is None or not user.is_active:
         raise LoginError("not_registered")
-    if not domain_allowed(user.email):
+    if not runtime_settings.is_internal_email(session, user.email):
         raise LoginError("domain_not_allowed")
     user.last_sign_in_at = clock.utcnow()
     session.commit()
@@ -162,14 +158,17 @@ def google_authorize_url(state: str, nonce: str, callback_path: str, **extra: st
 
 
 @router.get("/google/login", include_in_schema=False)
-def google_login(request: Request, next_path: Annotated[str, Query(alias="next")] = "/") -> RedirectResponse:
+def google_login(
+    request: Request, session: SessionDep, next_path: Annotated[str, Query(alias="next")] = "/"
+) -> RedirectResponse:
     if not google_configured():
         raise HTTPException(status_code=503, detail="Sign in with Google is not configured")
     state, nonce = secrets.token_urlsafe(24), secrets.token_urlsafe(24)
     request.session["oidc"] = {"state": state, "nonce": nonce, "next": safe_next(next_path)}
     extra = {"prompt": "select_account"}  # people often have several Google accounts
-    if len(settings.bide_domain_list) == 1:
-        extra["hd"] = settings.bide_domain_list[0]  # a hint only; _sign_in enforces the domain
+    domains = runtime_settings.domains(session)
+    if len(domains) == 1:
+        extra["hd"] = domains[0]  # a hint only; _sign_in enforces the domain
     return RedirectResponse(google_authorize_url(state, nonce, "/api/auth/google/callback", **extra))
 
 

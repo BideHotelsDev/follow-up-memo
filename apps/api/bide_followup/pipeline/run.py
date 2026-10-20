@@ -11,8 +11,7 @@ from datetime import timedelta
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock
-from bide_followup.config import settings
+from bide_followup import clock, runtime_settings
 from bide_followup.integrations import google_api, google_oauth, llm
 from bide_followup.models import ActionItem, Attendee, LlmJob, Meeting, Question, Run, SkipRule, User
 from bide_followup.pipeline import extract, outputs, summary
@@ -41,12 +40,13 @@ def _rules(session: Session) -> tuple[list[str], set[str]]:
 def discover(session: Session, token: str, run: Run) -> None:
     """New notes become queued meetings; notes still being written wait for the next run (FR-1 to FR-4)."""
     now = clock.utcnow()
-    notes = google_api.list_gemini_notes(token, now - timedelta(days=settings.lookback_days))
+    notes = google_api.list_gemini_notes(token, now - timedelta(days=runtime_settings.get(session, "lookback_days")))
     run.found = len(notes)
     seen = set(session.scalars(select(Meeting.drive_file_id).where(Meeting.drive_file_id.in_([n.id for n in notes]))))
     keywords, _ = _rules(session)
+    quiet = runtime_settings.get(session, "quiet_minutes")
     for note in notes:
-        if note.id in seen or now - note.modified_at < timedelta(minutes=settings.quiet_minutes):
+        if note.id in seen or now - note.modified_at < timedelta(minutes=quiet):
             continue
         title = meeting_title(note.name)
         meeting = Meeting(
@@ -117,7 +117,7 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
     for key, name in attendees.items():
         email = None if key.startswith("name:") else key
         user = by_email.get(email) if email else next((p for p in people if p.name.lower() == name.lower()), None)
-        internal = user is not None or (email is not None and email.rsplit("@", 1)[-1] in settings.bide_domain_list)
+        internal = user is not None or runtime_settings.is_internal_email(session, email)
         meeting.attendees.append(
             Attendee(name=name, email=email, is_internal=internal, user_id=user.id if user else None)
         )
@@ -147,7 +147,7 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
     meeting.input_tokens += result.input_tokens
     meeting.output_tokens += result.output_tokens
     meeting.raw_text = notes
-    meeting.raw_text_expires_at = clock.utcnow() + timedelta(days=settings.raw_text_days)
+    meeting.raw_text_expires_at = clock.utcnow() + timedelta(days=runtime_settings.get(session, "raw_text_days"))
     meeting.status, meeting.error = "done", None  # until its outputs are generated
 
 
@@ -235,7 +235,7 @@ def _process_one(session: Session, token: str, meeting: Meeting, record: Run, to
         meeting.error = f"{exc.__class__.__name__}: {exc}"[:2000]
         # A request the routine gave up on is cleared, so the next attempt asks again.
         session.execute(delete(LlmJob).where(LlmJob.meeting_id == meeting.id, LlmJob.status == "failed"))
-        if meeting.attempts >= settings.max_attempts:
+        if meeting.attempts >= runtime_settings.get(session, "max_attempts"):
             meeting.status = "failed"
             record.failed += 1
             touched.append(meeting.id)
@@ -252,7 +252,7 @@ def purge_raw_text(session: Session) -> int:
     ).all()
     for meeting in expired:
         meeting.raw_text = None
-    cutoff = clock.utcnow() - timedelta(days=settings.raw_text_days)
+    cutoff = clock.utcnow() - timedelta(days=runtime_settings.get(session, "raw_text_days"))
     session.execute(delete(LlmJob).where(LlmJob.created_at < cutoff))
     session.commit()
     return len(expired)

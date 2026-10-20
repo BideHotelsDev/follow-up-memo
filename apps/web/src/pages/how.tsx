@@ -1,16 +1,20 @@
 import { PageHead, SectionTitle, surface } from "@/components/page"
 import { useApp } from "@/hooks/use-app"
+import type { AppSettings } from "@/lib/api"
+import { every, listOf, minutes, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-const steps = (owner: string): [string, string][] => [
+type Info = AppSettings["pipeline"] & { owner: string; properties: number }
+
+const steps = ({ owner, poll_interval_minutes, quiet_minutes, properties, channels, internal_domains }: Info) => [
   ["Gemini takes the notes.", "Nothing changes about how calls are run."],
   [
-    `The app checks ${owner}’s Drive every few minutes.`,
-    "It waits until Gemini has finished writing, and only picks up notes it hasn’t handled.",
+    `The app checks ${owner}’s Drive ${every(poll_interval_minutes)}.`,
+    `It waits until Gemini hasn’t touched a note for ${minutes(quiet_minutes)}, and only picks up notes it hasn’t handled.`,
   ],
   [
     "Claude reads the notes with the Bide context.",
-    `Who owns what, which properties and channels exist, and how ${owner}’s emails should sound.`,
+    `Who owns what, the ${plural(properties, "property", "properties")} and ${plural(channels, "Slack channel")}, and how ${owner}’s emails should sound.`,
   ],
   [
     "The app checks Claude’s work.",
@@ -18,20 +22,49 @@ const steps = (owner: string): [string, string][] => [
   ],
   [
     "It drafts everything.",
-    "A Gmail draft for people outside Bide, Slack messages for the team, and tasks, each tagged with its property.",
+    `A Gmail draft for people outside Bide${
+      internal_domains.length
+        ? ` (anyone not at ${listOf(
+            internal_domains.map((d) => `@${d}`),
+            "or",
+          )})`
+        : ""
+    }, Slack messages for the team, and tasks, each tagged with its property.`,
   ],
   [`${owner} gets one Slack message.`, "A summary with links to the drafts and anything that needs an answer."],
 ]
 
-const rules = (owner: string): [string, string][] => [
+const rules = ({ owner, skip_rules, sensitive_topics, raw_text_days }: Info) => [
   ["Drafts first", `Emails wait in Gmail. Team messages wait for ${owner}’s approval. Nothing is sent automatically.`],
   ["No guessing", `Owners and dates come from the notes. Gaps become questions for ${owner}.`],
-  ["Private calls skipped", "Titles and attendees on the skip list are never processed."],
-  ["Sensitive calls stay private", "Pricing, contracts, HR, legal or investor topics get no team messages."],
+  [
+    "Private calls skipped",
+    skip_rules
+      ? `Calls matching the ${plural(skip_rules, "rule")} on the skip list are never processed.`
+      : "Titles and people added to the skip list are never processed.",
+  ],
+  [
+    "Sensitive calls stay private",
+    sensitive_topics.length
+      ? `Calls about ${listOf(sensitive_topics, "or")} get no team messages.`
+      : "Calls Claude marks sensitive get no team messages.",
+  ],
+  [
+    "Notes kept briefly",
+    `The text of the notes is deleted after ${plural(raw_text_days, "day")}. Drafts, tasks and the link to the notes stay.`,
+  ],
+]
+
+const problems = ({ owner, max_attempts }: Info) => [
+  ["A draft fails", `The meeting shows as partial on Today and the app tries again, up to ${max_attempts} times.`],
+  ["The notes are thin", `Fewer drafts, and the summary to ${owner} says so.`],
+  ["Gemini edits the notes later", `Nothing changes by itself. ${owner} can reprocess the meeting.`],
+  ["Google or Slack disconnects", "Runs pause and Admin gets a Slack alert."],
 ]
 
 export default function HowPage() {
-  const { owner_name: owner } = useApp()
+  const app = useApp()
+  const info: Info = { ...app.pipeline, owner: app.owner_name, properties: app.properties.length }
   return (
     <>
       <PageHead
@@ -40,7 +73,7 @@ export default function HowPage() {
       />
       <div className="grid items-start gap-6 lg:grid-cols-[7fr_5fr]">
         <ol className={cn(surface, "divide-y p-5")}>
-          {steps(owner).map(([title, detail], i) => (
+          {steps(info).map(([title, detail], i) => (
             <li key={title} className="grid grid-cols-[2.25rem_1fr] gap-3 py-4 first:pt-0 last:pb-0">
               <span className="font-display tnum text-xl text-attention-foreground dark:text-attention">{i + 1}</span>
               <div>
@@ -51,7 +84,7 @@ export default function HowPage() {
           ))}
         </ol>
         <div className="grid gap-4 sm:grid-cols-2">
-          {rules(owner).map(([title, detail]) => (
+          {rules(info).map(([title, detail]) => (
             <div key={title} className={cn(surface, "grid content-start gap-2 p-5")}>
               <h4 className="font-sans font-medium text-foreground">{title}</h4>
               <p className="text-muted-foreground">{detail}</p>
@@ -62,12 +95,7 @@ export default function HowPage() {
       <section className="mt-10">
         <SectionTitle title="When something goes wrong" />
         <ul className={cn(surface, "divide-y p-5")}>
-          {[
-            ["A draft fails", "The meeting shows as partial on Today and the next runs try again."],
-            ["The notes are thin", `Fewer drafts, and the summary to ${owner} says so.`],
-            ["Gemini edits the notes later", `Nothing changes by itself. ${owner} can reprocess the meeting.`],
-            ["Google or Slack disconnects", "Runs pause and Admin gets a Slack alert."],
-          ].map(([title, detail]) => (
+          {problems(info).map(([title, detail]) => (
             <li key={title} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[14rem_1fr] sm:gap-4">
               <b className="font-medium text-foreground">{title}</b>
               <span className="text-muted-foreground">{detail}</span>

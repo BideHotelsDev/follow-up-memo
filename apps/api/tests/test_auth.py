@@ -2,6 +2,7 @@ from urllib.parse import parse_qs, urlparse
 
 import httpx
 
+from bide_followup import runtime_settings
 from bide_followup.models import User
 from tests.conftest import FakeResponse, id_token
 
@@ -35,6 +36,12 @@ def test_google_sign_in_rejects_other_domain(client, db, monkeypatch):
         s.commit()
     resp = google_round_trip(client, monkeypatch, {"sub": "g-3", "email": "friend@gmail.com", "email_verified": True})
     assert resp.headers["location"] == "/?login_error=domain_not_allowed"
+    # Admin adds the domain in the app.
+    with db() as s:
+        runtime_settings.put(s, "internal_domains", ["bidehotels.com", "gmail.com"])
+        s.commit()
+    resp = google_round_trip(client, monkeypatch, {"sub": "g-3", "email": "friend@gmail.com", "email_verified": True})
+    assert resp.headers["location"] == "/"
 
 
 def test_google_sign_in_rejects_wrong_nonce(client, monkeypatch):

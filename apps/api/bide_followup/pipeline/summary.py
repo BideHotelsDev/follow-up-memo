@@ -8,6 +8,7 @@ from slack_sdk.errors import SlackApiError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from bide_followup import runtime_settings
 from bide_followup.config import settings
 from bide_followup.integrations import slack
 from bide_followup.models import Meeting, Output, Run, User
@@ -88,7 +89,9 @@ def deliver(session: Session, row: Output) -> None:
 def retry_failed(session: Session) -> None:
     rows = session.scalars(
         select(Output).where(
-            Output.type == "run_summary", Output.status == "failed", Output.attempts < settings.max_attempts
+            Output.type == "run_summary",
+            Output.status == "failed",
+            Output.attempts < runtime_settings.get(session, "max_attempts"),
         )
     ).all()
     for row in rows:

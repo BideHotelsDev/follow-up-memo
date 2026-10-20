@@ -7,12 +7,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from bide_followup import auth, catalog
+from bide_followup import auth, catalog, runtime_settings
 from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
-from bide_followup.models import ChannelMap, Meeting, Property, System, User
-from bide_followup.schemas.api import AppOut, PropertyIn, PropertyOut, SystemIn, SystemOut
+from bide_followup.models import ChannelMap, Meeting, Property, SkipRule, System, User
+from bide_followup.schemas.api import AppOut, PipelineOut, PropertyIn, PropertyOut, SystemIn, SystemOut
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
@@ -23,11 +23,21 @@ TAG_COLOURS = 6  # tag colour slots defined in the web app's index.css
 @router.get("/app")
 def app_settings(session: SessionDep, _: CurrentUser) -> AppOut:
     owner = catalog.owner(session)
+    values = runtime_settings.all_(session)
+
+    def count(model) -> int:
+        return session.scalar(select(func.count()).select_from(model)) or 0
+
     return AppOut(
         owner_name=catalog.owner_name(session),
         owner_email=owner.email if owner else None,
         properties=[PropertyOut.model_validate(p) for p in catalog.properties(session)],
         systems=catalog.system_names(session),
+        pipeline=PipelineOut(
+            **{key: values[key] for key in PipelineOut.model_fields if key in values},
+            skip_rules=count(SkipRule),
+            channels=count(ChannelMap),
+        ),
     )
 
 

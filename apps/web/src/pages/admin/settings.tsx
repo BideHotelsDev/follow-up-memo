@@ -10,9 +10,58 @@ import { Textarea } from "@/components/ui/textarea"
 import { api, HttpError, type Settings } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
+type Timing = "quiet_minutes" | "lookback_days" | "max_attempts" | "gmail_sync_minutes" | "raw_text_days"
+
+const TIMINGS: { key: Timing; label: string; min: number; max: number; hint: string }[] = [
+  {
+    key: "quiet_minutes",
+    label: "Wait after Gemini’s last edit (minutes)",
+    min: 5,
+    max: 120,
+    hint: "So a note isn’t read while Gemini is still writing it.",
+  },
+  {
+    key: "lookback_days",
+    label: "Look for notes from the last (days)",
+    min: 1,
+    max: 14,
+    hint: "Older notes are left alone.",
+  },
+  {
+    key: "max_attempts",
+    label: "Tries before a meeting is marked failed",
+    min: 1,
+    max: 10,
+    hint: "Each run tries again until then.",
+  },
+  {
+    key: "gmail_sync_minutes",
+    label: "Check Gmail drafts every (minutes)",
+    min: 10,
+    max: 240,
+    hint: "To see which drafts were sent or deleted.",
+  },
+  {
+    key: "raw_text_days",
+    label: "Keep the note text for (days)",
+    min: 1,
+    max: 365,
+    hint: "Then it’s deleted; drafts and tasks stay.",
+  },
+]
+
+/** "a.com, b.com" ↔ ["a.com", "b.com"] */
+const split = (text: string) =>
+  text
+    .split(/[,\n]/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
 function Form({ initial }: { initial: Settings }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState(initial)
+  const [domains, setDomains] = useState(initial.internal_domains.join(", "))
+  const [topics, setTopics] = useState(initial.sensitive_topics.join(", "))
   const save = useMutation({
     mutationFn: () =>
       api.putSettings({
@@ -28,9 +77,16 @@ function Form({ initial }: { initial: Settings }) {
         target_active_days: form.target_active_days,
         followup_within_hours: form.followup_within_hours,
         routine_stuck_hours: form.routine_stuck_hours,
+        internal_domains: split(domains),
+        property_region: form.property_region,
+        sensitive_topics: split(topics),
+        ...Object.fromEntries(TIMINGS.map(({ key }) => [key, form[key]])),
       }),
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      setDomains(saved.internal_domains.join(", "))
+      setTopics(saved.sensitive_topics.join(", "))
       queryClient.invalidateQueries({ queryKey: ["settings"] })
+      queryClient.invalidateQueries({ queryKey: ["app"] })
       toast.success("Saved")
     },
     onError: (err) => toast.error(err instanceof HttpError ? err.message : "Couldn't save"),
@@ -74,9 +130,58 @@ function Form({ initial }: { initial: Settings }) {
           value={form.poll_interval_minutes}
           onChange={(e) => setForm({ ...form, poll_interval_minutes: Number(e.target.value) })}
         />
-        <p className="text-xs text-muted-foreground">Takes effect when the worker restarts.</p>
+        <p className="text-xs text-muted-foreground">Takes effect within a minute.</p>
       </div>
       <p className="text-sm text-muted-foreground">Slack messages always wait for the owner’s approval.</p>
+      <fieldset className="grid gap-4 border-t pt-5">
+        <legend className="mb-2 font-medium">Bide</legend>
+        <div className="grid gap-1.5">
+          <Label htmlFor="domains">Bide email domains</Label>
+          <Input id="domains" value={domains} onChange={(e) => setDomains(e.target.value)} />
+          <p className="text-xs text-muted-foreground">
+            Separated by commas. People at these domains count as internal and can sign in once they’re added in People.
+            Everyone else gets the follow-up email.
+          </p>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="region">Where the properties are</Label>
+          <Input
+            id="region"
+            className="max-w-xs"
+            value={form.property_region}
+            onChange={(e) => setForm({ ...form, property_region: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">Claude is told “Bide runs short-stay properties in …”.</p>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="topics">Sensitive topics</Label>
+          <Textarea id="topics" rows={2} value={topics} onChange={(e) => setTopics(e.target.value)} />
+          <p className="text-xs text-muted-foreground">
+            Separated by commas. Meetings about these get no team messages, and their email is flagged for a careful
+            read.
+          </p>
+        </div>
+      </fieldset>
+      <fieldset className="grid gap-4 border-t pt-5">
+        <legend className="mb-2 font-medium">Timings</legend>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {TIMINGS.map(({ key, label, min, max, hint }) => (
+            <div key={key} className="grid content-start gap-1.5">
+              <Label htmlFor={key}>{label}</Label>
+              <Input
+                id={key}
+                type="number"
+                min={min}
+                max={max}
+                className="w-28"
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: Number(e.target.value) })}
+              />
+              <p className="text-xs text-muted-foreground">{hint}</p>
+            </div>
+          ))}
+        </div>
+      </fieldset>
       <fieldset className="grid gap-4 border-t pt-5">
         <legend className="mb-2 font-medium">Impact page</legend>
         <div className="grid gap-1.5">

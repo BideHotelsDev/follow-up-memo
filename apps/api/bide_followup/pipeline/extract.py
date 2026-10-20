@@ -11,8 +11,7 @@ from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from bide_followup import catalog
-from bide_followup.config import settings
+from bide_followup import catalog, runtime_settings
 from bide_followup.integrations import llm
 from bide_followup.models import ChannelMap, User
 from bide_followup.pipeline import validate
@@ -40,17 +39,24 @@ def system_prompt(session: Session) -> str:
         lines.append(f"- {p.name} ({p.email}), {p.role}{areas}")
     topics = sorted({c.topic for c in session.scalars(select(ChannelMap)) if c.topic})
     names = catalog.property_names(session)
+    where = runtime_settings.in_region(session)
     if len(names) > 1:
-        listed = f"{len(names)} short-stay properties in Scotland: {', '.join(names[:-1])} and {names[-1]}"
+        listed = f"{len(names)} short-stay properties{where}: {_and(names)}"
     else:
-        listed = f"a short-stay property in Scotland: {names[0]}" if names else "short-stay properties in Scotland"
+        listed = f"a short-stay property{where}: {names[0]}" if names else f"short-stay properties{where}"
+    sensitive = runtime_settings.get(session, "sensitive_topics")
     return _template(PROMPT_VERSION).format(
         owner=catalog.owner_name(session),
         properties=listed,
         people="\n".join(lines) or "- (none listed)",
-        domains=" or ".join(f"@{d}" for d in settings.bide_domain_list),
+        domains=" or ".join(f"@{d}" for d in runtime_settings.domains(session)),
         topics="\n".join(f"- {t}" for t in topics) or "- (none listed)",
+        sensitive=_and(sensitive, "or") if sensitive else "anything the owner would not want shared with the team",
     )
+
+
+def _and(words: list[str], last: str = "and") -> str:
+    return words[0] if len(words) == 1 else f"{', '.join(words[:-1])} {last} {words[-1]}"
 
 
 def user_message(title: str, meeting_day: date, attendees: list[tuple[str, str]], notes: str) -> str:
