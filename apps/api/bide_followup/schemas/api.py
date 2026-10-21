@@ -447,6 +447,22 @@ class ClaudeStatusOut(BaseModel):
     pending: int
     oldest_pending_at: datetime | None
     last_answer_at: datetime | None
+    api_key_set: bool  # ANTHROPIC_API_KEY, for switching back to the API
+    routine_token_set: bool
+    routine_seen_at: datetime | None  # the routine's last call to the app
+    app_url: str  # FOLLOWUP_URL for the routine
+    routine_prompt: str
+    routine_schedule: str
+
+
+class ClaudeModeIn(BaseModel):
+    mode: Literal["api", "routine"]
+
+
+class RoutineTokenOut(BaseModel):
+    """Shown once: only its hash is kept."""
+
+    token: str
 
 
 # --- what Bide edits in Admin (catalog.py) -----------------------------------------------------------------------

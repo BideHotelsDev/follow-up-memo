@@ -2,10 +2,12 @@
 queue, answer them, then ask for a run so the answers turn into drafts straight away. routine/README.md has the
 routine's instructions.
 
-Authenticated with a bearer token (SERVICE_API_TOKEN). Requests carry meeting notes, so the token is a secret: keep
-it in the routine's environment, never in a prompt or a repository.
+Authenticated with a bearer token: the one made in Admin → Connections (only its hash is stored) or SERVICE_API_TOKEN.
+Requests carry meeting notes, so the token is a secret: keep it in the routine's environment, never in a prompt or a
+repository. Each call is recorded as the routine's last check-in, so Admin can see it is connected.
 """
 
+import hashlib
 import json
 import secrets
 import uuid
@@ -14,7 +16,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy import func, select
 
-from bide_followup import clock
+from bide_followup import clock, runtime_settings
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
@@ -23,12 +25,23 @@ from bide_followup.pipeline import run as pipeline
 from bide_followup.schemas.api import LlmAnswerIn, LlmFailIn, LlmJobOut, QueueOut, RunOut
 
 
-def service_token(authorization: Annotated[str, Header()] = "") -> None:
-    if not settings.service_api_token:
-        raise HTTPException(status_code=503, detail="The service API is not configured (SERVICE_API_TOKEN)")
+def token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def service_token(session: SessionDep, authorization: Annotated[str, Header()] = "") -> None:
+    stored = runtime_settings.get(session, "routine_token_hash")
+    if not settings.service_api_token and not stored:
+        raise HTTPException(status_code=503, detail="No routine token yet: make one in Admin → Connections")
     token = authorization.removeprefix("Bearer ").strip()
-    if not secrets.compare_digest(token.encode(), settings.service_api_token.encode()):
+    by_env = bool(settings.service_api_token) and secrets.compare_digest(
+        token.encode(), settings.service_api_token.encode()
+    )
+    by_admin = bool(stored) and secrets.compare_digest(token_hash(token), stored)
+    if not (by_env or by_admin):
         raise HTTPException(status_code=401, detail="invalid service token")
+    runtime_settings.put(session, "routine_seen_at", clock.utcnow().isoformat())
+    session.commit()
 
 
 router = APIRouter(prefix="/api/service/v1", tags=["service"], dependencies=[Depends(service_token)])

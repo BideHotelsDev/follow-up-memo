@@ -163,8 +163,8 @@ def run(session: Session) -> Run:
         outputs.retry_failed(session)
         summary.retry_failed(session)
         discover(session, token, record)
-        if not llm.enabled():
-            record.error = llm.off_reason()
+        if not llm.enabled(session):
+            record.error = llm.off_reason(session)
         else:
             # A meeting left "processing" was interrupted by a restart; the worker runs one job at a time.
             queued = session.scalars(

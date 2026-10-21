@@ -240,8 +240,8 @@ def reprocess(meeting_id: uuid.UUID, session: SessionDep, user: CurrentUser) -> 
     """Run extraction again and replace the drafts David hasn't acted on (FR-7). Takes as long as a run does."""
     views.require_reviewer(user)
     meeting = _meeting(session, meeting_id)
-    if not llm.enabled():
-        raise DomainError("extraction_off", llm.off_reason(), 503)
+    if not llm.enabled(session):
+        raise DomainError("extraction_off", llm.off_reason(session), 503)
     before = {"status": meeting.status, "actions": len(meeting.action_items)}
     try:
         token = google_oauth.access_token(session)

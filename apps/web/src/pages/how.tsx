@@ -112,7 +112,7 @@ const problems = ({ owner, max_attempts }: Info) => [
 function Dictation({ words }: { words: string[] }) {
   const [copied, setCopied] = useState(false)
   return (
-    <section className="mt-10">
+    <section id="wispr" className="mt-10 scroll-mt-24 md:scroll-mt-32">
       <SectionTitle title="Dictating with Wispr Flow" />
       <div className={cn(surface, "grid gap-4 p-5 lg:grid-cols-[7fr_5fr] lg:gap-8")}>
         <div className="grid content-start gap-3 text-muted-foreground">

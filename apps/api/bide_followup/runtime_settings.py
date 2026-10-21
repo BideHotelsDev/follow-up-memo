@@ -50,6 +50,13 @@ DEFAULTS: dict[str, Any] = {
     "target_active_days": 4,
     "followup_within_hours": 24,  # "followed up" means within this many hours of the meeting ending
     "routine_stuck_hours": 3,  # Today warns when the Claude Code routine hasn't answered for this long
+    # How the app reaches Claude: "api" (ANTHROPIC_API_KEY) or "routine" (a Claude Code routine on Bide's plan).
+    # None follows EXTRACTION_MODE; Admin switches it on the Connections page.
+    "extraction_mode": None,
+    # The routine's token, made in Admin → Connections: only its SHA-256 is kept, and the token is shown once.
+    # SERVICE_API_TOKEN (the environment) works as well.
+    "routine_token_hash": "",
+    "routine_seen_at": None,  # the routine's last call to the service API (ISO time)
 }
 
 

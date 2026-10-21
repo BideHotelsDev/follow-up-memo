@@ -13,7 +13,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
@@ -175,7 +175,23 @@ function BottomBar({ tabs }: { tabs: Tab[] }) {
   )
 }
 
+/** The router changes the URL but doesn't scroll: go to the #section a link names, once the page has drawn it. */
+function useScrollToHash() {
+  const { pathname, hash } = useLocation()
+  useEffect(() => {
+    if (!hash) return
+    let tries = 0
+    const timer = setInterval(() => {
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)))
+      if (el || ++tries > 20) clearInterval(timer)
+      el?.scrollIntoView({ block: "start" })
+    }, 100)
+    return () => clearInterval(timer)
+  }, [pathname, hash])
+}
+
 export function AppShell({ me }: { me: User }) {
+  useScrollToHash()
   const queryClient = useQueryClient()
   const { property, setProperty, scope } = useScope()
   const reviewer = me.role !== "member"

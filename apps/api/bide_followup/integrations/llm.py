@@ -1,6 +1,6 @@
 """Claude, for extraction and email writing (PRD decision D1). One structured-output request at a time.
 
-Two ways to reach Claude, chosen by EXTRACTION_MODE:
+Two ways to reach Claude, chosen in Admin → Connections (starting from EXTRACTION_MODE):
 
 - "api": the Claude API, with ANTHROPIC_API_KEY. Requests use `fallbacks: "default"`: if Claude's safety
   classifiers decline a request, the API re-runs it on Anthropic's recommended fallback model.
@@ -22,6 +22,7 @@ import anthropic
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from bide_followup import runtime_settings
 from bide_followup.config import settings
 from bide_followup.models import LlmJob
 
@@ -44,17 +45,23 @@ class Completion:
     output_tokens: int
 
 
-def routine() -> bool:
-    return settings.extraction_mode == "routine"
+def routine(session: Session) -> bool:
+    return (runtime_settings.get(session, "extraction_mode") or settings.extraction_mode) == "routine"
 
 
-def enabled() -> bool:
-    return bool(settings.service_api_token) if routine() else bool(settings.anthropic_api_key)
+def routine_token_set(session: Session) -> bool:
+    return bool(settings.service_api_token or runtime_settings.get(session, "routine_token_hash"))
 
 
-def off_reason() -> str:
-    if routine():
-        return "Extraction is off (SERVICE_API_TOKEN not set for the Claude Code routine); meetings wait in the queue"
+def enabled(session: Session) -> bool:
+    return routine_token_set(session) if routine(session) else bool(settings.anthropic_api_key)
+
+
+def off_reason(session: Session) -> str:
+    if routine(session):
+        return (
+            "Extraction is off (no token for the Claude Code routine: Admin → Connections); meetings wait in the queue"
+        )
     return "Extraction is off (ANTHROPIC_API_KEY not set); meetings wait in the queue"
 
 
@@ -99,9 +106,7 @@ def complete(
 ) -> Completion:
     """One request whose answer is JSON matching `schema`. Raises LlmError, Pending (routine mode), or anthropic's
     errors when Claude can't be reached (the caller retries on the next run)."""
-    if routine():
-        if session is None:
-            raise LlmError("Routine mode needs the database session")
+    if session is not None and routine(session):
         return _from_queue(session, kind, meeting_id, system, messages, schema)
     response = client().beta.messages.create(
         model=settings.llm_model,

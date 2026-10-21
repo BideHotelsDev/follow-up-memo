@@ -114,6 +114,9 @@ export const api = {
 
   connections: () => request<Connections>("GET", "/admin/connections"),
   claude: () => request<ClaudeStatus>("GET", "/admin/claude"),
+  claudeMode: (mode: ClaudeStatus["mode"]) => request<ClaudeStatus>("PUT", "/admin/claude/mode", { mode }),
+  routineToken: () => request<{ token: string }>("POST", "/admin/claude/routine-token"),
+  revokeRoutineToken: () => request<void>("DELETE", "/admin/claude/routine-token"),
   adminPeople: () => request<User[]>("GET", "/admin/people"),
   addPerson: (body: UserIn) => request<User>("POST", "/admin/people", body),
   updatePerson: (id: string, body: UserIn) => request<User>("PUT", `/admin/people/${id}`, body),

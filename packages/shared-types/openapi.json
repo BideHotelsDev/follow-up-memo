@@ -107,7 +107,7 @@
           "connections"
         ],
         "summary": "Claude Status",
-        "description": "How the app reaches Claude, and (routine mode) whether the routine is keeping up.",
+        "description": "How the app reaches Claude, and (routine mode) whether the routine is connected and keeping up.",
         "operationId": "claude_status_api_admin_claude_get",
         "responses": {
           "200": {
@@ -119,6 +119,82 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/admin/claude/mode": {
+      "put": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Claude Mode",
+        "description": "Switch between the Claude API and the Claude Code routine. Requests already queued for the routine are asked\nthrough the API on the next run when switching back.",
+        "operationId": "claude_mode_api_admin_claude_mode_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaudeModeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaudeStatusOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/claude/routine-token": {
+      "post": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Routine Token",
+        "description": "A new token for the routine, replacing the last one made here. Shown once; the app keeps only its hash.",
+        "operationId": "routine_token_api_admin_claude_routine_token_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutineTokenOut"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Revoke Routine Token",
+        "operationId": "revoke_routine_token_api_admin_claude_routine_token_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           }
         }
       }
@@ -2523,6 +2599,23 @@
         ],
         "title": "ChannelMapOut"
       },
+      "ClaudeModeIn": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "enum": [
+              "api",
+              "routine"
+            ],
+            "title": "Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "ClaudeModeIn"
+      },
       "ClaudeStatusOut": {
         "properties": {
           "mode": {
@@ -2568,6 +2661,38 @@
               }
             ],
             "title": "Last Answer At"
+          },
+          "api_key_set": {
+            "type": "boolean",
+            "title": "Api Key Set"
+          },
+          "routine_token_set": {
+            "type": "boolean",
+            "title": "Routine Token Set"
+          },
+          "routine_seen_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Routine Seen At"
+          },
+          "app_url": {
+            "type": "string",
+            "title": "App Url"
+          },
+          "routine_prompt": {
+            "type": "string",
+            "title": "Routine Prompt"
+          },
+          "routine_schedule": {
+            "type": "string",
+            "title": "Routine Schedule"
           }
         },
         "type": "object",
@@ -2577,7 +2702,13 @@
           "model",
           "pending",
           "oldest_pending_at",
-          "last_answer_at"
+          "last_answer_at",
+          "api_key_set",
+          "routine_token_set",
+          "routine_seen_at",
+          "app_url",
+          "routine_prompt",
+          "routine_schedule"
         ],
         "title": "ClaudeStatusOut"
       },
@@ -4097,6 +4228,20 @@
           "oldest_pending_at"
         ],
         "title": "QueueOut"
+      },
+      "RoutineTokenOut": {
+        "properties": {
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "title": "RoutineTokenOut",
+        "description": "Shown once: only its hash is kept."
       },
       "RunOut": {
         "properties": {

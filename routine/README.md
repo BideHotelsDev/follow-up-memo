@@ -26,7 +26,8 @@ The routine runs in Anthropic's cloud, so the app must be deployed (Railway) at 
    - Environment variables `FOLLOWUP_URL` (the app's address, no trailing slash) and `FOLLOWUP_TOKEN` (the token),
      set in the routine's environment settings, not in the prompt. If the environment limits outbound network
      access, allow the app's domain.
-   - Prompt: the contents of `routine/prompt.md`.
+   - Prompt: the contents of `apps/api/bide_followup/prompts/routine.md` (Admin → Connections → Claude has a Copy
+     button).
 4. Run the routine once by hand and check Admin → Connections: "Last answer" should update and the queue empty.
 
 ## Switching back to the API

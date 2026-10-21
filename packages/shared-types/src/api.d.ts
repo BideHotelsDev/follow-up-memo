@@ -101,12 +101,54 @@ export interface paths {
         };
         /**
          * Claude Status
-         * @description How the app reaches Claude, and (routine mode) whether the routine is keeping up.
+         * @description How the app reaches Claude, and (routine mode) whether the routine is connected and keeping up.
          */
         get: operations["claude_status_api_admin_claude_get"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/claude/mode": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Claude Mode
+         * @description Switch between the Claude API and the Claude Code routine. Requests already queued for the routine are asked
+         *     through the API on the next run when switching back.
+         */
+        put: operations["claude_mode_api_admin_claude_mode_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/claude/routine-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Routine Token
+         * @description A new token for the routine, replacing the last one made here. Shown once; the app keeps only its hash.
+         */
+        post: operations["routine_token_api_admin_claude_routine_token_post"];
+        /** Revoke Routine Token */
+        delete: operations["revoke_routine_token_api_admin_claude_routine_token_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -928,6 +970,14 @@ export interface components {
              */
             id: string;
         };
+        /** ClaudeModeIn */
+        ClaudeModeIn: {
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "api" | "routine";
+        };
         /** ClaudeStatusOut */
         ClaudeStatusOut: {
             /**
@@ -945,6 +995,18 @@ export interface components {
             oldest_pending_at: string | null;
             /** Last Answer At */
             last_answer_at: string | null;
+            /** Api Key Set */
+            api_key_set: boolean;
+            /** Routine Token Set */
+            routine_token_set: boolean;
+            /** Routine Seen At */
+            routine_seen_at: string | null;
+            /** App Url */
+            app_url: string;
+            /** Routine Prompt */
+            routine_prompt: string;
+            /** Routine Schedule */
+            routine_schedule: string;
         };
         /** ConnectionOut */
         ConnectionOut: {
@@ -1461,6 +1523,14 @@ export interface components {
             /** Oldest Pending At */
             oldest_pending_at: string | null;
         };
+        /**
+         * RoutineTokenOut
+         * @description Shown once: only its hash is kept.
+         */
+        RoutineTokenOut: {
+            /** Token */
+            token: string;
+        };
         /** RunOut */
         RunOut: {
             /**
@@ -1924,6 +1994,77 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClaudeStatusOut"];
                 };
+            };
+        };
+    };
+    claude_mode_api_admin_claude_mode_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaudeModeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaudeStatusOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    routine_token_api_admin_claude_routine_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutineTokenOut"];
+                };
+            };
+        };
+    };
+    revoke_routine_token_api_admin_claude_routine_token_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -111,7 +111,7 @@ pauses; without `ANTHROPIC_API_KEY` meetings wait in the queue. Stored note text
 Bide's Claude plan instead: each Claude request waits in a queue (`llm_jobs`), a scheduled Claude Code routine
 answers it through the token-protected service API (`/api/service/v1`), and the pipeline carries on exactly as with
 an API answer, checks included. Routines run at most hourly, so drafts arrive within about an hour. Setup, prompt and
-trade-offs: `routine/README.md` and `routine/prompt.md`. Admin → Connections shows the mode and the queue; Today flags
+trade-offs: `routine/README.md` and `apps/api/bide_followup/prompts/routine.md`. Admin → Connections shows the mode and the queue; Today flags
 meetings Claude hasn't answered for over 3 hours.
 
 ## Golden set

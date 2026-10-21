@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import select
 
 from bide_followup.config import settings
-from bide_followup.models import LlmJob, Meeting, Output
+from bide_followup.models import LlmJob, Meeting, Output, Setting
 from bide_followup.pipeline import run
 
 TOKEN = {"Authorization": "Bearer routine-secret"}
@@ -181,3 +181,27 @@ def test_today_flags_a_routine_that_stopped(client, routine, db, sign_in, monkey
     assert len(david.get("/api/today").json()["problems"]) == 2
     status = sign_in("kyle@bidehotels.com").get("/api/admin/claude").json()
     assert status["mode"] == "routine" and status["pending"] == 2 and status["enabled"]
+
+
+def test_admin_connects_the_routine_from_the_app(client, sign_in, monkeypatch, db):
+    monkeypatch.setattr(settings, "service_api_token", "")
+    admin = sign_in("david@liddellpropertyinvestments.com")
+    status = admin.get("/api/admin/claude").json()
+    assert (status["mode"], status["routine_token_set"]) == ("api", False)
+    assert "$FOLLOWUP_TOKEN" in status["routine_prompt"] and status["routine_schedule"]
+    assert client.get("/api/service/v1/queue", headers=TOKEN).status_code == 503
+
+    status = admin.put("/api/admin/claude/mode", json={"mode": "routine"}).json()
+    assert (status["mode"], status["enabled"]) == ("routine", False)  # no token yet
+    token = admin.post("/api/admin/claude/routine-token").json()["token"]
+    with db() as s:
+        assert token not in str(s.scalar(select(Setting).where(Setting.key == "routine_token_hash")).value)
+    assert client.get("/api/service/v1/queue", headers={"Authorization": f"Bearer {token}"}).status_code == 200
+    status = admin.get("/api/admin/claude").json()
+    assert status["enabled"] and status["routine_token_set"] and status["routine_seen_at"]
+
+    second = admin.post("/api/admin/claude/routine-token").json()["token"]
+    assert client.get("/api/service/v1/queue", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+    assert admin.delete("/api/admin/claude/routine-token").status_code == 204
+    assert client.get("/api/service/v1/queue", headers={"Authorization": f"Bearer {second}"}).status_code == 503
+    assert sign_in("sam@bidehotels.com").post("/api/admin/claude/routine-token").status_code == 403
