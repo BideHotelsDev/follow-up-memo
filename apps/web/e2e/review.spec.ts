@@ -50,7 +50,7 @@ test("David answers a question and approves a channel update", async ({ page }) 
   // The desktop and phone projects share the data: whichever runs second finds it answered and approved.
   if (await question.isVisible()) {
     await page.getByRole("button", { name: "Russell", exact: true }).click()
-    await expect(page.getByText("All caught up")).toBeVisible()
+    await expect(question).toHaveCount(0)
   }
 
   await page.goto("/slack")
@@ -60,6 +60,37 @@ test("David answers a question and approves a channel update", async ({ page }) 
     await card.getByRole("button", { name: "Approve & post" }).click()
   }
   await expect(card.getByText("Approved · posted")).toBeVisible()
+})
+
+test("Dictated text lands in the boxes and saves, as Wispr Flow types it", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"])
+  await signIn(page, DAVID)
+  await page.goto("/")
+  const answer = page.getByLabel("Your answer")
+  if (await answer.isVisible()) {
+    await answer.click()
+    // Wispr inserts text directly, or pastes it; check both reach the form.
+    await page.keyboard.insertText("Yes, from the week before.")
+    await page.keyboard.press("Enter")
+    await page.evaluate(() => navigator.clipboard.writeText("Ask Russell to tell the laundry."))
+    await page.keyboard.press("ControlOrMeta+V")
+    await expect(answer).toHaveValue("Yes, from the week before.\nAsk Russell to tell the laundry.")
+    await page.keyboard.press("ControlOrMeta+Enter")
+    await expect(page.getByText("Should the second laundry delivery day start before half-term?")).toHaveCount(0)
+  }
+
+  await page.goto("/slack")
+  const card = page.locator("article", { hasText: "Russell" }).first()
+  await card.getByRole("button", { name: "Edit" }).click()
+  const message = card.getByLabel("Message")
+  await message.press("ControlOrMeta+End")
+  await page.keyboard.insertText(" Thanks, Russell.")
+  await page.keyboard.press("ControlOrMeta+Enter")
+  await expect(card.getByText(/Thanks, Russell\./)).toBeVisible()
+
+  await page.goto("/how")
+  await expect(page.getByRole("heading", { name: "Dictating with Wispr Flow" })).toBeVisible()
+  await expect(page.getByText(/David, .*The View, .*PriceLabs/)).toBeVisible()
 })
 
 test("Tasks and meetings filter by employee", async ({ page }) => {

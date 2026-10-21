@@ -2010,6 +2010,13 @@
             ],
             "title": "Owner Email"
           },
+          "people": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "People"
+          },
           "properties": {
             "items": {
               "$ref": "#/components/schemas/PropertyOut"
@@ -2032,6 +2039,7 @@
         "required": [
           "owner_name",
           "owner_email",
+          "people",
           "properties",
           "systems",
           "pipeline"

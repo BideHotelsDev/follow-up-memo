@@ -31,6 +31,7 @@ def app_settings(session: SessionDep, _: CurrentUser) -> AppOut:
     return AppOut(
         owner_name=catalog.owner_name(session),
         owner_email=owner.email if owner else None,
+        people=list(session.scalars(select(User.name).where(User.is_active).order_by(User.name))),
         properties=[PropertyOut.model_validate(p) for p in catalog.properties(session)],
         systems=catalog.system_names(session),
         pipeline=PipelineOut(

@@ -114,7 +114,7 @@ David will ask the laundry about a second delivery day.
                 },
             ],
             "open_threads": [],
-            "questions_for_david": [],
+            "questions_for_david": ["Should the second laundry delivery day start before half-term?"],
             "systems_mentioned": ["Operto"],
             "notes_quality": "good",
         },

@@ -465,6 +465,7 @@ class AppOut(BaseModel):
 
     owner_name: str
     owner_email: str | None
+    people: list[str]
     properties: list[PropertyOut]
     systems: list[str]
     pipeline: PipelineOut

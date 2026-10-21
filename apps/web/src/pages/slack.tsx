@@ -12,7 +12,7 @@ import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Output } from "@/lib/api"
 import { dayOf, localDate, time } from "@/lib/format"
-import { cn } from "@/lib/utils"
+import { cn, onModEnter } from "@/lib/utils"
 
 const fail = (err: unknown) => toast.error(err instanceof HttpError ? err.message : "Something went wrong")
 
@@ -73,6 +73,8 @@ function Message({ draft }: { draft: Output }) {
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
+              aria-keyshortcuts="Meta+Enter Control+Enter"
               rows={8}
               className="mt-1"
               aria-label="Message"

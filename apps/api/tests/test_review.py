@@ -49,7 +49,7 @@ def test_today_for_david(sign_in, processed, db):
         "Weekly revenue",
         "Housekeeping sync",
     ]
-    assert today["counts"] == {"questions": 1, "emails": 1, "slack": 4, "tasks_open": 1, "tasks_overdue": 0}
+    assert today["counts"] == {"questions": 2, "emails": 1, "slack": 4, "tasks_open": 1, "tasks_overdue": 0}
     assert today["last_run"]["processed"] == 2
     villa = client.get("/api/today?property=The Villa").json()
     assert [m["title"] for m in villa["meetings"]] == ["Housekeeping sync"]
@@ -126,15 +126,21 @@ def test_discard_email_deletes_the_gmail_draft(sign_in, processed, mocks):
 
 def test_answering_an_owner_question_assigns_the_task_and_drafts_a_dm(sign_in, processed, db):
     client = sign_in("david@liddellpropertyinvestments.com")
-    question = client.get("/api/today").json()["questions"][0]
-    assert question["kind"] == "owner"
+    question = next(q for q in client.get("/api/today").json()["questions"] if q["kind"] == "owner")
     resp = client.post(f"/api/questions/{question['id']}/answer", json={"owner_user_id": ids(db)["Sam"]})
     assert resp.json()["answer"] == "Sam"
     sam_dm = next(o for o in client.get("/api/outputs?type=slack_dm").json() if o["recipient_label"] == "Sam")
     assert "Canary upsell" in sam_dm["body"]
-    assert client.get("/api/today").json()["counts"]["questions"] == 0
-    client.post(f"/api/questions/{question['id']}/reopen")
     assert client.get("/api/today").json()["counts"]["questions"] == 1
+    client.post(f"/api/questions/{question['id']}/reopen")
+    assert client.get("/api/today").json()["counts"]["questions"] == 2
+
+
+def test_a_dictated_answer_keeps_its_lines(sign_in, processed):
+    client = sign_in("david@liddellpropertyinvestments.com")
+    question = next(q for q in client.get("/api/today").json()["questions"] if q["kind"] == "other")
+    text = "Yes, from the week before.\nAsk Russell to tell the laundry."
+    assert client.post(f"/api/questions/{question['id']}/answer", json={"text": text}).json()["answer"] == text
 
 
 def test_task_edits(sign_in, processed, db):

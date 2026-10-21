@@ -5,7 +5,9 @@ import { toast } from "sonner"
 import { HotelTags } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { api, HttpError, type AnswerIn, type Question } from "@/lib/api"
+import { onModEnter } from "@/lib/utils"
 
 const option =
   "rounded-full border border-attention/40 bg-card px-3 py-1 text-sm text-foreground hover:border-attention-foreground disabled:opacity-50"
@@ -71,18 +73,21 @@ export function QuestionCard({ question }: { question: Question }) {
         </form>
       ) : (
         <form
-          className="flex gap-2 pt-1"
+          className="flex items-end gap-2 pt-1"
           onSubmit={(e) => {
             e.preventDefault()
             answer.mutate({ text })
           }}
         >
-          <Input
+          <Textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Type your answer"
-            className="bg-card"
+            onKeyDown={onModEnter(() => text.trim() && !answer.isPending && answer.mutate({ text }))}
+            rows={1}
+            placeholder="Type or dictate your answer"
+            className="min-h-9 bg-card"
             aria-label="Your answer"
+            aria-keyshortcuts="Meta+Enter Control+Enter"
           />
           <Button type="submit" disabled={!text.trim() || answer.isPending}>
             Save

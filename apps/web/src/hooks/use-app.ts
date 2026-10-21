@@ -5,6 +5,7 @@ import { api, type AppSettings } from "@/lib/api"
 const FALLBACK: AppSettings = {
   owner_name: "the owner",
   owner_email: null,
+  people: [],
   properties: [],
   systems: [],
   pipeline: {

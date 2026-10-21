@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Output } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
-import { cn } from "@/lib/utils"
+import { cn, onModEnter } from "@/lib/utils"
 
 const GROUPS: [string, string, Output["status"][]][] = [
   ["waiting", "Waiting for you", ["draft", "failed"]],
@@ -82,6 +82,8 @@ function Preview({ email }: { email: Output }) {
           <Textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
+            aria-keyshortcuts="Meta+Enter Control+Enter"
             rows={14}
             aria-label="Email"
             className="font-sans text-[15px]"

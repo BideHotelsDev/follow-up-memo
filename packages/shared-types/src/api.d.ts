@@ -736,6 +736,8 @@ export interface components {
             owner_name: string;
             /** Owner Email */
             owner_email: string | null;
+            /** People */
+            people: string[];
             /** Properties */
             properties: components["schemas"]["PropertyOut"][];
             /** Systems */

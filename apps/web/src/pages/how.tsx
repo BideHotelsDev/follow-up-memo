@@ -1,4 +1,8 @@
+import { useState } from "react"
+import { toast } from "sonner"
+
 import { PageHead, SectionTitle, surface } from "@/components/page"
+import { Button } from "@/components/ui/button"
 import { useApp } from "@/hooks/use-app"
 import type { AppSettings } from "@/lib/api"
 import { every, listOf, minutes, plural } from "@/lib/format"
@@ -62,9 +66,57 @@ const problems = ({ owner, max_attempts }: Info) => [
   ["Google or Slack disconnects", "Runs pause and Admin gets a Slack alert."],
 ]
 
+/** Wispr Flow (David's dictation app) spells these right once they're in its Dictionary. */
+function Dictation({ words }: { words: string[] }) {
+  const [copied, setCopied] = useState(false)
+  return (
+    <section className="mt-10">
+      <SectionTitle title="Dictating with Wispr Flow" />
+      <div className={cn(surface, "grid gap-4 p-5 lg:grid-cols-[7fr_5fr] lg:gap-8")}>
+        <div className="grid content-start gap-3 text-muted-foreground">
+          <p>
+            Wispr Flow types wherever the cursor is, so it works in every box here: answers to questions, and edits to
+            email and Slack drafts. It works in Gmail too.
+          </p>
+          <p>
+            Click into a box, hold Wispr’s dictation key and speak. On a phone, use the Wispr keyboard. Press{" "}
+            <kbd className="rounded border bg-secondary px-1.5 font-sans text-xs text-foreground">⌘ Enter</kbd> (or{" "}
+            <kbd className="rounded border bg-secondary px-1.5 font-sans text-xs text-foreground">Ctrl Enter</kbd>) to
+            save. A plain Enter starts a new line.
+          </p>
+        </div>
+        <div className="grid content-start gap-3">
+          <p className="text-muted-foreground">
+            Add these to Wispr’s <b className="font-medium text-foreground">Dictionary</b> so names come out spelled
+            right:
+          </p>
+          <p className="text-foreground">{words.join(", ")}</p>
+          <div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(words.join("\n"))
+                  setCopied(true)
+                } catch {
+                  toast.error("Couldn't copy. Select the names and copy them instead.")
+                }
+              }}
+            >
+              {copied ? "Copied" : "Copy the names"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default function HowPage() {
   const app = useApp()
   const info: Info = { ...app.pipeline, owner: app.owner_name, properties: app.properties.length }
+  const words = [...new Set([...app.people, ...app.properties.map((p) => p.name), ...app.systems, "Bide"])]
   return (
     <>
       <PageHead
@@ -103,6 +155,7 @@ export default function HowPage() {
           ))}
         </ul>
       </section>
+      <Dictation words={words} />
     </>
   )
 }
