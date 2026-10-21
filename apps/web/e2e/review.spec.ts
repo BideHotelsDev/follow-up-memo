@@ -146,3 +146,18 @@ test("David manages meeting categories and filters by them", async ({ page }) =>
   await expect(page.getByRole("link", { name: /Weekly revenue/ }).first()).toBeVisible()
   await expect(page.getByRole("link", { name: /Housekeeping sync/ })).toHaveCount(0)
 })
+
+test("David writes his own instructions for Claude", async ({ page }) => {
+  await signIn(page, DAVID)
+  await page.goto("/admin/settings")
+  const box = page.getByLabel("When writing follow-up emails")
+  await box.fill("Never mention our rates or occupancy to OTAs.")
+  await page.getByRole("button", { name: "Save" }).click()
+  await expect(page.getByText("Saved")).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel("When writing follow-up emails")).toHaveValue(
+    "Never mention our rates or occupancy to OTAs.",
+  )
+  await box.fill("")
+  await page.getByRole("button", { name: "Save" }).click()
+})

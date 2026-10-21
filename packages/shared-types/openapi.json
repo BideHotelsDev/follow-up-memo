@@ -4188,6 +4188,30 @@
             ],
             "title": "Sensitive Topics"
           },
+          "extract_instructions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Extract Instructions"
+          },
+          "email_instructions": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Instructions"
+          },
           "quiet_minutes": {
             "anyOf": [
               {
@@ -4345,6 +4369,14 @@
             "type": "array",
             "title": "Sensitive Topics"
           },
+          "extract_instructions": {
+            "type": "string",
+            "title": "Extract Instructions"
+          },
+          "email_instructions": {
+            "type": "string",
+            "title": "Email Instructions"
+          },
           "quiet_minutes": {
             "type": "integer",
             "title": "Quiet Minutes"
@@ -4384,6 +4416,8 @@
           "internal_domains",
           "property_region",
           "sensitive_topics",
+          "extract_instructions",
+          "email_instructions",
           "quiet_minutes",
           "lookback_days",
           "max_attempts",

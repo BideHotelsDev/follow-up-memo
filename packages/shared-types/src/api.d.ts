@@ -1412,6 +1412,10 @@ export interface components {
             property_region?: string | null;
             /** Sensitive Topics */
             sensitive_topics?: string[] | null;
+            /** Extract Instructions */
+            extract_instructions?: string | null;
+            /** Email Instructions */
+            email_instructions?: string | null;
             /** Quiet Minutes */
             quiet_minutes?: number | null;
             /** Lookback Days */
@@ -1460,6 +1464,10 @@ export interface components {
             property_region: string;
             /** Sensitive Topics */
             sensitive_topics: string[];
+            /** Extract Instructions */
+            extract_instructions: string;
+            /** Email Instructions */
+            email_instructions: string;
             /** Quiet Minutes */
             quiet_minutes: number;
             /** Lookback Days */

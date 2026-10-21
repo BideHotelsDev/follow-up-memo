@@ -4,6 +4,7 @@ import json
 
 from sqlalchemy import select
 
+from bide_followup.integrations import llm
 from bide_followup.models import ChannelMap, Meeting, User
 from bide_followup.pipeline import run
 
@@ -169,3 +170,26 @@ def test_claude_sorts_meetings_into_categories(db, mocks, connected, sign_in):
     assert found["Weekly revenue"].category == "Revenue" and not found["Weekly revenue"].is_sensitive
     # Claude didn't call the housekeeping meeting sensitive; its category is.
     assert found["Housekeeping sync"].category == "Operations" and found["Housekeeping sync"].is_sensitive
+
+
+def test_claude_follows_davids_own_instructions(db, mocks, connected, sign_in, slack_bot, monkeypatch):
+    sent: dict[str, str] = {}
+    real = llm.complete
+
+    def spy(system, messages, schema, **kw):
+        sent[kw.get("kind", "extract")] = system
+        return real(system, messages, schema, **kw)
+
+    monkeypatch.setattr(llm, "complete", spy)
+    client = sign_in("david@liddellpropertyinvestments.com")
+    resp = client.put(
+        "/api/admin/settings",
+        json={"extract_instructions": "Linen orders are always Russell's.", "email_instructions": "  "},
+    )
+    assert resp.json()["extract_instructions"] == "Linen orders are always Russell's."
+    assert client.put("/api/admin/settings", json={"email_instructions": "x" * 4001}).status_code == 422
+    with db() as s:
+        run.run(s)
+    assert "## David's own instructions" in sent["extract"]
+    assert "<instructions>\nLinen orders are always Russell's.\n</instructions>" in sent["extract"]
+    assert "own instructions" not in sent["email"]  # blank: the prompt is unchanged

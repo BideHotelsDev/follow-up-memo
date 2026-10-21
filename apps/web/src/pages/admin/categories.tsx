@@ -36,6 +36,9 @@ function Row({
 }) {
   const [name, setName] = useState(category.name)
   const [about, setAbout] = useState(category.description ?? "")
+  // Every save carries what's in the boxes, so a switch flipped straight after typing can't undo the typing.
+  const send = (patch: Partial<CategoryIn>) =>
+    save({ name: name.trim() || category.name, description: about.trim() || null, ...patch })
   return (
     <li className="grid gap-2 py-3">
       <div className="flex flex-wrap items-center gap-2">
@@ -45,7 +48,7 @@ function Row({
           aria-label={`Name of ${category.name}`}
           className="h-9 min-w-40 flex-1"
           onChange={(e) => setName(e.target.value)}
-          onBlur={() => name.trim() && name.trim() !== category.name && save({ name: name.trim() })}
+          onBlur={() => name.trim() && name.trim() !== category.name && send({})}
         />
         <Button
           variant="ghost"
@@ -72,13 +75,13 @@ function Row({
         aria-label={`What ${category.name} covers`}
         className="h-9"
         onChange={(e) => setAbout(e.target.value)}
-        onBlur={() => about.trim() !== (category.description ?? "") && save({ description: about.trim() || null })}
+        onBlur={() => about.trim() !== (category.description ?? "") && send({})}
       />
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
         <label className="flex items-center gap-2">
           <Switch
             checked={category.is_sensitive}
-            onCheckedChange={(on) => save({ is_sensitive: on })}
+            onCheckedChange={(on) => send({ is_sensitive: on })}
             aria-label={`${category.name} is sensitive`}
           />
           Sensitive: no team messages
@@ -86,7 +89,7 @@ function Row({
         <label className="flex items-center gap-2">
           <Switch
             checked={category.is_active}
-            onCheckedChange={(on) => save({ is_active: on })}
+            onCheckedChange={(on) => send({ is_active: on })}
             aria-label={`${category.name} in use`}
           />
           In use

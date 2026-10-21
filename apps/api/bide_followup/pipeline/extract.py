@@ -45,7 +45,7 @@ def system_prompt(session: Session) -> str:
     else:
         listed = f"a short-stay property{where}: {names[0]}" if names else f"short-stay properties{where}"
     sensitive = runtime_settings.get(session, "sensitive_topics")
-    return _template(PROMPT_VERSION).format(
+    prompt = _template(PROMPT_VERSION).format(
         owner=catalog.owner_name(session),
         properties=listed,
         people="\n".join(lines) or "- (none listed)",
@@ -53,6 +53,7 @@ def system_prompt(session: Session) -> str:
         categories="\n".join(categories) or "- (none listed: use null)",
         sensitive=_and(sensitive, "or") if sensitive else "anything the owner would not want shared with the team",
     )
+    return runtime_settings.with_instructions(session, prompt, "extract_instructions")
 
 
 def _and(words: list[str], last: str = "and") -> str:

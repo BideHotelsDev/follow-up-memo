@@ -133,9 +133,9 @@ function definitions(owner: string, hours: number, gmailMinutes: number): [strin
     ],
     [
       "Before launch",
-      "The app has no data from before it existed. Admin can enter the earlier follow-up rate and time (Admin → Email and schedule) to show the comparison.",
+      "The app has no data from before it existed. Admin can enter the earlier follow-up rate and time (Admin → Claude, email and schedule) to show the comparison.",
     ],
-    ["Targets", "Set in Admin → Email and schedule; they start at the PRD’s success measures."],
+    ["Targets", "Set in Admin → Claude, email and schedule; they start at the PRD’s success measures."],
     ["Time saved", "An estimate, not a measurement: meetings the app handled, times the minutes set above."],
   ]
 }

@@ -10,7 +10,7 @@ const TABS: [string, string][] = [
   ["categories", "Categories"],
   ["channels", "Channels"],
   ["skip-rules", "Skip rules"],
-  ["settings", "Email and schedule"],
+  ["settings", "Claude, email and schedule"],
   ["runs", "Run log"],
 ]
 

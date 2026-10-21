@@ -18,6 +18,9 @@ DEFAULTS: dict[str, Any] = {
     "internal_domains": env.bide_domain_list,
     # What Claude is told about the business and which meetings it should treat as sensitive.
     "property_region": "Scotland",
+    # The owner's own rules for Claude, in their words: one set for reading notes, one for writing emails.
+    "extract_instructions": "",
+    "email_instructions": "",
     "sensitive_topics": ["pricing negotiations", "contracts", "staff performance", "legal matters", "HR", "investors"],
     # Pipeline timings: how long a doc must sit unchanged before it is read (FR-3), how far back to look (FR-1),
     # how many failed runs before a meeting is marked failed, how often Gmail drafts are checked, and how long
@@ -59,6 +62,22 @@ def in_region(session: Session) -> str:
     """ " in Scotland", or nothing when no region is set: for the prompts' description of the properties."""
     region = get(session, "property_region").strip()
     return f" in {region}" if region else ""
+
+
+def with_instructions(session: Session, prompt: str, key: str) -> str:
+    """The prompt, followed by the owner's instructions from Admin when there are any. The prompt's own rules come
+    first and win: an instruction can't make Claude add what the notes don't say."""
+    text = get(session, key).strip()
+    if not text:
+        return prompt
+    from bide_followup import catalog  # catalog imports this module
+
+    owner = catalog.owner_name(session)
+    return (
+        f"{prompt.rstrip()}\n\n## {owner}'s own instructions\n\n"
+        f"Follow these too. Where one conflicts with the rules above, the rules above win: never add anything the "
+        f"notes don't support.\n\n<instructions>\n{text}\n</instructions>\n"
+    )
 
 
 def all_(session: Session) -> dict[str, Any]:

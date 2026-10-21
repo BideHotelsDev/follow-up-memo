@@ -85,6 +85,7 @@ def email_draft(session: Session, meeting: Meeting) -> dict | None:
             signature=runtime_settings.get(session, "email_signature"),
         )
     )
+    system = runtime_settings.with_instructions(session, system, "email_instructions")
     messages = [{"role": "user", "content": json.dumps(payload, indent=2)}]
     completion = llm.complete(system, messages, EMAIL_SCHEMA, session=session, kind="email", meeting_id=meeting.id)
     meeting.input_tokens += completion.input_tokens

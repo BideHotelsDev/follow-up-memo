@@ -67,6 +67,8 @@ function Form({ initial }: { initial: Settings }) {
       api.putSettings({
         email_tone: form.email_tone,
         email_signature: form.email_signature,
+        extract_instructions: form.extract_instructions,
+        email_instructions: form.email_instructions,
         poll_interval_minutes: form.poll_interval_minutes,
         minutes_saved_per_meeting: form.minutes_saved_per_meeting,
         baseline_followup_rate: form.baseline_followup_rate,
@@ -119,6 +121,43 @@ function Form({ initial }: { initial: Settings }) {
           onChange={(e) => setForm({ ...form, email_signature: e.target.value })}
         />
       </div>
+      <fieldset className="grid gap-4 border-t pt-5">
+        <legend className="mb-2 font-medium">Instructions for Claude</legend>
+        <p className="text-sm text-muted-foreground">
+          Your own rules, in your own words, one per line. Claude follows them on top of its usual ones, but it still
+          never adds anything the notes don’t say.
+        </p>
+        <div className="grid gap-1.5">
+          <Label htmlFor="extract-instructions">When reading meeting notes</Label>
+          <Textarea
+            id="extract-instructions"
+            rows={4}
+            maxLength={4000}
+            placeholder={
+              "Linen and laundry actions are Russell’s unless the notes say otherwise.\nTreat anything about the Glasgow site as sensitive."
+            }
+            value={form.extract_instructions}
+            onChange={(e) => setForm({ ...form, extract_instructions: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            Used when Claude pulls out actions, owners, deadlines, categories and questions.
+          </p>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="email-instructions">When writing follow-up emails</Label>
+          <Textarea
+            id="email-instructions"
+            rows={4}
+            maxLength={4000}
+            placeholder={"Never mention our rates or occupancy to OTAs.\nKeep emails to suppliers under 120 words."}
+            value={form.email_instructions}
+            onChange={(e) => setForm({ ...form, email_instructions: e.target.value })}
+          />
+          <p className="text-xs text-muted-foreground">
+            Applies to new drafts. To redo one already written, reprocess its meeting.
+          </p>
+        </div>
+      </fieldset>
       <div className="grid gap-1.5">
         <Label htmlFor="interval">Check Drive every (minutes)</Label>
         <Input

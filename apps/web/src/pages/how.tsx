@@ -50,6 +50,10 @@ const rules = ({ owner, skip_rules, sensitive_topics, raw_text_days }: Info) => 
   ["Drafts first", `Emails wait in Gmail. Team messages wait for ${owner}’s approval. Nothing is sent automatically.`],
   ["No guessing", `Owners and dates come from the notes. Gaps become questions for ${owner}.`],
   [
+    `${owner}’s own rules`,
+    `Claude also follows the instructions ${owner} writes in Admin, but they can’t make it add what the notes don’t say.`,
+  ],
+  [
     "Private calls skipped",
     skip_rules
       ? `Calls matching the ${plural(skip_rules, "rule")} on the skip list are never processed.`

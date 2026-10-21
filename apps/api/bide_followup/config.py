@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     # Local development only: sign in by email without Google. Has no effect unless app_base_url is http://localhost.
     auth_dev_login: bool = False
     # Email domains whose people count as internal and may sign in, comma-separated. The starting value only: Admin
-    # edits the list in the app (Email and schedule).
+    # edits the list in the app (Claude, email and schedule).
     bide_domains: str = "bidehotels.com,liddellpropertyinvestments.com"
 
     @property

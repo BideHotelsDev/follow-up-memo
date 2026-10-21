@@ -115,6 +115,8 @@ class SettingsOut(BaseModel):
     internal_domains: list[str]
     property_region: str
     sensitive_topics: list[str]
+    extract_instructions: str
+    email_instructions: str
     quiet_minutes: int
     lookback_days: int
     max_attempts: int
@@ -142,11 +144,18 @@ class SettingsIn(BaseModel):
     sensitive_topics: (
         list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=60)]] | None
     ) = Field(default=None, max_length=20)
+    extract_instructions: str | None = Field(default=None, max_length=4000)
+    email_instructions: str | None = Field(default=None, max_length=4000)
     quiet_minutes: int | None = Field(default=None, ge=5, le=120)
     lookback_days: int | None = Field(default=None, ge=1, le=14)
     max_attempts: int | None = Field(default=None, ge=1, le=10)
     gmail_sync_minutes: int | None = Field(default=None, ge=10, le=240)
     raw_text_days: int | None = Field(default=None, ge=1, le=365)
+
+    @field_validator("extract_instructions", "email_instructions")
+    @classmethod
+    def trim(cls, v: str | None) -> str | None:
+        return v.strip() if v is not None else None
 
 
 class RunOut(Orm):

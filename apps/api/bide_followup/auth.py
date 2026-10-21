@@ -1,7 +1,7 @@
 """Sign in with Google (OpenID Connect) and the dependencies protected routes use. Adapted from bide-ecosystem.
 
 Sign-in is invite-only: a person must already exist in `users` (seeded or added in Admin) and their email must be on
-a Bide domain (Admin → Email and schedule; BIDE_DOMAINS until changed). On first sign-in their Google identity is linked by verified email; afterwards by sub.
+a Bide domain (Admin → Claude, email and schedule; BIDE_DOMAINS until changed). On first sign-in their Google identity is linked by verified email; afterwards by sub.
 """
 
 import base64
