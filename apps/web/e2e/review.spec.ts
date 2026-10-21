@@ -14,6 +14,13 @@ test.beforeAll(async ({ request }) => {
   expect((await request.post("/api/admin/runs")).ok()).toBeTruthy()
 })
 
+/** Press Save on Admin → settings and wait for the server to store it. */
+async function save(page: Page) {
+  const stored = page.waitForResponse((r) => r.url().endsWith("/api/admin/settings") && r.request().method() === "PUT")
+  await page.getByRole("button", { name: "Save" }).click()
+  expect((await stored).ok()).toBeTruthy()
+}
+
 async function noSidewaysScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
@@ -152,14 +159,13 @@ test("David writes his own instructions for Claude", async ({ page }) => {
   await page.goto("/admin/settings")
   const box = page.getByLabel("When writing follow-up emails")
   await box.fill("Never mention our rates or occupancy to OTAs.")
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByText("Saved")).toBeVisible()
+  await save(page)
   await page.reload()
   await expect(page.getByLabel("When writing follow-up emails")).toHaveValue(
     "Never mention our rates or occupancy to OTAs.",
   )
   await box.fill("")
-  await page.getByRole("button", { name: "Save" }).click()
+  await save(page)
 })
 
 test("David previews the weekly digest and switches on reminders", async ({ page }) => {
@@ -168,12 +174,10 @@ test("David previews the weekly digest and switches on reminders", async ({ page
   await page.getByRole("button", { name: "Preview this week’s digest" }).click()
   await expect(page.getByText(/David’s week in follow-ups/)).toBeVisible()
   await page.getByRole("switch", { name: "Send due-date reminders" }).click()
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByText("Saved")).toBeVisible()
+  await save(page)
   await page.goto("/how")
   await expect(page.getByText(/on weekdays, everyone with tasks due that day or overdue/)).toBeVisible()
   await page.goto("/admin/settings")
   await page.getByRole("switch", { name: "Send due-date reminders" }).click()
-  await page.getByRole("button", { name: "Save" }).click()
-  await expect(page.getByText("Saved")).toBeVisible()
+  await save(page)
 })
