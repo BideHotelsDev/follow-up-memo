@@ -6,7 +6,17 @@ import { toast } from "sonner"
 import { Loading, surface } from "@/components/page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CategoryDot } from "@/components/tags"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useApp } from "@/hooks/use-app"
 import { api, HttpError, type ChannelMapIn } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -49,18 +59,27 @@ function Editor({ initial }: { initial: ChannelMapIn[] }) {
                 <SelectValue placeholder="Choose…" />
               </SelectTrigger>
               <SelectContent>
-                {categories
-                  .filter((c) => c.is_active || c.name === row.category)
-                  .map(({ name }) => (
-                    <SelectItem key={CATEGORY + name} value={CATEGORY + name}>
-                      {name}
+                <SelectGroup>
+                  <SelectLabel>Categories</SelectLabel>
+                  {categories
+                    .filter((c) => c.is_active || c.name === row.category)
+                    .map(({ name, color }) => (
+                      <SelectItem key={CATEGORY + name} value={CATEGORY + name}>
+                        <CategoryDot slot={color} />
+                        {name}
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>Properties</SelectLabel>
+                  {properties.map(({ name: p, color }) => (
+                    <SelectItem key={PROPERTY + p} value={PROPERTY + p}>
+                      <CategoryDot slot={color} className="rounded-[3px]" />
+                      {p}
                     </SelectItem>
                   ))}
-                {properties.map(({ name: p }) => (
-                  <SelectItem key={PROPERTY + p} value={PROPERTY + p}>
-                    {p}
-                  </SelectItem>
-                ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
             <span className="text-sm text-muted-foreground">

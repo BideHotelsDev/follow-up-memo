@@ -70,7 +70,10 @@ measures).
 The Impact page (David and Admin) measures, from the app's own records and from launch onwards: meetings followed up
 within 24 hours (by week), time from meeting end to drafts and to David acting, actions done on time, late, open
 and overdue, open actions by owner, drafts approved without edits, tasks David had to give a different owner, his
-days of use, and a time-saved estimate, each by hotel. The PRD's success measures are shown against their targets.
+days of use, and a time-saved estimate, each by hotel. It opens with what the app did (meetings read, actions captured, emails drafted, Slack messages sent,
+questions settled, hours saved) and ends with how the app is performing: runs completed, meetings read without a
+problem, time to drafts, drafts sent as written, tasks given to the right person, Claude usage, and meetings handled
+by week. The PRD's success measures are shown against their targets.
 There is no data from before launch; Admin can enter a before-launch rate and time (Admin → Email and schedule) to
 show the comparison. Definitions are on the page. `pnpm seed:mock` adds eight weeks of made-up history so the page
 has something to show locally.

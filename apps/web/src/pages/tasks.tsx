@@ -9,6 +9,7 @@ import { HotelTags, Status } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { CategoryFilter } from "@/components/category-filter"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { useScope } from "@/hooks/use-scope"
@@ -27,7 +28,6 @@ const BUCKETS: [Task["bucket"], string][] = [
   ["done", "Done"],
 ]
 const NEEDS_OWNER = "needs_david"
-const ANY = "any"
 
 function ownerLabel(t: Task, ownerName: string) {
   if (t.owner) return t.owner.name.split(" ")[0]
@@ -180,7 +180,7 @@ export default function TasksPage() {
   const { scope } = useScope()
   const [owner, setOwner] = useState("all")
   const [q, setQ] = useState("")
-  const [category, setCategory] = useState(ANY)
+  const [category, setCategory] = useState<string | null>(null)
   const [openId, setOpenId] = useState<string | null>(null)
   const { data } = useQuery({
     queryKey: ["tasks", scope, owner, q, category],
@@ -189,7 +189,7 @@ export default function TasksPage() {
         ...scope,
         owner: owner === "all" ? undefined : owner,
         q,
-        category: category === ANY ? undefined : category,
+        category: category ?? undefined,
       }),
   })
   const chips: [string, string][] = [
@@ -203,39 +203,31 @@ export default function TasksPage() {
   return (
     <>
       <PageHead title="Tasks" lede="Every action from every meeting, grouped by when it’s due." />
-      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="mb-6 grid gap-3 sm:flex sm:flex-wrap sm:items-center">
         <Input
           type="search"
           placeholder="Search tasks"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          className="max-w-xs bg-card"
+          className="bg-card sm:max-w-xs"
           aria-label="Search tasks"
         />
         {canEdit && app.categories.length ? (
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Category" className="w-48 bg-card">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={ANY}>Every category</SelectItem>
-              {app.categories.map((c) => (
-                <SelectItem key={c.id} value={c.name}>
-                  {c.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CategoryFilter value={category} onChange={setCategory} className="w-full sm:w-56" />
         ) : null}
         {canEdit ? (
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Owner">
+          <div
+            className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+            role="group"
+            aria-label="Owner"
+          >
             {chips.map(([value, label]) => (
               <button
                 key={value}
                 aria-pressed={owner === value}
                 onClick={() => setOwner(value)}
                 className={cn(
-                  "rounded-full border px-3.5 py-1.5 text-sm",
+                  "min-h-9 shrink-0 rounded-full border px-3.5 py-1.5 text-sm transition-colors",
                   owner === value
                     ? "border-foreground bg-foreground text-background"
                     : "bg-card hover:border-foreground/40",

@@ -17,7 +17,7 @@ import { useEffect, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
-import { BIDE_WIDE } from "@/components/tags"
+import { BIDE_WIDE, CategoryDot } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -240,9 +240,10 @@ export function AppShell({ me }: { me: User }) {
                 </SelectTrigger>
                 <SelectContent align="end">
                   <SelectItem value={ALL}>All properties</SelectItem>
-                  {[...properties.map((p) => p.name), BIDE_WIDE].map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
+                  {[...properties, { name: BIDE_WIDE, color: null }].map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      <CategoryDot slot={p.color} className="rounded-[3px]" />
+                      {p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

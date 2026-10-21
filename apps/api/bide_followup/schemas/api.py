@@ -391,6 +391,32 @@ class ImpactTargets(BaseModel):
     routine_stuck_hours: float
 
 
+class ImpactSystemWeek(BaseModel):
+    week_start: date
+    read: int  # meetings Claude read and turned into follow-ups
+    failed: int
+    skipped: int
+
+
+class ImpactSystem(BaseModel):
+    """What the app did, and how well it ran, in the period."""
+
+    runs: int
+    runs_ok: int
+    last_failed_run_at: datetime | None
+    meetings_read: int
+    meetings_failed: int
+    meetings_skipped: int
+    emails_drafted: int
+    slack_drafted: int
+    slack_posted: int
+    questions_asked: int
+    questions_answered: int
+    tokens_per_meeting: int | None
+    mode: Literal["api", "routine"]
+    weeks: list[ImpactSystemWeek]
+
+
 class ImpactOut(BaseModel):
     since: date
     weeks: list[ImpactWeek]
@@ -410,6 +436,7 @@ class ImpactOut(BaseModel):
     targets: ImpactTargets
     owner_name: str
     hotels: list[ImpactHotel]
+    system: ImpactSystem
 
 
 # --- service API (the Claude Code routine) -----------------------------------------------------------------------

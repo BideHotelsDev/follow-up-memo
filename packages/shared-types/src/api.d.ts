@@ -1126,6 +1126,7 @@ export interface components {
             owner_name: string;
             /** Hotels */
             hotels: components["schemas"]["ImpactHotel"][];
+            system: components["schemas"]["ImpactSystem"];
         };
         /** ImpactOwner */
         ImpactOwner: {
@@ -1135,6 +1136,57 @@ export interface components {
             open: number;
             /** Overdue */
             overdue: number;
+        };
+        /**
+         * ImpactSystem
+         * @description What the app did, and how well it ran, in the period.
+         */
+        ImpactSystem: {
+            /** Runs */
+            runs: number;
+            /** Runs Ok */
+            runs_ok: number;
+            /** Last Failed Run At */
+            last_failed_run_at: string | null;
+            /** Meetings Read */
+            meetings_read: number;
+            /** Meetings Failed */
+            meetings_failed: number;
+            /** Meetings Skipped */
+            meetings_skipped: number;
+            /** Emails Drafted */
+            emails_drafted: number;
+            /** Slack Drafted */
+            slack_drafted: number;
+            /** Slack Posted */
+            slack_posted: number;
+            /** Questions Asked */
+            questions_asked: number;
+            /** Questions Answered */
+            questions_answered: number;
+            /** Tokens Per Meeting */
+            tokens_per_meeting: number | null;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "api" | "routine";
+            /** Weeks */
+            weeks: components["schemas"]["ImpactSystemWeek"][];
+        };
+        /** ImpactSystemWeek */
+        ImpactSystemWeek: {
+            /**
+             * Week Start
+             * Format: date
+             */
+            week_start: string;
+            /** Read */
+            read: number;
+            /** Failed */
+            failed: number;
+            /** Skipped */
+            skipped: number;
         };
         /** ImpactTargets */
         ImpactTargets: {

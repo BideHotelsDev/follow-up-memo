@@ -42,6 +42,22 @@ const RINGS = [
   "border-tag-5/40 text-tag-5",
 ]
 
+// A category's colour as a solid dot, for pickers and legends.
+const DOTS = ["bg-tag-0", "bg-tag-1", "bg-tag-2", "bg-tag-3", "bg-tag-4", "bg-tag-5"]
+
+export function CategoryDot({ slot, className }: { slot?: number | null; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "inline-block size-2.5 shrink-0 rounded-full",
+        slot === undefined || slot === null ? "bg-border" : DOTS[slot % DOTS.length],
+        className,
+      )}
+    />
+  )
+}
+
 /** A meeting's category (Admin → Categories): outlined, so it reads apart from the property pills. */
 export function CategoryTag({ name, className }: { name?: string | null; className?: string }) {
   const { categories } = useApp()

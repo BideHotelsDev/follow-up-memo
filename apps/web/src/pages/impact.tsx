@@ -1,8 +1,19 @@
 import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { CheckCircle2, CircleAlert } from "lucide-react"
+import {
+  CalendarCheck,
+  CheckCircle2,
+  CircleAlert,
+  Clock,
+  ListChecks,
+  Mail,
+  MessageCircleQuestion,
+  MessageSquare,
+  type LucideIcon,
+} from "lucide-react"
 
 import { RowBars, StackedBar, type Part } from "@/components/charts/bars"
+import { Columns } from "@/components/charts/columns"
 import { RateLine } from "@/components/charts/rate-line"
 import { Empty, Loading, PageHead, SectionTitle, surface } from "@/components/page"
 import { HotelTag } from "@/components/tags"
@@ -10,7 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useApp } from "@/hooks/use-app"
 import { useScope } from "@/hooks/use-scope"
 import { api, type Impact } from "@/lib/api"
-import { day, every, minutes as minutesText, plural } from "@/lib/format"
+import { day, every, localDate, minutes as minutesText, plural, time } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const PERIODS: [string, string][] = [
@@ -52,60 +63,132 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: string 
   )
 }
 
-/** The PRD's success measures, each against its target, with an icon and words (never colour alone). */
-function Targets({ data }: { data: Impact }) {
-  const t = data.targets
-  const owner = data.owner_name
-  const unedited = rate(data.drafts.unedited, data.drafts.acted)
-  const reassigned = rate(data.drafts.reassigned, data.drafts.actions)
-  const rows: [string, string, boolean | null, string][] = [
-    [
-      "Drafts ready after a meeting ends",
-      duration(data.minutes_to_drafts),
-      data.minutes_to_drafts === null ? null : data.minutes_to_drafts <= t.target_minutes_to_drafts,
-      `Target: under ${duration(t.target_minutes_to_drafts)}`,
-    ],
-    [
-      "Drafts approved without edits",
-      unedited === null ? "—" : `${unedited}%`,
-      unedited === null ? null : unedited >= t.target_unedited_rate,
-      `Target: ${t.target_unedited_rate}% or more · ${data.drafts.unedited} of ${data.drafts.acted}`,
-    ],
-    [
-      `Tasks ${owner} had to give a different owner`,
-      reassigned === null ? "—" : `${reassigned}%`,
-      reassigned === null ? null : reassigned < t.target_reassigned_rate,
-      `Target: under ${t.target_reassigned_rate}% · ${data.drafts.reassigned} of ${data.drafts.actions}`,
-    ],
-    [
-      `Days ${owner} used the app this week`,
-      String(data.david_active_days),
-      data.david_active_days >= t.target_active_days,
-      `Target: ${t.target_active_days} or more working days`,
-    ],
-  ]
+/** One thing the app did: the count leads, the icon and words say what it is. */
+function Work({ icon: Icon, value, label, sub }: { icon: LucideIcon; value: string; label: string; sub: string }) {
   return (
-    <ul className="divide-y">
-      {rows.map(([label, value, met, note]) => (
-        <li key={label} className="grid grid-cols-[1.25rem_1fr_auto] items-start gap-3 py-3 first:pt-0 last:pb-0">
-          {met === null ? (
-            <span aria-hidden className="mt-1 size-3 rounded-full border border-muted-foreground" />
-          ) : met ? (
-            <CheckCircle2 className="mt-0.5 size-5 text-ok" aria-label="On target" />
-          ) : (
-            <CircleAlert className="mt-0.5 size-5 text-attention" aria-label="Below target" />
-          )}
-          <div className="grid gap-0.5">
-            <span className="text-foreground">{label}</span>
-            <span className="text-sm text-muted-foreground">
-              {met === null ? "Not enough data yet · " : ""}
-              {note}
-            </span>
-          </div>
-          <span className="tnum font-semibold text-foreground">{value}</span>
-        </li>
-      ))}
-    </ul>
+    <div className={cn(surface, "grid content-start gap-1 p-4 md:p-5")}>
+      <span className="mb-2 grid size-9 place-items-center rounded-lg bg-bide-subtle text-bide">
+        <Icon className="size-[18px]" aria-hidden />
+      </span>
+      <span className="font-display tnum text-3xl leading-none text-foreground">{value}</span>
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      <span className="text-xs text-muted-foreground">{sub}</span>
+    </div>
+  )
+}
+
+/** A health line: what's measured, its value, and whether it's where it should be (icon and words, not colour). */
+function Health({ label, value, note, ok }: { label: string; value: string; note: string; ok: boolean | null }) {
+  return (
+    <li className="grid grid-cols-[1.25rem_1fr_auto] items-start gap-x-3 gap-y-0.5 border-t py-3 first:border-t-0 first:pt-0">
+      {ok === null ? (
+        <span aria-hidden className="mt-1.5 size-2 justify-self-center rounded-full bg-muted-foreground" />
+      ) : ok ? (
+        <CheckCircle2 className="mt-0.5 size-5 text-ok" aria-label="On track" />
+      ) : (
+        <CircleAlert className="mt-0.5 size-5 text-attention" aria-label="Needs a look" />
+      )}
+      <span className="text-foreground">{label}</span>
+      <b className="tnum text-right font-semibold text-foreground">{value}</b>
+      <span className="col-start-2 col-end-4 text-sm text-muted-foreground">{note}</span>
+    </li>
+  )
+}
+
+function Performance({ data, children }: { data: Impact; children: React.ReactNode }) {
+  const sys = data.system
+  const runRate = rate(sys.runs_ok, sys.runs)
+  const readRate = rate(sys.meetings_read, sys.meetings_read + sys.meetings_failed)
+  const unedited = rate(data.drafts.unedited, data.drafts.acted)
+  const ownersRight = data.drafts.actions ? 100 - (rate(data.drafts.reassigned, data.drafts.actions) ?? 0) : null
+  const fast = data.minutes_to_drafts
+  return (
+    <section>
+      <SectionTitle title="How the app is performing">
+        <span className="text-sm text-muted-foreground">This period</span>
+      </SectionTitle>
+      <div className="grid items-start gap-4 lg:grid-cols-[5fr_6fr]">
+        <ul className={cn(surface, "grid content-start p-5")}>
+          <Health
+            label="Runs completed"
+            value={runRate === null ? "—" : `${runRate}%`}
+            note={
+              sys.runs
+                ? `${sys.runs_ok} of ${plural(sys.runs, "run")}` +
+                  (sys.last_failed_run_at
+                    ? ` · last problem ${day(localDate(sys.last_failed_run_at))} ${time(sys.last_failed_run_at)}`
+                    : " · no problems")
+                : "No runs in this period"
+            }
+            ok={runRate === null ? null : runRate >= 95}
+          />
+          <Health
+            label="Meetings read without a problem"
+            value={readRate === null ? "—" : `${readRate}%`}
+            note={`${sys.meetings_read} read, ${sys.meetings_failed} couldn’t be, ${sys.meetings_skipped} skipped by the rules`}
+            ok={readRate === null ? null : readRate >= 95}
+          />
+          <Health
+            label="Drafts ready after a meeting ends"
+            value={duration(fast)}
+            note={`On average. Target: under ${minutesText(data.targets.target_minutes_to_drafts)}`}
+            ok={fast === null ? null : fast <= data.targets.target_minutes_to_drafts}
+          />
+          <Health
+            label={`Drafts ${data.owner_name} sent as written`}
+            value={unedited === null ? "—" : `${unedited}%`}
+            note={`How often Claude’s wording was right first time. Target: ${data.targets.target_unedited_rate}% or more`}
+            ok={unedited === null ? null : unedited >= data.targets.target_unedited_rate}
+          />
+          <Health
+            label="Tasks given to the right person"
+            value={ownersRight === null ? "—" : `${ownersRight}%`}
+            note={`${data.drafts.reassigned} of ${plural(data.drafts.actions, "task")} moved to someone else by ${data.owner_name}`}
+            ok={ownersRight === null ? null : 100 - ownersRight <= data.targets.target_reassigned_rate}
+          />
+          <Health
+            label={`Days ${data.owner_name} used the app this week`}
+            value={String(data.david_active_days)}
+            note={`Target: ${data.targets.target_active_days} or more working days`}
+            ok={data.david_active_days >= data.targets.target_active_days}
+          />
+          <Health
+            label="Claude"
+            value={sys.mode === "routine" ? "Claude Code" : "Claude API"}
+            note={
+              sys.tokens_per_meeting
+                ? `About ${sys.tokens_per_meeting.toLocaleString("en-GB")} tokens per meeting`
+                : sys.mode === "routine"
+                  ? "On Bide’s Claude plan: no per-use bill"
+                  : "No usage recorded yet"
+            }
+            ok={null}
+          />
+        </ul>
+        <div className="grid gap-4">
+          <section className={cn(surface, "grid content-start gap-4 p-5")}>
+            <div>
+              <h3 className="text-xl">Meetings the app handled, by week</h3>
+              <p className="text-sm text-muted-foreground">
+                Read and followed up, couldn’t be read, or skipped by the rules
+              </p>
+            </div>
+            <Columns
+              label="Meetings handled by week"
+              columns={sys.weeks.map((w) => ({
+                label: day(w.week_start).replace(/^\w+ /, ""),
+                parts: [
+                  { label: "Read", value: w.read, color: "var(--chart-1)" },
+                  { label: "Couldn’t be read", value: w.failed, color: "var(--state-overdue)" },
+                  { label: "Skipped", value: w.skipped, color: "var(--chart-5)" },
+                ],
+              }))}
+            />
+          </section>
+          {children}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -137,6 +220,18 @@ function definitions(owner: string, hours: number, gmailMinutes: number): [strin
     ],
     ["Targets", "Set in Admin → Claude, email and schedule; they start at the PRD’s success measures."],
     ["Time saved", "An estimate, not a measurement: meetings the app handled, times the minutes set above."],
+    [
+      "Runs completed",
+      "The app checks Drive every few minutes. A run that stopped on a problem (Google or Slack disconnected, Claude unreachable) counts against this; the next run carries on where it stopped.",
+    ],
+    [
+      "Meetings read",
+      "Notes Claude read and turned into drafts, tasks and questions. “Couldn’t be read” means it gave up after its retries; “skipped” means a skip rule in Admin left the meeting out.",
+    ],
+    [
+      "Right person",
+      `Tasks Claude gave an owner that ${owner} didn’t move to someone else. Tasks Claude couldn’t place go to ${owner} as questions instead.`,
+    ],
   ]
 }
 
@@ -170,7 +265,7 @@ export default function ImpactPage() {
       <PageHead
         eyebrow={`Since ${day(data.since)} · ${PERIODS.find((p) => p[0] === weeks)?.[1]}`}
         title="Impact"
-        lede="Whether meetings turn into follow-ups, how fast, and whether the team follows through. Measured from the app’s own records."
+        lede="How much the app helps: the work it takes off your plate, whether meetings turn into follow-ups and the team follows through, and how well it runs. Measured from the app’s own records."
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-2" role="group" aria-label="Period">
@@ -198,6 +293,42 @@ export default function ImpactPage() {
         <Empty>No meetings to measure in this period yet. The numbers fill in as meetings are followed up.</Empty>
       ) : (
         <div className={cn("grid grid-cols-1 gap-6 transition-opacity", isFetching && "opacity-60")}>
+          <section aria-label="What the app did">
+            <SectionTitle title="What the app did for you" />
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 xl:grid-cols-6">
+              <Work
+                icon={CalendarCheck}
+                value={String(data.system.meetings_read)}
+                label="Meetings read"
+                sub="Notes turned into follow-ups"
+              />
+              <Work icon={ListChecks} value={String(captured)} label="Actions captured" sub="Each with an owner" />
+              <Work
+                icon={Mail}
+                value={String(data.system.emails_drafted)}
+                label="Emails drafted"
+                sub="Waiting in Gmail, never sent"
+              />
+              <Work
+                icon={MessageSquare}
+                value={String(data.system.slack_posted)}
+                label="Slack messages sent"
+                sub={`of ${data.system.slack_drafted} drafted, after approval`}
+              />
+              <Work
+                icon={MessageCircleQuestion}
+                value={String(data.system.questions_answered)}
+                label="Questions settled"
+                sub={`of ${data.system.questions_asked} asked about owners and dates`}
+              />
+              <Work
+                icon={Clock}
+                value={`${saved} h`}
+                label="Time saved"
+                sub={`About ${Math.round(saved / fullWeeks)} h a week (estimate)`}
+              />
+            </div>
+          </section>
           <section className={cn(surface, "grid grid-cols-1 items-center gap-6 p-5 md:p-6 lg:grid-cols-[4fr_7fr]")}>
             <div>
               <span className="text-sm font-medium text-muted-foreground">
@@ -279,24 +410,16 @@ export default function ImpactPage() {
               }
             />
             <Kpi
-              label="Actions captured"
-              value={String(captured)}
-              sub={
-                data.actions.on_time_rate !== null
-                  ? `${data.actions.on_time_rate}% of the done ones on time`
-                  : "None done yet"
-              }
+              label="Actions done on time"
+              value={data.actions.on_time_rate === null ? "—" : `${data.actions.on_time_rate}%`}
+              sub={`${data.actions.on_time} on time, ${data.actions.late} late`}
             />
             <Kpi
               label={`Drafts ${data.owner_name} acted on`}
               value={String(data.drafts.acted)}
               sub={`${data.drafts.unedited} without changing a word`}
             />
-            <Kpi
-              label="Time saved (estimate)"
-              value={`${saved} h`}
-              sub={`About ${Math.round(saved / fullWeeks)} h a week`}
-            />
+            <Kpi label="Overdue now" value={String(overdueTotal)} sub={`of ${plural(openTotal, "open action")}`} />
           </div>
 
           <div className="grid items-start gap-4 lg:grid-cols-2">
@@ -334,11 +457,7 @@ export default function ImpactPage() {
             </section>
           </div>
 
-          <div className="grid items-start gap-4 lg:grid-cols-2">
-            <section className={cn(surface, "grid content-start gap-4 p-5")}>
-              <h3 className="text-xl">Against the targets</h3>
-              <Targets data={data} />
-            </section>
+          <Performance data={data}>
             <section className={cn(surface, "grid content-start gap-4 p-5")}>
               <div>
                 <span className="eyebrow text-muted-foreground">Time saved · estimate</span>
@@ -369,7 +488,7 @@ export default function ImpactPage() {
                 </p>
               </div>
             </section>
-          </div>
+          </Performance>
 
           {data.hotels.length ? (
             <section>

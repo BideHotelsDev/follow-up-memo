@@ -4,6 +4,7 @@ import { ExternalLink, RotateCw } from "lucide-react"
 import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { CategoryFilter, PersonFilter } from "@/components/category-filter"
 import { DetailSheet } from "@/components/detail-sheet"
 import { Empty, Loading, PageHead, surface } from "@/components/page"
 import { CategoryTag, HotelTags, MeetingStatus } from "@/components/tags"
@@ -20,7 +21,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useApp } from "@/hooks/use-app"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useScope } from "@/hooks/use-scope"
@@ -267,17 +267,14 @@ function Item({ m, selected }: { m: MeetingSummary; selected: boolean }) {
   )
 }
 
-const EVERYONE = "everyone"
-const ANY = "any"
-
 export default function MeetingsPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const phone = useIsMobile()
   const { scope } = useScope()
   const [q, setQ] = useState("")
-  const [person, setPerson] = useState(EVERYONE)
-  const [category, setCategory] = useState(ANY)
+  const [person, setPerson] = useState<string | null>(null)
+  const [category, setCategory] = useState<string | null>(null)
   const { categories } = useApp()
   const people = useQuery({ queryKey: ["people"], queryFn: api.people })
   const list = useQuery({
@@ -286,8 +283,8 @@ export default function MeetingsPage() {
       api.meetings({
         property: scope.property,
         q,
-        person: person === EVERYONE ? undefined : person,
-        category: category === ANY ? undefined : category,
+        person: person ?? undefined,
+        category: category ?? undefined,
       }),
   })
   const selectedId = id ?? list.data?.[0]?.id
@@ -310,36 +307,13 @@ export default function MeetingsPage() {
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <div className="grid gap-5">
           <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:gap-3">
-            <Select value={person} onValueChange={setPerson}>
-              <SelectTrigger aria-label="Employee" className="w-full bg-card">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={EVERYONE}>Everyone’s meetings</SelectItem>
-                {(people.data ?? [])
-                  .filter((p) => p.role !== "admin")
-                  .map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}’s meetings
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-            {categories.length ? (
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger aria-label="Category" className="w-full bg-card">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={ANY}>Every category</SelectItem>
-                  {categories.map((c) => (
-                    <SelectItem key={c.id} value={c.name}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : null}
+            <PersonFilter
+              people={(people.data ?? []).filter((p) => p.role !== "admin")}
+              allLabel="Everyone’s meetings"
+              value={person}
+              onChange={setPerson}
+            />
+            {categories.length ? <CategoryFilter value={category} onChange={setCategory} /> : null}
           </div>
           <Input
             type="search"

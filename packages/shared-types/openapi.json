@@ -3073,6 +3073,9 @@
             },
             "type": "array",
             "title": "Hotels"
+          },
+          "system": {
+            "$ref": "#/components/schemas/ImpactSystem"
           }
         },
         "type": "object",
@@ -3094,7 +3097,8 @@
           "baseline_followup_days",
           "targets",
           "owner_name",
-          "hotels"
+          "hotels",
+          "system"
         ],
         "title": "ImpactOut"
       },
@@ -3120,6 +3124,136 @@
           "overdue"
         ],
         "title": "ImpactOwner"
+      },
+      "ImpactSystem": {
+        "properties": {
+          "runs": {
+            "type": "integer",
+            "title": "Runs"
+          },
+          "runs_ok": {
+            "type": "integer",
+            "title": "Runs Ok"
+          },
+          "last_failed_run_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Failed Run At"
+          },
+          "meetings_read": {
+            "type": "integer",
+            "title": "Meetings Read"
+          },
+          "meetings_failed": {
+            "type": "integer",
+            "title": "Meetings Failed"
+          },
+          "meetings_skipped": {
+            "type": "integer",
+            "title": "Meetings Skipped"
+          },
+          "emails_drafted": {
+            "type": "integer",
+            "title": "Emails Drafted"
+          },
+          "slack_drafted": {
+            "type": "integer",
+            "title": "Slack Drafted"
+          },
+          "slack_posted": {
+            "type": "integer",
+            "title": "Slack Posted"
+          },
+          "questions_asked": {
+            "type": "integer",
+            "title": "Questions Asked"
+          },
+          "questions_answered": {
+            "type": "integer",
+            "title": "Questions Answered"
+          },
+          "tokens_per_meeting": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tokens Per Meeting"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "api",
+              "routine"
+            ],
+            "title": "Mode"
+          },
+          "weeks": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactSystemWeek"
+            },
+            "type": "array",
+            "title": "Weeks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "runs",
+          "runs_ok",
+          "last_failed_run_at",
+          "meetings_read",
+          "meetings_failed",
+          "meetings_skipped",
+          "emails_drafted",
+          "slack_drafted",
+          "slack_posted",
+          "questions_asked",
+          "questions_answered",
+          "tokens_per_meeting",
+          "mode",
+          "weeks"
+        ],
+        "title": "ImpactSystem",
+        "description": "What the app did, and how well it ran, in the period."
+      },
+      "ImpactSystemWeek": {
+        "properties": {
+          "week_start": {
+            "type": "string",
+            "format": "date",
+            "title": "Week Start"
+          },
+          "read": {
+            "type": "integer",
+            "title": "Read"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_start",
+          "read",
+          "failed",
+          "skipped"
+        ],
+        "title": "ImpactSystemWeek"
       },
       "ImpactTargets": {
         "properties": {

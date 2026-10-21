@@ -14,13 +14,16 @@ from sqlalchemy.orm import Session
 
 from bide_followup import catalog, clock, runtime_settings
 from bide_followup.catalog import BIDE_WIDE
-from bide_followup.models import ActionItem, AuditLog, Meeting, User
+from bide_followup.integrations import llm
+from bide_followup.models import ActionItem, AuditLog, Meeting, Run, User
 from bide_followup.schemas.api import (
     ImpactActions,
     ImpactDrafts,
     ImpactHotel,
     ImpactOut,
     ImpactOwner,
+    ImpactSystem,
+    ImpactSystemWeek,
     ImpactTargets,
     ImpactWeek,
 )
@@ -72,6 +75,54 @@ def _action_state(item: ActionItem, today: date) -> str | None:
 
 def _minutes(deltas: list[timedelta]) -> float | None:
     return round(mean(d.total_seconds() for d in deltas) / 60, 1) if deltas else None
+
+
+def _system(session: Session, meetings: list[Meeting], start: datetime, first_week: date, weeks: int, prop):
+    """The work the app did and how reliably: runs, meetings read, drafts written, questions, Claude usage."""
+    runs = session.scalars(select(Run).where(Run.started_at >= start)).all()
+    failed_runs = [r.started_at for r in runs if r.error]
+    skipped = [
+        m
+        for m in session.scalars(select(Meeting).where(Meeting.started_at >= start, Meeting.status == "skipped"))
+        if prop is None or prop in _hotels(m)
+    ]
+    read = [m for m in meetings if m.status in ("done", "partial")]
+    drafts = [o for m in meetings for o in m.outputs if o.type != "run_summary" and o.status != "discarded"]
+    slack = [o for o in drafts if o.type in ("slack_dm", "slack_digest")]
+    questions = [q for m in meetings for q in m.questions]
+    tokens = [m.input_tokens + m.output_tokens for m in read if m.input_tokens or m.output_tokens]
+
+    def week_of(m: Meeting) -> date:
+        day = _local(m.started_at)
+        return day - timedelta(days=day.weekday())
+
+    series = []
+    for i in range(weeks):
+        week = first_week + timedelta(weeks=i)
+        series.append(
+            ImpactSystemWeek(
+                week_start=week,
+                read=sum(week_of(m) == week for m in read),
+                failed=sum(week_of(m) == week and m.status == "failed" for m in meetings),
+                skipped=sum(week_of(m) == week for m in skipped),
+            )
+        )
+    return ImpactSystem(
+        runs=len(runs),
+        runs_ok=len(runs) - len(failed_runs),
+        last_failed_run_at=max(failed_runs, default=None),
+        meetings_read=len(read),
+        meetings_failed=sum(m.status == "failed" for m in meetings),
+        meetings_skipped=len(skipped),
+        emails_drafted=sum(o.type == "email_draft" for o in drafts),
+        slack_drafted=len(slack),
+        slack_posted=sum(o.status == "posted" for o in slack),
+        questions_asked=len(questions),
+        questions_answered=sum(q.answered_at is not None for q in questions),
+        tokens_per_meeting=round(mean(tokens)) if tokens else None,
+        mode="routine" if llm.routine(session) else "api",
+        weeks=series,
+    )
 
 
 def compute(session: Session, weeks: int = 8, prop: str | None = None) -> ImpactOut:
@@ -210,4 +261,5 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
         targets=ImpactTargets(**catalog.targets(session)),
         owner_name=catalog.owner_name(session),
         hotels=hotels,
+        system=_system(session, meetings, start, first_week, weeks, prop),
     )

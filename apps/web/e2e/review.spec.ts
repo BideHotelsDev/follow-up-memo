@@ -131,7 +131,7 @@ test("Tasks and meetings filter by employee", async ({ page }) => {
   await expect(items.first()).toBeVisible()
   const everyone = await items.count()
   await page.getByRole("combobox", { name: "Employee" }).click()
-  await page.getByRole("option", { name: "Russell’s meetings" }).click()
+  await page.getByRole("option", { name: "Russell" }).click()
   await expect(items).not.toHaveCount(everyone)
   await expect(page.getByRole("link", { name: /Housekeeping sync/ }).first()).toBeVisible()
   await expect(page.getByRole("combobox", { name: "Viewing as" })).toHaveCount(0)
@@ -163,6 +163,9 @@ test("David manages meeting categories and filters by them", async ({ page }) =>
   await expect(page.getByRole("switch", { name: `${name} is sensitive` })).toBeChecked()
   await page.reload()
   await expect(page.getByLabel(`What ${name} covers`)).toHaveValue("Contracts, leases and disputes")
+  // Switch it off again so test runs don't fill the pickers.
+  await page.getByRole("switch", { name: `${name} in use` }).click()
+  await expect(page.getByRole("switch", { name: `${name} in use` })).not.toBeChecked()
 
   await page.goto("/meetings")
   await page.getByRole("combobox", { name: "Category" }).click()

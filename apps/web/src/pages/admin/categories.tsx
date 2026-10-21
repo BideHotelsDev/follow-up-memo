@@ -42,7 +42,8 @@ function Row({
   return (
     <li className="grid gap-2 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <CategoryTag name={category.name} className={cn(!category.is_active && "opacity-50")} />
+        <CategoryTag name={category.name} className={cn(!category.is_active && "border-dashed")} />
+        {!category.is_active ? <span className="text-xs text-muted-foreground">Switched off</span> : null}
         <Input
           value={name}
           aria-label={`Name of ${category.name}`}

@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from sqlalchemy import select
 
-from bide_followup.models import ActionItem, Meeting, Output, User
+from bide_followup.models import ActionItem, Meeting, Output, Run, User
 from tests.conftest import NOW
 
 LONDON = ZoneInfo("Europe/London")
@@ -71,6 +71,13 @@ def history(db):
         meeting("Broken", NOW - timedelta(days=1), [], status="failed")
         meeting("Internal", NOW - timedelta(days=1), ["The View"])
         meeting("Skipped", NOW - timedelta(days=1), ["The View"], status="skipped")
+        s.add_all(
+            [
+                Run(started_at=NOW - timedelta(days=3), processed=2),
+                Run(started_at=NOW - timedelta(days=1), error="Google disconnected"),
+                Run(started_at=NOW - timedelta(days=60)),  # before the period
+            ]
+        )
         s.commit()
 
 
@@ -90,6 +97,17 @@ def test_impact_numbers(sign_in, history):
     hotels = {h["name"]: h for h in data["hotels"]}
     assert hotels["The View"]["followed_up_rate"] == 50 and hotels["The View"]["on_time_rate"] == 50
     assert hotels["Bide-wide"]["meetings"] == 1 and hotels["Bide-wide"]["followed_up_rate"] == 0
+
+    system = data["system"]
+    assert (system["runs"], system["runs_ok"]) == (2, 1) and system["last_failed_run_at"]
+    assert (system["meetings_read"], system["meetings_failed"], system["meetings_skipped"]) == (4, 1, 1)
+    assert (system["emails_drafted"], system["slack_drafted"], system["slack_posted"]) == (1, 2, 1)
+    assert [(w["read"], w["failed"], w["skipped"]) for w in system["weeks"]] == [
+        (0, 0, 0),
+        (2, 0, 0),
+        (1, 0, 0),
+        (1, 1, 1),
+    ]
 
 
 def test_hotel_filter_and_reassignments_and_edits(sign_in, history, db, slack_bot):
