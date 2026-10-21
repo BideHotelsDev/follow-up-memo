@@ -34,6 +34,8 @@ test("every page loads, fits the screen and passes axe", async ({ page }) => {
     ["/slack", "Slack drafts"],
     ["/tasks", "Tasks"],
     ["/how", "How it works"],
+    ["/admin/categories", "Admin"],
+    ["/admin/channels", "Admin"],
   ] as const) {
     await page.goto(path)
     await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible()
@@ -121,4 +123,26 @@ test("A task's due date changes from its drawer", async ({ page }) => {
   await expect(page.getByRole("dialog").getByText("Open", { exact: true })).toBeVisible()
   await page.keyboard.press("Escape")
   await expect(page.getByText("Fri 3 Jan", { exact: true })).toBeVisible()
+})
+
+test("David manages meeting categories and filters by them", async ({ page }) => {
+  await signIn(page, DAVID)
+  await page.goto("/")
+  await page.getByRole("link", { name: "Admin" }).first().click()
+  await page.getByRole("link", { name: "Categories" }).click()
+  const name = `Legal ${Date.now() % 100000}`
+  await page.getByLabel("New category").fill(name)
+  await page.getByRole("button", { name: "Add" }).click()
+  await page.getByLabel(`What ${name} covers`).fill("Contracts, leases and disputes")
+  await page.getByLabel(`What ${name} covers`).blur()
+  await page.getByRole("switch", { name: `${name} is sensitive` }).click()
+  await expect(page.getByRole("switch", { name: `${name} is sensitive` })).toBeChecked()
+  await page.reload()
+  await expect(page.getByLabel(`What ${name} covers`)).toHaveValue("Contracts, leases and disputes")
+
+  await page.goto("/meetings")
+  await page.getByRole("combobox", { name: "Category" }).click()
+  await page.getByRole("option", { name: "Revenue" }).click()
+  await expect(page.getByRole("link", { name: /Weekly revenue/ }).first()).toBeVisible()
+  await expect(page.getByRole("link", { name: /Housekeeping sync/ })).toHaveCount(0)
 })

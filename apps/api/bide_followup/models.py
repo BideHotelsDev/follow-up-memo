@@ -127,12 +127,12 @@ class Setting(Timestamped, Base):
 
 
 class ChannelMap(Timestamped, Base):
-    """Where a meeting's digest goes: by topic (revenue → #revenue) or property (The View → #the-view)."""
+    """Where a meeting's digest goes: by category (Revenue → #revenue) or property (The View → #the-view)."""
 
     __tablename__ = "channel_map"
-    __table_args__ = (CheckConstraint("topic IS NOT NULL OR property IS NOT NULL", name="topic_or_property"),)
+    __table_args__ = (CheckConstraint("category IS NOT NULL OR property IS NOT NULL", name="category_or_property"),)
 
-    topic: Mapped[str | None] = mapped_column(String(64))
+    category: Mapped[str | None] = mapped_column(String(80))
     property: Mapped[str | None] = mapped_column(String(64))
     slack_channel_id: Mapped[str] = mapped_column(String(32))
     slack_channel_name: Mapped[str | None] = mapped_column(String(80))
@@ -174,6 +174,8 @@ class Meeting(Timestamped, Base):
     started_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     ended_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
     properties: Mapped[list[str]] = mapped_column(JsonType, default=list)
+    # The category Claude put it in (Admin → Categories), by name; null when none fits.
+    category: Mapped[str | None] = mapped_column(String(80))
     is_sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
     status: Mapped[str] = mapped_column(String(16), default="queued")
     skip_reason: Mapped[str | None] = mapped_column(String(300))
@@ -374,4 +376,18 @@ class System(Timestamped, Base):
     __tablename__ = "systems"
 
     name: Mapped[str] = mapped_column(String(80), unique=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Category(Timestamped, Base):
+    """A kind of meeting (Revenue, Operations…), set in Admin → Categories. Claude puts each meeting in one, using the
+    description as its guide; the category picks the digest channel, and a sensitive one keeps its meetings private."""
+
+    __tablename__ = "categories"
+
+    name: Mapped[str] = mapped_column(String(80), unique=True)
+    description: Mapped[str | None] = mapped_column(String(300))
+    is_sensitive: Mapped[bool] = mapped_column(Boolean, default=False)
+    color: Mapped[int] = mapped_column(Integer, default=0)
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

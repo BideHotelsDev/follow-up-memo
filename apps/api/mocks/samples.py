@@ -33,6 +33,7 @@ Priya to send the comparison report for Highland short stays.
             "meeting": {
                 "title": "Weekly revenue",
                 "purpose": "Review October pace for The View and The Hearth with PriceLabs.",
+                "category": "Revenue",
                 "properties": ["The View", "The Hearth"],
                 "is_sensitive": False,
                 "sensitive_reason": None,
@@ -89,6 +90,7 @@ David will ask the laundry about a second delivery day.
             "meeting": {
                 "title": "Housekeeping sync",
                 "purpose": "Go through linen stock and the Operto cleaning schedule for The Villa.",
+                "category": "Operations",
                 "properties": ["The Villa"],
                 "is_sensitive": False,
                 "sensitive_reason": None,

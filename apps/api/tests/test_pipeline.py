@@ -22,7 +22,7 @@ def test_run_extracts_each_new_note(db, mocks, connected):
     found = meetings(db)
     revenue = found["Weekly revenue"]
     assert revenue.status == "done" and revenue.calendar_event_id == "event-doc-revenue-weekly"
-    assert revenue.properties == ["The View", "The Hearth"] and revenue.prompt_version == "extract_v2"
+    assert revenue.properties == ["The View", "The Hearth"] and revenue.prompt_version == "extract_v3"
     assert revenue.input_tokens > 0 and revenue.raw_text and revenue.raw_text_expires_at
     # Attendees come from the invite (the meeting room left out); internal by domain or the people list.
     assert sorted((a.name, a.is_internal) for a in revenue.attendees) == [

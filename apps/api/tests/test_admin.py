@@ -29,7 +29,7 @@ def test_settings(sign_in):
 
 def test_channels_and_skip_rules(sign_in):
     client = sign_in("kyle@bidehotels.com")
-    resp = client.put("/api/admin/channels", json=[{"topic": "revenue", "slack_channel_id": "C1"}])
+    resp = client.put("/api/admin/channels", json=[{"category": "Revenue", "slack_channel_id": "C1"}])
     assert len(resp.json()) == 1
     assert client.put("/api/admin/channels", json=[{"slack_channel_id": "C1"}]).status_code == 422
     rules = [{"type": "title_keyword", "value": "1:1"}, {"type": "title_keyword", "value": "1:1 "}]

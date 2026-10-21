@@ -11,10 +11,11 @@ import { useApp } from "@/hooks/use-app"
 import { api, HttpError, type ChannelMapIn } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
-const TOPIC = "topic"
+const CATEGORY = "category:"
+const PROPERTY = "property:"
 
 function Editor({ initial }: { initial: ChannelMapIn[] }) {
-  const { properties } = useApp()
+  const { properties, categories } = useApp()
   const queryClient = useQueryClient()
   const [rows, setRows] = useState<ChannelMapIn[]>(initial)
   const save = useMutation({
@@ -34,33 +35,41 @@ function Editor({ initial }: { initial: ChannelMapIn[] }) {
         {rows.map((row, i) => (
           <div key={i} className="grid items-center gap-2 p-4 sm:grid-cols-[10rem_1fr_1fr_1fr_auto]">
             <Select
-              value={row.property ? row.property : TOPIC}
+              value={row.category ? CATEGORY + row.category : row.property ? PROPERTY + row.property : undefined}
               onValueChange={(v) =>
-                set(i, v === TOPIC ? { property: null, topic: row.topic ?? "" } : { property: v, topic: null })
+                set(
+                  i,
+                  v.startsWith(CATEGORY)
+                    ? { category: v.slice(CATEGORY.length), property: null }
+                    : { property: v.slice(PROPERTY.length), category: null },
+                )
               }
             >
               <SelectTrigger className="w-full" aria-label="Matches">
-                <SelectValue />
+                <SelectValue placeholder="Choose…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={TOPIC}>A topic</SelectItem>
+                {categories
+                  .filter((c) => c.is_active || c.name === row.category)
+                  .map(({ name }) => (
+                    <SelectItem key={CATEGORY + name} value={CATEGORY + name}>
+                      {name}
+                    </SelectItem>
+                  ))}
                 {properties.map(({ name: p }) => (
-                  <SelectItem key={p} value={p}>
+                  <SelectItem key={PROPERTY + p} value={PROPERTY + p}>
                     {p}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {row.property ? (
-              <span className="text-sm text-muted-foreground">Meetings about {row.property}</span>
-            ) : (
-              <Input
-                placeholder="Topic word, e.g. revenue"
-                value={row.topic ?? ""}
-                onChange={(e) => set(i, { topic: e.target.value })}
-                aria-label="Topic"
-              />
-            )}
+            <span className="text-sm text-muted-foreground">
+              {row.category
+                ? `${row.category} meetings`
+                : row.property
+                  ? `Meetings about ${row.property}`
+                  : "A category or a property"}
+            </span>
             <Input
               placeholder="#channel name"
               value={row.slack_channel_name ?? ""}
@@ -92,21 +101,22 @@ function Editor({ initial }: { initial: ChannelMapIn[] }) {
         <Button
           variant="outline"
           onClick={() =>
-            setRows((r) => [...r, { topic: "", property: null, slack_channel_id: "", slack_channel_name: "" }])
+            setRows((r) => [...r, { category: null, property: null, slack_channel_id: "", slack_channel_name: "" }])
           }
         >
           <Plus className="size-4" /> Add channel
         </Button>
         <Button
           onClick={() => save.mutate()}
-          disabled={save.isPending || rows.some((r) => !r.slack_channel_id || (!r.topic && !r.property))}
+          disabled={save.isPending || rows.some((r) => !r.slack_channel_id || (!r.category && !r.property))}
         >
           Save
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">
-        A meeting’s digest goes to the first topic named in its title or purpose, otherwise to its property’s channel.
-        The channel ID is in Slack under the channel’s name → About. For a private channel, invite the bot first.
+        A meeting’s digest goes to its category’s channel, otherwise to its first property’s. Categories are set in
+        Admin → Categories. The channel ID is in Slack under the channel’s name → About. For a private channel, invite
+        the bot first.
       </p>
     </div>
   )

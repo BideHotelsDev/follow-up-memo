@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from bide_followup import runtime_settings
-from bide_followup.models import Property, System, User
+from bide_followup.models import Category, Property, System, User
 
 BIDE_WIDE = "Bide-wide"  # meetings tagged with no property
 
@@ -19,6 +19,21 @@ def properties(session: Session, active_only: bool = True) -> list[Property]:
 
 def property_names(session: Session) -> list[str]:
     return [p.name for p in properties(session)]
+
+
+def categories(session: Session, active_only: bool = True) -> list[Category]:
+    query = select(Category).order_by(Category.sort_order, Category.name)
+    if active_only:
+        query = query.where(Category.is_active)
+    return list(session.scalars(query))
+
+
+def category_names(session: Session) -> list[str]:
+    return [c.name for c in categories(session)]
+
+
+def sensitive_categories(session: Session) -> set[str]:
+    return {c.name for c in categories(session, active_only=False) if c.is_sensitive}
 
 
 def system_names(session: Session) -> list[str]:

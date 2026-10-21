@@ -22,6 +22,8 @@ export type AppSettings = Schemas["AppOut"]
 export type Property = Schemas["PropertyOut"]
 export type PropertyIn = Schemas["PropertyIn"]
 export type System = Schemas["SystemOut"]
+export type Category = Schemas["CategoryOut"]
+export type CategoryIn = Schemas["CategoryIn"]
 export type Settings = Schemas["SettingsOut"]
 export type SettingsIn = Schemas["SettingsIn"]
 export type ChannelMap = Schemas["ChannelMapOut"]
@@ -92,7 +94,7 @@ export const api = {
   people: () => request<Person[]>("GET", "/people"),
   impact: (params: { property?: string | null; weeks?: string }) => request<Impact>("GET", `/impact${qs(params)}`),
   today: (scope: Scope) => request<Today>("GET", `/today${qs(scope)}`),
-  meetings: (params: Scope & { q?: string; person?: string }) =>
+  meetings: (params: Scope & { q?: string; person?: string; category?: string }) =>
     request<MeetingSummary[]>("GET", `/meetings${qs(params)}`),
   meeting: (id: string) => request<Meeting>("GET", `/meetings/${id}`),
   reprocess: (id: string) => request<Meeting>("POST", `/meetings/${id}/reprocess`),
@@ -102,7 +104,8 @@ export const api = {
   approveAll: (meetingId?: string) =>
     request<Output[]>("POST", "/outputs/approve-all", { meeting_id: meetingId ?? null }),
   discard: (id: string) => request<Output>("POST", `/outputs/${id}/discard`),
-  tasks: (params: Scope & { owner?: string; q?: string }) => request<Task[]>("GET", `/tasks${qs(params)}`),
+  tasks: (params: Scope & { owner?: string; q?: string; category?: string }) =>
+    request<Task[]>("GET", `/tasks${qs(params)}`),
   updateTask: (id: string, body: TaskIn) => request<Task>("PATCH", `/tasks/${id}`, body),
   answer: (id: string, body: AnswerIn) => request<Question>("POST", `/questions/${id}/answer`, body),
   reopen: (id: string) => request<Question>("POST", `/questions/${id}/reopen`),
@@ -122,6 +125,9 @@ export const api = {
   adminProperties: () => request<Property[]>("GET", "/admin/properties"),
   addProperty: (body: PropertyIn) => request<Property>("POST", "/admin/properties", body),
   updateProperty: (id: string, body: PropertyIn) => request<Property>("PUT", `/admin/properties/${id}`, body),
+  adminCategories: () => request<Category[]>("GET", "/admin/categories"),
+  addCategory: (body: CategoryIn) => request<Category>("POST", "/admin/categories", body),
+  updateCategory: (id: string, body: CategoryIn) => request<Category>("PUT", `/admin/categories/${id}`, body),
   adminSystems: () => request<System[]>("GET", "/admin/systems"),
   addSystem: (body: PropertyIn) => request<System>("POST", "/admin/systems", body),
   updateSystem: (id: string, body: PropertyIn) => request<System>("PUT", `/admin/systems/${id}`, body),

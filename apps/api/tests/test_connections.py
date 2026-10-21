@@ -39,9 +39,11 @@ def connect_google(client, monkeypatch, body_extra: dict | None = None):
     )
 
 
-def test_only_admin_can_connect(sign_in):
-    client = sign_in("david@liddellpropertyinvestments.com")
+def test_members_cannot_connect(sign_in):
+    client = sign_in("sam@bidehotels.com")
     assert client.get("/api/auth/google/connect", follow_redirects=False).status_code == 403
+    david = sign_in("david@liddellpropertyinvestments.com")
+    assert david.get("/api/auth/google/connect", follow_redirects=False).status_code == 307
 
 
 def test_google_connect_stores_encrypted_tokens(sign_in, db, monkeypatch):

@@ -67,7 +67,7 @@ def _same_owner(expected: str, actual: str) -> bool:
 
 
 def session_factory():
-    """The Bide context the prompt carries: the seeded people (with the demo team) and channel topics."""
+    """The Bide context the prompt carries: the seeded people (with the demo team) and categories."""
     engine = create_engine("sqlite://", poolclass=StaticPool)
     Base.metadata.create_all(engine)
     factory = sessionmaker(engine, expire_on_commit=False)

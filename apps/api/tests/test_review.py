@@ -13,7 +13,7 @@ def processed(db, mocks, connected, slack_bot):
     with db() as s:
         s.add_all(
             [
-                ChannelMap(topic="revenue", slack_channel_id="C0REVENUE", slack_channel_name="revenue"),
+                ChannelMap(category="Revenue", slack_channel_id="C0REVENUE", slack_channel_name="revenue"),
                 ChannelMap(property="The Villa", slack_channel_id="C0VILLA", slack_channel_name="the-villa"),
             ]
         )

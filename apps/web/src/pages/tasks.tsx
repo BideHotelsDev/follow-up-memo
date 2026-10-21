@@ -27,6 +27,7 @@ const BUCKETS: [Task["bucket"], string][] = [
   ["done", "Done"],
 ]
 const NEEDS_OWNER = "needs_david"
+const ANY = "any"
 
 function ownerLabel(t: Task, ownerName: string) {
   if (t.owner) return t.owner.name.split(" ")[0]
@@ -179,10 +180,17 @@ export default function TasksPage() {
   const { scope } = useScope()
   const [owner, setOwner] = useState("all")
   const [q, setQ] = useState("")
+  const [category, setCategory] = useState(ANY)
   const [openId, setOpenId] = useState<string | null>(null)
   const { data } = useQuery({
-    queryKey: ["tasks", scope, owner, q],
-    queryFn: () => api.tasks({ ...scope, owner: owner === "all" ? undefined : owner, q }),
+    queryKey: ["tasks", scope, owner, q, category],
+    queryFn: () =>
+      api.tasks({
+        ...scope,
+        owner: owner === "all" ? undefined : owner,
+        q,
+        category: category === ANY ? undefined : category,
+      }),
   })
   const chips: [string, string][] = [
     ["all", "Everyone"],
@@ -204,6 +212,21 @@ export default function TasksPage() {
           className="max-w-xs bg-card"
           aria-label="Search tasks"
         />
+        {canEdit && app.categories.length ? (
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger aria-label="Category" className="w-48 bg-card">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ANY}>Every category</SelectItem>
+              {app.categories.map((c) => (
+                <SelectItem key={c.id} value={c.name}>
+                  {c.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null}
         {canEdit ? (
           <div className="flex flex-wrap gap-2" role="group" aria-label="Owner">
             {chips.map(([value, label]) => (

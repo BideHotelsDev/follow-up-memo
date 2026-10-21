@@ -5,7 +5,7 @@ import { Link, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
 import { Empty, Loading, PageHead, surface } from "@/components/page"
-import { HotelTags, MeetingStatus } from "@/components/tags"
+import { CategoryTag, HotelTags, MeetingStatus } from "@/components/tags"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,6 +85,7 @@ function Detail({ meeting }: { meeting: Meeting }) {
       <div className="grid gap-3 border-b p-5 md:p-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <HotelTags properties={meeting.properties} />
+          <CategoryTag name={meeting.category} />
           <MeetingStatus status={meeting.status} />
           {meeting.is_sensitive ? (
             <span className="text-sm text-muted-foreground">Sensitive: no team messages</span>
@@ -257,6 +258,7 @@ function Item({ m, selected }: { m: MeetingSummary; selected: boolean }) {
       </span>
       <span className="flex flex-wrap items-center gap-2">
         <HotelTags properties={m.properties} />
+        <CategoryTag name={m.category} />
         <MeetingStatus status={m.status} />
       </span>
     </Link>
@@ -264,16 +266,25 @@ function Item({ m, selected }: { m: MeetingSummary; selected: boolean }) {
 }
 
 const EVERYONE = "everyone"
+const ANY = "any"
 
 export default function MeetingsPage() {
   const { id } = useParams()
   const { scope } = useScope()
   const [q, setQ] = useState("")
   const [person, setPerson] = useState(EVERYONE)
+  const [category, setCategory] = useState(ANY)
+  const { categories } = useApp()
   const people = useQuery({ queryKey: ["people"], queryFn: api.people })
   const list = useQuery({
-    queryKey: ["meetings", scope.property, q, person],
-    queryFn: () => api.meetings({ property: scope.property, q, person: person === EVERYONE ? undefined : person }),
+    queryKey: ["meetings", scope.property, q, person, category],
+    queryFn: () =>
+      api.meetings({
+        property: scope.property,
+        q,
+        person: person === EVERYONE ? undefined : person,
+        category: category === ANY ? undefined : category,
+      }),
   })
   const selectedId = id ?? list.data?.[0]?.id
   const detail = useQuery({
@@ -309,6 +320,21 @@ export default function MeetingsPage() {
                 ))}
             </SelectContent>
           </Select>
+          {categories.length ? (
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger aria-label="Category" className="w-full bg-card">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>Every category</SelectItem>
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.name}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : null}
           <Input
             type="search"
             placeholder="Search meetings"

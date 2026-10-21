@@ -651,6 +651,124 @@
         }
       }
     },
+    "/api/admin/categories": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "List Categories",
+        "operationId": "list_categories_api_admin_categories_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Categories Api Admin Categories Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Add Category",
+        "operationId": "add_category_api_admin_categories_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/categories/{category_id}": {
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Update Category",
+        "description": "Rename, describe, mark sensitive, hide or reorder a category. A rename carries over to its meetings and\nchannel. Marking it sensitive applies to meetings processed from now on.",
+        "operationId": "update_category_api_admin_categories__category_id__put",
+        "parameters": [
+          {
+            "name": "category_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Category Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/systems": {
       "get": {
         "tags": [
@@ -912,7 +1030,7 @@
           "review"
         ],
         "summary": "List Meetings",
-        "description": "Meetings, newest first, with property, status, date, person and text filters (FR-31).",
+        "description": "Meetings, newest first, with property, category, status, date, person and text filters (FR-31).",
         "operationId": "list_meetings_api_meetings_get",
         "parameters": [
           {
@@ -929,6 +1047,22 @@
                 }
               ],
               "title": "Property"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
             }
           },
           {
@@ -1490,6 +1624,22 @@
             }
           },
           {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
             "name": "q",
             "in": "query",
             "required": false,
@@ -2024,6 +2174,13 @@
             "type": "array",
             "title": "Properties"
           },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryOut"
+            },
+            "type": "array",
+            "title": "Categories"
+          },
           "systems": {
             "items": {
               "type": "string"
@@ -2041,11 +2198,12 @@
           "owner_email",
           "people",
           "properties",
+          "categories",
           "systems",
           "pipeline"
         ],
         "title": "AppOut",
-        "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,\nand how the pipeline is set to run."
+        "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,\nand how the pipeline is set to run. The categories include those switched off, so past meetings keep their colour."
       },
       "ApproveAllIn": {
         "properties": {
@@ -2096,9 +2254,66 @@
         ],
         "title": "AttendeeOut"
       },
-      "ChannelMapIn": {
+      "CategoryIn": {
         "properties": {
-          "topic": {
+          "name": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active",
+            "default": true
+          },
+          "sort_order": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sort Order"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 300
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "is_sensitive": {
+            "type": "boolean",
+            "title": "Is Sensitive",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CategoryIn"
+      },
+      "CategoryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
             "anyOf": [
               {
                 "type": "string"
@@ -2107,7 +2322,49 @@
                 "type": "null"
               }
             ],
-            "title": "Topic"
+            "title": "Description"
+          },
+          "is_sensitive": {
+            "type": "boolean",
+            "title": "Is Sensitive"
+          },
+          "color": {
+            "type": "integer",
+            "title": "Color"
+          },
+          "sort_order": {
+            "type": "integer",
+            "title": "Sort Order"
+          },
+          "is_active": {
+            "type": "boolean",
+            "title": "Is Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "is_sensitive",
+          "color",
+          "sort_order",
+          "is_active"
+        ],
+        "title": "CategoryOut"
+      },
+      "ChannelMapIn": {
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
           },
           "property": {
             "anyOf": [
@@ -2145,7 +2402,7 @@
       },
       "ChannelMapOut": {
         "properties": {
-          "topic": {
+          "category": {
             "anyOf": [
               {
                 "type": "string"
@@ -2154,7 +2411,7 @@
                 "type": "null"
               }
             ],
-            "title": "Topic"
+            "title": "Category"
           },
           "property": {
             "anyOf": [
@@ -2876,6 +3133,17 @@
             "type": "array",
             "title": "Properties"
           },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -3039,6 +3307,7 @@
           "started_at",
           "ended_at",
           "properties",
+          "category",
           "status",
           "skip_reason",
           "is_sensitive",
@@ -3092,6 +3361,17 @@
             },
             "type": "array",
             "title": "Properties"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
           }
         },
         "type": "object",
@@ -3099,7 +3379,8 @@
           "id",
           "title",
           "started_at",
-          "properties"
+          "properties",
+          "category"
         ],
         "title": "MeetingRef"
       },
@@ -3144,6 +3425,17 @@
             },
             "type": "array",
             "title": "Properties"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
           },
           "status": {
             "type": "string",
@@ -3197,6 +3489,7 @@
           "started_at",
           "ended_at",
           "properties",
+          "category",
           "status",
           "skip_reason",
           "is_sensitive",

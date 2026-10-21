@@ -82,7 +82,7 @@ Every 10 minutes the worker (`bide_followup.worker`) runs `pipeline/run.py`:
    15 minutes, become queued meetings. Title skip rules apply here.
 2. **Fetch**: the note as plain text and its Calendar event (by Gemini's attachment, else by title and time) for
    attendees. Attendee skip rules apply here.
-3. **Extract**: one Claude call with the prompt in `prompts/extract_v1.md`, the Bide context from Admin settings and
+3. **Extract**: one Claude call with the prompt in `prompts/extract_v3.md`, the Bide context from Admin settings and
    the schema in `schemas/extraction.py`. Problems (invalid JSON, quotes not in the notes, impossible dates, emails
    from nowhere) get one retry with the problems listed.
 4. **Ground** (`pipeline/validate.py`): ungrounded actions are dropped, unsupported dates and emails cleared, and

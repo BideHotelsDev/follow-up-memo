@@ -8,9 +8,17 @@ import type { AppSettings } from "@/lib/api"
 import { every, listOf, minutes, plural } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-type Info = AppSettings["pipeline"] & { owner: string; properties: number }
+type Info = AppSettings["pipeline"] & { owner: string; properties: number; categories: number }
 
-const steps = ({ owner, poll_interval_minutes, quiet_minutes, properties, channels, internal_domains }: Info) => [
+const steps = ({
+  owner,
+  poll_interval_minutes,
+  quiet_minutes,
+  properties,
+  categories,
+  channels,
+  internal_domains,
+}: Info) => [
   ["Gemini takes the notes.", "Nothing changes about how calls are run."],
   [
     `The app checks ${owner}’s Drive ${every(poll_interval_minutes)}.`,
@@ -18,7 +26,7 @@ const steps = ({ owner, poll_interval_minutes, quiet_minutes, properties, channe
   ],
   [
     "Claude reads the notes with the Bide context.",
-    `Who owns what, the ${plural(properties, "property", "properties")} and ${plural(channels, "Slack channel")}, and how ${owner}’s emails should sound.`,
+    `Who owns what, the ${plural(properties, "property", "properties")}, the ${plural(categories, "meeting category", "meeting categories")} and ${plural(channels, "Slack channel")}, and how ${owner}’s emails should sound.`,
   ],
   [
     "The app checks Claude’s work.",
@@ -33,7 +41,7 @@ const steps = ({ owner, poll_interval_minutes, quiet_minutes, properties, channe
             "or",
           )})`
         : ""
-    }, Slack messages for the team, and tasks, each tagged with its property.`,
+    }, Slack messages for the team, and tasks, each tagged with its property and category.`,
   ],
   [`${owner} gets one Slack message.`, "A summary with links to the drafts and anything that needs an answer."],
 ]
@@ -115,7 +123,12 @@ function Dictation({ words }: { words: string[] }) {
 
 export default function HowPage() {
   const app = useApp()
-  const info: Info = { ...app.pipeline, owner: app.owner_name, properties: app.properties.length }
+  const info: Info = {
+    ...app.pipeline,
+    owner: app.owner_name,
+    properties: app.properties.length,
+    categories: app.categories.filter((c) => c.is_active).length,
+  }
   const words = [...new Set([...app.people, ...app.properties.map((p) => p.name), ...app.systems, "Bide"])]
   return (
     <>

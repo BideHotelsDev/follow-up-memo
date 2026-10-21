@@ -7,6 +7,7 @@ const TABS: [string, string][] = [
   ["connections", "Connections"],
   ["people", "People"],
   ["properties", "Properties"],
+  ["categories", "Categories"],
   ["channels", "Channels"],
   ["skip-rules", "Skip rules"],
   ["settings", "Email and schedule"],

@@ -52,6 +52,10 @@ def _property_filter(rows: list[Meeting], prop: str | None) -> list[Meeting]:
     return [m for m in rows if prop in (m.properties or [])]
 
 
+def _category_filter(rows: list[Meeting], category: str | None) -> list[Meeting]:
+    return [m for m in rows if m.category == category] if category else rows
+
+
 def _meeting(session: Session, meeting_id: uuid.UUID) -> Meeting:
     meeting = session.get(Meeting, meeting_id)
     if meeting is None:
@@ -194,6 +198,7 @@ def list_meetings(
     session: SessionDep,
     user: CurrentUser,
     property: str | None = None,
+    category: str | None = None,
     status: MeetingStatus | None = None,
     from_: Annotated[date | None, Query(alias="from")] = None,
     to: date | None = None,
@@ -202,7 +207,7 @@ def list_meetings(
         uuid.UUID | None, Query(description="Meetings this person attended or got an action from")
     ] = None,
 ) -> list[MeetingSummaryOut]:
-    """Meetings, newest first, with property, status, date, person and text filters (FR-31)."""
+    """Meetings, newest first, with property, category, status, date, person and text filters (FR-31)."""
     views.require_reviewer(user)
     query = select(Meeting).order_by(Meeting.started_at.desc()).limit(300)
     if person:
@@ -220,7 +225,8 @@ def list_meetings(
         query = query.where(Meeting.started_at < _day_bounds(to)[1])
     if q:
         query = query.where(Meeting.title.ilike(f"%{q}%"))
-    return [views.meeting_summary(m) for m in _property_filter(session.scalars(query).all(), property)]
+    rows = _category_filter(_property_filter(session.scalars(query).all(), property), category)
+    return [views.meeting_summary(m) for m in rows]
 
 
 @router.get("/meetings/{meeting_id}")
@@ -403,6 +409,7 @@ def list_tasks(
     owner: str | None = Query(default=None, description="A person's id, 'needs_david' or 'external'"),
     bucket: Bucket | None = None,
     property: str | None = None,
+    category: str | None = None,
     q: str | None = None,
 ) -> list[TaskOut]:
     """Every action from every meeting (FR-34), filtered by owner. Members get only their own."""
@@ -420,7 +427,7 @@ def list_tasks(
         query = query.where(or_(ActionItem.description.ilike(f"%{q}%"), Meeting.title.ilike(f"%{q}%")))
     day = clock.today()
     rows = session.scalars(query.limit(1000)).all()
-    keep = {m.id for m in _property_filter([r.meeting for r in rows], property)}
+    keep = {m.id for m in _category_filter(_property_filter([r.meeting for r in rows], property), category)}
     out = [views.task_out(r, day) for r in rows if r.meeting_id in keep]
     return [t for t in out if bucket is None or t.bucket == bucket]
 

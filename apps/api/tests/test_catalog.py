@@ -113,3 +113,59 @@ def test_needs_label_and_targets_follow_settings(sign_in, db, mocks, connected, 
     targets = client.get("/api/impact").json()["targets"]
     assert targets["target_unedited_rate"] == 80 and targets["followup_within_hours"] == 48
     assert client.get("/api/impact").json()["owner_name"] == "Davie"
+
+
+def test_david_runs_admin_too(sign_in):
+    client = sign_in("david@liddellpropertyinvestments.com")
+    people = {p["name"]: p for p in client.get("/api/admin/people").json()}
+    assert client.put("/api/admin/settings", json={"email_signature": "D"}).status_code == 200
+    resp = client.put(f"/api/admin/people/{people['David']['id']}", json={**people["David"], "role": "member"})
+    assert resp.json()["code"] == "own_access"
+
+
+def test_categories_are_edited_in_admin(sign_in, db):
+    client = sign_in("david@liddellpropertyinvestments.com")
+    legal = client.post(
+        "/api/admin/categories",
+        json={"name": " Legal ", "description": "Contracts and  disputes", "is_sensitive": True},
+    ).json()
+    assert (legal["name"], legal["description"], legal["color"], legal["sort_order"]) == (
+        "Legal",
+        "Contracts and disputes",
+        2,
+        2,
+    )
+    assert client.post("/api/admin/categories", json={"name": "legal"}).json()["code"] == "name_taken"
+    with db() as s:
+        s.add(Meeting(drive_file_id="x", title="Lease", category="Legal"))
+        s.add(ChannelMap(category="Legal", slack_channel_id="C0LEGAL"))
+        s.commit()
+    client.put(f"/api/admin/categories/{legal['id']}", json={"name": "Contracts", "is_sensitive": True})
+    with db() as s:
+        assert s.scalar(select(Meeting)).category == "Contracts"
+        assert s.scalar(select(ChannelMap)).category == "Contracts"
+    assert [m["category"] for m in client.get("/api/meetings", params={"category": "Contracts"}).json()] == [
+        "Contracts"
+    ]
+    assert client.get("/api/meetings", params={"category": "Revenue"}).json() == []
+    assert "Contracts" in [c["name"] for c in client.get("/api/app").json()["categories"]]
+    assert sign_in("sam@bidehotels.com").post("/api/admin/categories", json={"name": "X"}).status_code == 403
+
+
+def test_claude_sorts_meetings_into_categories(db, mocks, connected, sign_in):
+    client = sign_in("kyle@bidehotels.com")
+    ops = next(c for c in client.get("/api/admin/categories").json() if c["name"] == "Operations")
+    client.put(
+        f"/api/admin/categories/{ops['id']}",
+        json={"name": "Operations", "description": "Housekeeping and cleaning", "is_sensitive": True},
+    )
+    with db() as s:
+        run.run(s)
+        found = {m.title: m for m in s.scalars(select(Meeting))}
+    body = mocks.state["last_request"]["body"]
+    category = body["output_config"]["format"]["schema"]["properties"]["meeting"]["properties"]["category"]
+    assert category["anyOf"][0]["enum"] == ["Revenue", "Operations"]
+    assert "- Operations: Housekeeping and cleaning" in body["system"]
+    assert found["Weekly revenue"].category == "Revenue" and not found["Weekly revenue"].is_sensitive
+    # Claude didn't call the housekeeping meeting sensitive; its category is.
+    assert found["Housekeeping sync"].category == "Operations" and found["Housekeeping sync"].is_sensitive

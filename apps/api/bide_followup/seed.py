@@ -1,4 +1,5 @@
-"""Seed data. `python -m bide_followup.seed` makes the owner and Admin (safe to re-run). `--demo` adds Russell and
+"""Seed data. `python -m bide_followup.seed` makes the owner, Admin and a starter list of meeting categories (safe to
+re-run). `--demo` adds Russell and
 Sam with sample addresses, a channel map and skip rules for a local demo; `--mock` also connects a pretend Google
 account and Slack bot for the mock services, and eight weeks of made-up history for the Impact page. Never run
 --demo or --mock against production."""
@@ -13,11 +14,20 @@ from sqlalchemy.orm import Session
 from bide_followup import clock
 from bide_followup.db import SessionLocal
 from bide_followup.integrations import google_oauth, slack
-from bide_followup.models import ActionItem, ChannelMap, Meeting, Output, SkipRule, User
+from bide_followup.models import ActionItem, Category, ChannelMap, Meeting, Output, SkipRule, User
 
 PEOPLE = [
     {"email": "david@liddellpropertyinvestments.com", "name": "David", "role": "owner", "ownership_areas": []},
     {"email": "kyle@bidehotels.com", "name": "Kyle", "role": "admin", "ownership_areas": []},
+]
+# A starting point for Admin → Categories: Bide renames, describes and adds to these.
+CATEGORIES = [
+    ("Revenue", "Pricing, rates, occupancy, OTAs and PriceLabs", False),
+    ("Operations", "Housekeeping, cleaning schedules, maintenance, linen and suppliers", False),
+    ("Guest experience", "Guest messages, reviews, upsells and check-in", False),
+    ("Marketing", "Website, photography, listings and campaigns", False),
+    ("Finance", "Budgets, invoices, Xero and owner statements", False),
+    ("People", "Hiring, staff performance and HR", True),
 ]
 DEMO_PEOPLE = [
     {
@@ -34,8 +44,8 @@ DEMO_PEOPLE = [
     },
 ]
 DEMO_CHANNELS = [
-    {"topic": "revenue", "slack_channel_id": "C0REVENUE", "slack_channel_name": "revenue"},
-    {"topic": "operations", "slack_channel_id": "C0OPS", "slack_channel_name": "operations"},
+    {"category": "Revenue", "slack_channel_id": "C0REVENUE", "slack_channel_name": "revenue"},
+    {"category": "Operations", "slack_channel_id": "C0OPS", "slack_channel_name": "operations"},
     {"property": "The View", "slack_channel_id": "C0VIEW", "slack_channel_name": "the-view"},
     {"property": "The Hearth", "slack_channel_id": "C0HEARTH", "slack_channel_name": "the-hearth"},
     {"property": "The Villa", "slack_channel_id": "C0VILLA", "slack_channel_name": "the-villa"},
@@ -51,6 +61,12 @@ def _people(session: Session, specs: list[dict]) -> None:
 
 def base(session: Session) -> None:
     _people(session, PEOPLE)
+    # Categories are never deleted (only switched off), so an empty table means they were never set up.
+    if session.scalar(select(func.count()).select_from(Category)) == 0:
+        session.add_all(
+            Category(name=name, description=about, is_sensitive=sensitive, color=i % 6, sort_order=i)
+            for i, (name, about, sensitive) in enumerate(CATEGORIES)
+        )
     session.commit()
 
 
@@ -75,14 +91,14 @@ def mock_google(session: Session) -> None:
 
 
 HISTORY = [
-    ("Weekly revenue", ["The View", "The Hearth"]),
-    ("Housekeeping sync", ["The Villa"]),
-    ("Owners call", ["The Villa"]),
-    ("Opening snag list", ["The View"]),
-    ("Linen supply review", ["The View"]),
-    ("Morning huddle", []),
-    ("Website review", []),
-    ("Photography brief", ["The Hearth"]),
+    ("Weekly revenue", ["The View", "The Hearth"], "Revenue"),
+    ("Housekeeping sync", ["The Villa"], "Operations"),
+    ("Owners call", ["The Villa"], "Finance"),
+    ("Opening snag list", ["The View"], "Operations"),
+    ("Linen supply review", ["The View"], "Operations"),
+    ("Morning huddle", [], None),
+    ("Website review", [], "Marketing"),
+    ("Photography brief", ["The Hearth"], "Marketing"),
 ]
 TASKS = [
     "Send the rate sheet",
@@ -108,7 +124,7 @@ def mock_history(session: Session, weeks: int = 8) -> None:
             continue
         weeks_in = weeks - back // 7  # later weeks follow up more, as the habit forms
         for n in range(rng.randint(1, 3)):
-            title, props = rng.choice(HISTORY)
+            title, props, category = rng.choice(HISTORY)
             start = datetime.combine(day, time(9 + 2 * n, 0), tzinfo=clock.now().tzinfo)
             m = Meeting(
                 drive_file_id=f"history-{day}-{n}",
@@ -116,6 +132,7 @@ def mock_history(session: Session, weeks: int = 8) -> None:
                 started_at=start,
                 ended_at=start + timedelta(minutes=40),
                 properties=props,
+                category=category,
                 status="done" if rng.random() > 0.04 else "failed",
                 extraction={"notes_quality": "good"},
             )

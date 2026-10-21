@@ -13,11 +13,11 @@ from sqlalchemy.orm import Session
 
 from bide_followup import catalog, runtime_settings
 from bide_followup.integrations import llm
-from bide_followup.models import ChannelMap, User
+from bide_followup.models import User
 from bide_followup.pipeline import validate
 from bide_followup.schemas.extraction import Extraction, schema
 
-PROMPT_VERSION = "extract_v2"
+PROMPT_VERSION = "extract_v3"
 PROMPTS = Path(__file__).resolve().parent.parent / "prompts"
 
 
@@ -37,7 +37,7 @@ def system_prompt(session: Session) -> str:
     for p in people:
         areas = f"; owns {', '.join(p.ownership_areas)}" if p.ownership_areas else ""
         lines.append(f"- {p.name} ({p.email}), {p.role}{areas}")
-    topics = sorted({c.topic for c in session.scalars(select(ChannelMap)) if c.topic})
+    categories = [f"- {c.name}" + (f": {c.description}" if c.description else "") for c in catalog.categories(session)]
     names = catalog.property_names(session)
     where = runtime_settings.in_region(session)
     if len(names) > 1:
@@ -50,7 +50,7 @@ def system_prompt(session: Session) -> str:
         properties=listed,
         people="\n".join(lines) or "- (none listed)",
         domains=" or ".join(f"@{d}" for d in runtime_settings.domains(session)),
-        topics="\n".join(f"- {t}" for t in topics) or "- (none listed)",
+        categories="\n".join(categories) or "- (none listed: use null)",
         sensitive=_and(sensitive, "or") if sensitive else "anything the owner would not want shared with the team",
     )
 
@@ -93,7 +93,8 @@ def extract(
     messages = [{"role": "user", "content": user_message(title, meeting_day, attendees, notes)}]
     known_emails = validate.emails_in(notes) | {email for _, email in attendees}
     properties, systems = catalog.property_names(session), catalog.system_names(session)
-    answer_schema = schema(properties, systems)
+    categories = catalog.category_names(session)
+    answer_schema = schema(properties, systems, categories)
     tokens_in = tokens_out = 0
 
     for attempt in range(2):
@@ -104,7 +105,7 @@ def extract(
         tokens_out += completion.output_tokens
         extraction, problems = _parse(completion.text)
         if extraction is not None:
-            problems = validate.check(extraction, notes, known_emails, meeting_day, properties, systems)
+            problems = validate.check(extraction, notes, known_emails, meeting_day, properties, systems, categories)
         if not problems or (extraction is not None and attempt == 1):
             break
         # Append-only: the first answer stays in the conversation, followed by what was wrong with it.
@@ -119,7 +120,7 @@ def extract(
     if extraction is None:
         raise ExtractionFailed("; ".join(problems)[:1000])
     return Result(
-        grounded=validate.ground(extraction, notes, known_emails, meeting_day, properties, systems),
+        grounded=validate.ground(extraction, notes, known_emails, meeting_day, properties, systems, categories),
         input_tokens=tokens_in,
         output_tokens=tokens_out,
     )

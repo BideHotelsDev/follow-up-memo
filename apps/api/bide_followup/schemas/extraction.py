@@ -2,7 +2,7 @@
 
 The schema is written out by hand rather than generated from the Pydantic models, because structured outputs need
 every property required and additionalProperties false, which is easier to see and keep right in one place. The
-property and system lists come from Admin (catalog.py), so `schema()` builds it for the current ones.
+category, property and system lists come from Admin (catalog.py), so `schema()` builds it for the current ones.
 """
 
 from typing import Literal
@@ -26,13 +26,18 @@ def _names(names: list[str]) -> dict:
     return {"type": "string", "enum": list(names)} if names else {"type": "string"}
 
 
-def schema(properties: list[str], systems: list[str]) -> dict:
+def _one_of(names: list[str]) -> dict:
+    return {"anyOf": [{"type": "string", "enum": list(names)}, {"type": "null"}]} if names else _nullable("string")
+
+
+def schema(properties: list[str], systems: list[str], categories: list[str] | None = None) -> dict:
     return _object(
         {
             "meeting": _object(
                 {
                     "title": {"type": "string"},
                     "purpose": {"type": "string", "description": "One sentence."},
+                    "category": _one_of(categories or []),
                     "properties": {"type": "array", "items": _names(properties)},
                     "is_sensitive": {"type": "boolean"},
                     "sensitive_reason": _nullable("string"),
@@ -78,6 +83,7 @@ class _Strict(BaseModel):
 class MeetingInfo(_Strict):
     title: str
     purpose: str
+    category: str | None = None  # absent from extractions made before categories
     properties: list[str]
     is_sensitive: bool
     sensitive_reason: str | None

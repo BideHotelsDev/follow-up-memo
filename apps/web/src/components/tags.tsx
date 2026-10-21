@@ -33,6 +33,33 @@ export function HotelTag({ name, className }: { name: string; className?: string
   )
 }
 
+const RINGS = [
+  "border-tag-0/40 text-tag-0",
+  "border-tag-1/40 text-tag-1",
+  "border-tag-2/40 text-tag-2",
+  "border-tag-3/40 text-tag-3",
+  "border-tag-4/40 text-tag-4",
+  "border-tag-5/40 text-tag-5",
+]
+
+/** A meeting's category (Admin → Categories): outlined, so it reads apart from the property pills. */
+export function CategoryTag({ name, className }: { name?: string | null; className?: string }) {
+  const { categories } = useApp()
+  if (!name) return null
+  const slot = categories.find((c) => c.name === name)?.color
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap",
+        slot === undefined ? "border-border text-muted-foreground" : RINGS[slot % RINGS.length],
+        className,
+      )}
+    >
+      {name}
+    </span>
+  )
+}
+
 /** A meeting's property tags; a meeting with none is Bide-wide. */
 export function HotelTags({ properties }: { properties: string[] }) {
   const names = properties.length ? properties : [BIDE_WIDE]

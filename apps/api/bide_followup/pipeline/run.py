@@ -11,7 +11,7 @@ from datetime import timedelta
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from bide_followup import clock, runtime_settings
+from bide_followup import catalog, clock, runtime_settings
 from bide_followup.integrations import google_api, google_oauth, llm
 from bide_followup.models import ActionItem, Attendee, LlmJob, Meeting, Question, Run, SkipRule, User
 from bide_followup.pipeline import extract, outputs, summary
@@ -141,7 +141,9 @@ def process(session: Session, token: str, meeting: Meeting) -> None:
         meeting.questions.append(Question(text=text, kind=kind, action_item_id=action_id))
 
     meeting.properties = list(info.meeting.properties)
-    meeting.is_sensitive = info.meeting.is_sensitive
+    meeting.category = info.meeting.category
+    # A category marked sensitive in Admin keeps all its meetings private, whatever Claude made of them.
+    meeting.is_sensitive = info.meeting.is_sensitive or meeting.category in catalog.sensitive_categories(session)
     meeting.extraction = {**extract.summary(info), "dropped_actions": grounded.dropped}
     meeting.prompt_version = extract.PROMPT_VERSION
     meeting.input_tokens += result.input_tokens

@@ -22,7 +22,8 @@ GOOGLE_CONNECT_CALLBACK = "/api/auth/google/connect/callback"
 SLACK_INSTALL_CALLBACK = "/api/auth/slack/callback"
 DONE = "/admin/connections"
 
-Admin = Annotated[User, Depends(auth.require("admin"))]
+# David (owner) and Kyle (admin) both run Admin.
+Admin = Annotated[User, Depends(auth.require("owner", "admin"))]
 
 
 @router.get("/auth/google/connect", include_in_schema=False)

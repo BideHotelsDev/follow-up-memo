@@ -79,7 +79,7 @@ class ConnectionsOut(BaseModel):
 
 
 class ChannelMapIn(BaseModel):
-    topic: str | None = None
+    category: str | None = None
     property: str | None = None
     slack_channel_id: str = Field(min_length=1)
     slack_channel_name: str | None = None
@@ -185,6 +185,7 @@ class MeetingRef(BaseModel):
     title: str
     started_at: datetime | None
     properties: list[str]
+    category: str | None
 
 
 class TaskOut(BaseModel):
@@ -259,6 +260,7 @@ class MeetingSummaryOut(BaseModel):
     started_at: datetime | None
     ended_at: datetime | None
     properties: list[str]
+    category: str | None
     status: MeetingStatus
     skip_reason: str | None
     is_sensitive: bool
@@ -435,6 +437,21 @@ class PropertyIn(BaseModel):
         return " ".join(v.split())
 
 
+class CategoryOut(Orm):
+    id: uuid.UUID
+    name: str
+    description: str | None
+    is_sensitive: bool
+    color: int
+    sort_order: int
+    is_active: bool
+
+
+class CategoryIn(PropertyIn):
+    description: str | None = Field(default=None, max_length=300)
+    is_sensitive: bool = False
+
+
 class SystemOut(Orm):
     id: uuid.UUID
     name: str
@@ -461,11 +478,12 @@ class PipelineOut(BaseModel):
 
 class AppOut(BaseModel):
     """What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,
-    and how the pipeline is set to run."""
+    and how the pipeline is set to run. The categories include those switched off, so past meetings keep their colour."""
 
     owner_name: str
     owner_email: str | None
     people: list[str]
     properties: list[PropertyOut]
+    categories: list[CategoryOut]
     systems: list[str]
     pipeline: PipelineOut

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell"
 import { Button } from "@/components/ui/button"
 import { useMe } from "@/hooks/use-me"
 import { ScopeProvider } from "@/hooks/use-scope"
+import CategoriesPage from "@/pages/admin/categories"
 import ChannelsPage from "@/pages/admin/channels"
 import ConnectionsPage from "@/pages/admin/connections"
 import AdminLayout from "@/pages/admin/layout"
@@ -61,12 +62,13 @@ export default function App() {
               <Route path="slack" element={<SlackPage />} />
             </>
           ) : null}
-          {me.data.role === "admin" ? (
+          {reviewer ? (
             <Route path="admin" element={<AdminLayout />}>
               <Route index element={<Navigate to="connections" replace />} />
               <Route path="connections" element={<ConnectionsPage />} />
               <Route path="people" element={<PeoplePage />} />
               <Route path="properties" element={<PropertiesPage />} />
+              <Route path="categories" element={<CategoriesPage />} />
               <Route path="channels" element={<ChannelsPage />} />
               <Route path="skip-rules" element={<SkipRulesPage />} />
               <Route path="settings" element={<SettingsPage />} />

@@ -14,7 +14,7 @@ def channels(db):
     with db() as s:
         s.add_all(
             [
-                ChannelMap(topic="revenue", slack_channel_id="C0REVENUE"),
+                ChannelMap(category="Revenue", slack_channel_id="C0REVENUE"),
                 ChannelMap(property="The Villa", slack_channel_id="C0VILLA"),
             ]
         )

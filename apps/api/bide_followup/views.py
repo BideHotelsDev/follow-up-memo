@@ -64,7 +64,9 @@ def audit(session: Session, user: User, entity: str, entity_id: uuid.UUID, actio
 
 
 def meeting_ref(m: Meeting) -> MeetingRef:
-    return MeetingRef(id=m.id, title=m.title, started_at=m.started_at, properties=list(m.properties or []))
+    return MeetingRef(
+        id=m.id, title=m.title, started_at=m.started_at, properties=list(m.properties or []), category=m.category
+    )
 
 
 def task_out(item: ActionItem, today: date) -> TaskOut:
@@ -140,6 +142,7 @@ def meeting_summary(m: Meeting) -> MeetingSummaryOut:
         started_at=m.started_at,
         ended_at=m.ended_at,
         properties=list(m.properties or []),
+        category=m.category,
         status=m.status,
         skip_reason=m.skip_reason,
         is_sensitive=m.is_sensitive,

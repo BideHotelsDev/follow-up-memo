@@ -80,7 +80,7 @@ export function AppShell({ me }: { me: User }) {
         { to: "/tasks", label: "Tasks", count: counts?.tasks_open },
         { to: "/how", label: "How it works" },
       ]
-  if (me.role === "admin") tabs.push({ to: "/admin", label: "Admin" })
+  if (me.role !== "member") tabs.push({ to: "/admin", label: "Admin" })
 
   const run = today.data?.last_run
   return (

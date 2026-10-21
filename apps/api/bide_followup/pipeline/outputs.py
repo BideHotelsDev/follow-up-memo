@@ -125,11 +125,10 @@ def slack_dms(meeting: Meeting, david: User | None) -> list[dict]:
 
 
 def digest_channel(session: Session, meeting: Meeting) -> ChannelMap | None:
-    """The channel for a meeting's digest: a mapped topic named in its title or purpose, else its first property."""
+    """The channel for a meeting's digest: its category's channel, else its first property's."""
     rows = session.scalars(select(ChannelMap)).all()
-    text = f"{meeting.title} {(meeting.extraction or {}).get('meeting', {}).get('purpose', '')}".lower()
     for row in rows:
-        if row.topic and row.topic.lower() in text:
+        if meeting.category and row.category == meeting.category:
             return row
     for prop in meeting.properties:
         for row in rows:

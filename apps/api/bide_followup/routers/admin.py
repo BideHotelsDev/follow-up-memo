@@ -26,7 +26,8 @@ from bide_followup.schemas.api import (
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
-Admin = Annotated[User, Depends(auth.require("admin"))]
+# David (owner) and Kyle (admin) both run Admin.
+Admin = Annotated[User, Depends(auth.require("owner", "admin"))]
 
 
 @router.get("/settings")
@@ -66,8 +67,8 @@ def update_person(user_id: uuid.UUID, body: UserIn, session: SessionDep, admin: 
     user = session.get(User, user_id)
     if user is None:
         raise not_found("Person")
-    if user.id == admin.id and (body.role != "admin" or not body.is_active):
-        raise DomainError("own_access", "You can't remove your own Admin access")
+    if user.id == admin.id and (body.role != admin.role or not body.is_active):
+        raise DomainError("own_access", "You can't change your own role or switch yourself off")
     for key, value in body.model_dump().items():
         setattr(user, key, value)
     try:
@@ -86,8 +87,8 @@ def list_channels(session: SessionDep, _: Admin) -> list[ChannelMapOut]:
 @router.put("/channels")
 def replace_channels(body: list[ChannelMapIn], session: SessionDep, _: Admin) -> list[ChannelMapOut]:
     for row in body:
-        if not (row.topic or row.property):
-            raise DomainError("topic_or_property", "Each channel needs a topic or a property", 422)
+        if not (row.category or row.property):
+            raise DomainError("category_or_property", "Each channel needs a category or a property", 422)
     session.execute(delete(ChannelMap))
     rows = [ChannelMap(**row.model_dump()) for row in body]
     session.add_all(rows)

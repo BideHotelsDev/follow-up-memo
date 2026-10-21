@@ -7,6 +7,7 @@ const FALLBACK: AppSettings = {
   owner_email: null,
   people: [],
   properties: [],
+  categories: [],
   systems: [],
   pipeline: {
     poll_interval_minutes: 10,
@@ -21,7 +22,7 @@ const FALLBACK: AppSettings = {
   },
 }
 
-/** The owner's name, the properties, the systems and how the pipeline runs, as Bide set them in Admin. */
+/** The owner's name, the properties, the categories, the systems and how the pipeline runs, as Bide set them in Admin. */
 export function useApp(): AppSettings {
   const { data } = useQuery({ queryKey: ["app"], queryFn: api.app, staleTime: 5 * 60_000 })
   return data ?? FALLBACK

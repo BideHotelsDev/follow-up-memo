@@ -60,8 +60,12 @@ def check(
     meeting_day: date,
     properties: list[str] | None = None,
     systems: list[str] | None = None,
+    categories: list[str] | None = None,
 ) -> list[str]:
     problems = []
+    category = extraction.meeting.category
+    if categories is not None and category is not None and category not in categories:
+        problems.append(f"meeting.category {category!r} isn't one of the categories listed")
     if properties is not None:
         unknown = [p for p in extraction.meeting.properties if p not in properties]
         if unknown:
@@ -104,7 +108,10 @@ def ground(
     meeting_day: date,
     properties: list[str] | None = None,
     systems: list[str] | None = None,
+    categories: list[str] | None = None,
 ) -> Grounded:
+    if categories is not None and extraction.meeting.category not in categories:
+        extraction.meeting.category = None
     if properties is not None:
         extraction.meeting.properties = [p for p in extraction.meeting.properties if p in properties]
     if systems is not None:

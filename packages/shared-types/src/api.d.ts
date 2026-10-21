@@ -280,6 +280,45 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/categories": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Categories */
+        get: operations["list_categories_api_admin_categories_get"];
+        put?: never;
+        /** Add Category */
+        post: operations["add_category_api_admin_categories_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/categories/{category_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Update Category
+         * @description Rename, describe, mark sensitive, hide or reorder a category. A rename carries over to its meetings and
+         *     channel. Marking it sensitive applies to meetings processed from now on.
+         */
+        put: operations["update_category_api_admin_categories__category_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/systems": {
         parameters: {
             query?: never;
@@ -384,7 +423,7 @@ export interface paths {
         };
         /**
          * List Meetings
-         * @description Meetings, newest first, with property, status, date, person and text filters (FR-31).
+         * @description Meetings, newest first, with property, category, status, date, person and text filters (FR-31).
          */
         get: operations["list_meetings_api_meetings_get"];
         put?: never;
@@ -729,7 +768,7 @@ export interface components {
         /**
          * AppOut
          * @description What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,
-         *     and how the pipeline is set to run.
+         *     and how the pipeline is set to run. The categories include those switched off, so past meetings keep their colour.
          */
         AppOut: {
             /** Owner Name */
@@ -740,6 +779,8 @@ export interface components {
             people: string[];
             /** Properties */
             properties: components["schemas"]["PropertyOut"][];
+            /** Categories */
+            categories: components["schemas"]["CategoryOut"][];
             /** Systems */
             systems: string[];
             pipeline: components["schemas"]["PipelineOut"];
@@ -761,10 +802,49 @@ export interface components {
             /** Is Internal */
             is_internal: boolean;
         };
+        /** CategoryIn */
+        CategoryIn: {
+            /** Name */
+            name: string;
+            /**
+             * Is Active
+             * @default true
+             */
+            is_active?: boolean;
+            /** Sort Order */
+            sort_order?: number | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Is Sensitive
+             * @default false
+             */
+            is_sensitive?: boolean;
+        };
+        /** CategoryOut */
+        CategoryOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string | null;
+            /** Is Sensitive */
+            is_sensitive: boolean;
+            /** Color */
+            color: number;
+            /** Sort Order */
+            sort_order: number;
+            /** Is Active */
+            is_active: boolean;
+        };
         /** ChannelMapIn */
         ChannelMapIn: {
-            /** Topic */
-            topic?: string | null;
+            /** Category */
+            category?: string | null;
             /** Property */
             property?: string | null;
             /** Slack Channel Id */
@@ -774,8 +854,8 @@ export interface components {
         };
         /** ChannelMapOut */
         ChannelMapOut: {
-            /** Topic */
-            topic?: string | null;
+            /** Category */
+            category?: string | null;
             /** Property */
             property?: string | null;
             /** Slack Channel Id */
@@ -1023,6 +1103,8 @@ export interface components {
             ended_at: string | null;
             /** Properties */
             properties: string[];
+            /** Category */
+            category: string | null;
             /**
              * Status
              * @enum {string}
@@ -1082,6 +1164,8 @@ export interface components {
             started_at: string | null;
             /** Properties */
             properties: string[];
+            /** Category */
+            category: string | null;
         };
         /** MeetingSummaryOut */
         MeetingSummaryOut: {
@@ -1098,6 +1182,8 @@ export interface components {
             ended_at: string | null;
             /** Properties */
             properties: string[];
+            /** Category */
+            category: string | null;
             /**
              * Status
              * @enum {string}
@@ -2110,6 +2196,94 @@ export interface operations {
             };
         };
     };
+    list_categories_api_admin_categories_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryOut"][];
+                };
+            };
+        };
+    };
+    add_category_api_admin_categories_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_category_api_admin_categories__category_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                category_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CategoryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_systems_api_admin_systems_get: {
         parameters: {
             query?: never;
@@ -2285,6 +2459,7 @@ export interface operations {
         parameters: {
             query?: {
                 property?: string | null;
+                category?: string | null;
                 status?: ("queued" | "processing" | "waiting" | "done" | "partial" | "failed" | "skipped") | null;
                 from?: string | null;
                 to?: string | null;
@@ -2551,6 +2726,7 @@ export interface operations {
                 owner?: string | null;
                 bucket?: ("late" | "today" | "week" | "later" | "nodate" | "done") | null;
                 property?: string | null;
+                category?: string | null;
                 q?: string | null;
             };
             header?: never;
