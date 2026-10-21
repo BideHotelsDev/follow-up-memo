@@ -53,7 +53,8 @@ questions answered in place, next tasks), **Meetings** (what Gemini recorded and
 **Email drafts** (preview, edit, open in Gmail, discard), **Slack drafts** (approve and post, approve all, edit,
 discard), **Tasks** (by due date; a drawer to change owner, date and status), **How it works** and **Admin**
 (connections, people, channels, skip rules, email tone and schedule, run log). A hotel filter and a "Viewing as"
-switch sit in the header. Members (Russell, Sam) see only Today and their own tasks. Every approve, edit, discard,
+switch sit in the header. On a phone the pages are a tab bar at the bottom (Today, Emails, Slack, Tasks,
+More), a meeting or email opens in a sheet over its list, and Slack drafts keep Approve all in reach. Members (Russell, Sam) see only Today and their own tasks. Every approve, edit, discard,
 answer and task change is recorded in `audit_log`.
 
 ## What Bide edits in Admin

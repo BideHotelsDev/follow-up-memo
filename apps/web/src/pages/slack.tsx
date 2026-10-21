@@ -14,6 +14,8 @@ import { api, HttpError, type Output } from "@/lib/api"
 import { dayOf, localDate, time } from "@/lib/format"
 import { cn, onModEnter } from "@/lib/utils"
 
+type View = "waiting" | "posted" | "all"
+
 const fail = (err: unknown) => toast.error(err instanceof HttpError ? err.message : "Something went wrong")
 
 function Message({ draft }: { draft: Output }) {
@@ -118,6 +120,8 @@ function Message({ draft }: { draft: Output }) {
   )
 }
 
+const TOP = 6
+
 export default function SlackPage() {
   const { owner_name } = useApp()
   const queryClient = useQueryClient()
@@ -148,6 +152,7 @@ export default function SlackPage() {
       fail(err)
     },
   })
+  const [view, setView] = useState<View>("waiting")
   if (!data) return <Loading />
 
   const today = localDate(new Date().toISOString()) ?? ""
@@ -155,8 +160,11 @@ export default function SlackPage() {
   const share = data.length ? Math.round(((data.length - waiting.length) / data.length) * 100) : 0
   const byRecipient = new Map<string, number>()
   for (const d of waiting) byRecipient.set(d.recipient_label, (byRecipient.get(d.recipient_label) ?? 0) + 1)
+  const pending = data.filter((d) => d.status === "draft" || d.status === "failed")
+  const posted = data.filter((d) => d.status === "posted" || d.status === "approved")
+  const shown = { waiting: pending, posted, all: data }[view]
   const meetings = new Map<string, Output[]>()
-  for (const d of data) meetings.set(d.meeting?.id ?? "", [...(meetings.get(d.meeting?.id ?? "") ?? []), d])
+  for (const d of shown) meetings.set(d.meeting?.id ?? "", [...(meetings.get(d.meeting?.id ?? "") ?? []), d])
 
   return (
     <>
@@ -165,7 +173,7 @@ export default function SlackPage() {
         lede={`Actions for the team and updates for channels, written as ${owner_name}. Nothing posts until it’s approved.`}
       />
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <aside className={cn(surface, "grid gap-4 p-5 lg:sticky lg:top-32 lg:order-last")}>
+        <aside className={cn(surface, "hidden gap-4 p-5 md:grid lg:sticky lg:top-32 lg:order-last")}>
           <span className="eyebrow text-muted-foreground">Waiting for approval</span>
           <p>
             <span className="font-display tnum text-4xl text-foreground">{waiting.length}</span>{" "}
@@ -181,16 +189,45 @@ export default function SlackPage() {
           </Button>
           {byRecipient.size ? (
             <ul className="divide-y text-sm">
-              {[...byRecipient].map(([who, n]) => (
-                <li key={who} className="flex justify-between py-2">
-                  <span>{who}</span>
-                  <span className="tnum text-muted-foreground">{n}</span>
-                </li>
-              ))}
+              {[...byRecipient]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, TOP)
+                .map(([who, n]) => (
+                  <li key={who} className="flex justify-between gap-3 py-2">
+                    <span className="truncate">{who}</span>
+                    <span className="tnum text-muted-foreground">{n}</span>
+                  </li>
+                ))}
+              {byRecipient.size > TOP ? (
+                <li className="py-2 text-muted-foreground">and {byRecipient.size - TOP} more</li>
+              ) : null}
             </ul>
           ) : null}
         </aside>
         <div className="grid gap-8">
+          <div role="group" aria-label="Show" className="flex w-fit rounded-full border bg-card p-1 text-sm">
+            {(
+              [
+                ["waiting", "Waiting", pending.length],
+                ["posted", "Posted", posted.length],
+                ["all", "All", data.length],
+              ] as const
+            ).map(([key, label, n]) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={view === key}
+                onClick={() => setView(key)}
+                className={cn(
+                  "inline-flex min-h-9 items-center gap-1.5 rounded-full px-4",
+                  view === key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+                <span className="tnum">{n}</span>
+              </button>
+            ))}
+          </div>
           {meetings.size ? (
             [...meetings].map(([id, drafts]) => {
               const meeting = drafts[0].meeting
@@ -210,10 +247,33 @@ export default function SlackPage() {
               )
             })
           ) : (
-            <Empty>No Slack drafts yet.</Empty>
+            <Empty>
+              {view === "waiting" && data.length
+                ? "All caught up. Every Slack draft has been approved or discarded."
+                : view === "posted"
+                  ? "Nothing posted yet."
+                  : "No Slack drafts yet."}
+            </Empty>
           )}
         </div>
       </div>
+      {waiting.length ? <div aria-hidden className="h-16 md:hidden" /> : null}
+      {waiting.length ? (
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-20 border-t bg-card/95 px-4 py-3 backdrop-blur md:hidden">
+          <div className="mx-auto flex max-w-md items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              <b className="tnum font-display text-xl font-normal text-foreground">{waiting.length}</b> waiting
+            </span>
+            <Button
+              className="ml-auto"
+              disabled={approveAll.isPending}
+              onClick={() => approveAll.mutate([...new Set(waiting.map((d) => d.meeting!.id))])}
+            >
+              Approve all {waiting.length}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

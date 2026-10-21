@@ -3,11 +3,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
+import { DetailSheet } from "@/components/detail-sheet"
 import { Empty, Loading, PageHead, surface } from "@/components/page"
 import { HotelTags, Status } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Output } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
@@ -135,6 +137,7 @@ export default function EmailsPage() {
     queryFn: () => api.outputs({ type: "email_draft", property: scope.property }),
   })
   const [selected, setSelected] = useState<string | null>(null)
+  const phone = useIsMobile()
   if (!data) return <Loading />
   const current = data.find((e) => e.id === selected) ?? data.find((e) => e.status !== "closed_in_gmail") ?? data[0]
   const today = localDate(new Date().toISOString())
@@ -161,7 +164,9 @@ export default function EmailsPage() {
                         aria-pressed={e.id === current?.id}
                         className={cn(
                           "grid gap-1.5 rounded-lg border bg-card px-4 py-3 text-left hover:border-foreground/30",
-                          e.id === current?.id && "border-primary shadow-[inset_3px_0_0_var(--primary)]",
+                          e.id === current?.id &&
+                            (!phone || selected) &&
+                            "border-primary shadow-[inset_3px_0_0_var(--primary)]",
                         )}
                       >
                         <span className="flex items-baseline justify-between gap-3">
@@ -186,9 +191,19 @@ export default function EmailsPage() {
               ) : null
             })}
           </div>
-          <div className="md:sticky md:top-32">
-            {current ? <Preview key={current.id + current.updated_at} email={current} /> : null}
-          </div>
+          {phone ? (
+            <DetailSheet
+              open={data.some((e) => e.id === selected)}
+              onClose={() => setSelected(null)}
+              title={current?.subject ?? "Email"}
+            >
+              {current ? <Preview key={current.id + current.updated_at} email={current} /> : null}
+            </DetailSheet>
+          ) : (
+            <div className="sticky top-32">
+              {current ? <Preview key={current.id + current.updated_at} email={current} /> : null}
+            </div>
+          )}
         </div>
       ) : (
         <Empty>No emails yet. Meetings with people outside Bide get one; internal calls don’t.</Empty>

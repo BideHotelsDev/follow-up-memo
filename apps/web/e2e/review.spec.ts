@@ -21,6 +21,13 @@ async function save(page: Page) {
   expect((await stored).ok()).toBeTruthy()
 }
 
+/** Follow the navigation to a page: the tabs on a desktop, the tab bar (and its More sheet) on a phone. */
+async function openPage(page: Page, name: string) {
+  const more = page.getByRole("button", { name: "More" })
+  if (await more.isVisible()) await more.click()
+  await page.getByRole("link", { name, exact: true }).click()
+}
+
 async function noSidewaysScroll(page: Page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 }
@@ -63,6 +70,7 @@ test("David answers a question and approves a channel update", async ({ page }) 
   }
 
   await page.goto("/slack")
+  await page.getByRole("group", { name: "Show" }).getByRole("button", { name: /^All/ }).click()
   const card = page.locator("article", { hasText: "#revenue" })
   await expect(card.getByText(/Draft|Approved/)).toBeVisible()
   if (await card.getByRole("button", { name: "Approve & post" }).isVisible()) {
@@ -102,6 +110,15 @@ test("Dictated text lands in the boxes and saves, as Wispr Flow types it", async
   await expect(page.getByText(/David, .*The View, .*PriceLabs/)).toBeVisible()
 })
 
+test("A meeting opens from the list, over it on a phone", async ({ page }) => {
+  await signIn(page, DAVID)
+  await page.goto("/")
+  await openPage(page, "Meetings")
+  await page.locator('a[href^="/meetings/"]', { hasText: "Weekly revenue" }).first().click()
+  await expect(page.getByRole("article").getByRole("heading", { name: "Weekly revenue" })).toBeInViewport()
+  await expect(page.getByRole("button", { name: "Reprocess" })).toBeInViewport()
+})
+
 test("Tasks and meetings filter by employee", async ({ page }) => {
   await signIn(page, DAVID)
   await page.goto("/tasks")
@@ -135,7 +152,7 @@ test("A task's due date changes from its drawer", async ({ page }) => {
 test("David manages meeting categories and filters by them", async ({ page }) => {
   await signIn(page, DAVID)
   await page.goto("/")
-  await page.getByRole("link", { name: "Admin" }).first().click()
+  await openPage(page, "Admin")
   await page.getByRole("link", { name: "Categories" }).click()
   const name = `Legal ${Date.now() % 100000}`
   await page.getByLabel("New category").fill(name)

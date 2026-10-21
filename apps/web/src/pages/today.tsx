@@ -24,18 +24,28 @@ function Stat({
   note: string
   hot?: boolean
 }) {
-  return (
-    <Link
-      to={to}
-      className={cn(
-        surface,
-        "grid content-start gap-1 p-5 transition hover:-translate-y-0.5 hover:border-primary",
-        hot && "border-transparent bg-attention-subtle",
-      )}
-    >
-      <b className="font-display tnum mb-2 text-4xl leading-none font-normal text-foreground">{value}</b>
-      <span className="font-medium text-foreground">{label}</span>
+  const className = cn(
+    surface,
+    "grid content-start gap-1 p-4 transition hover:-translate-y-0.5 hover:border-primary md:p-5",
+    hot && value > 0 && "border-transparent bg-attention-subtle",
+  )
+  const body = (
+    <>
+      <b className="font-display tnum mb-1 text-3xl leading-none font-normal text-foreground md:mb-2 md:text-4xl">
+        {value}
+      </b>
+      <span className="text-sm leading-snug font-medium text-foreground md:text-base">{label}</span>
       <small className="hidden text-sm text-muted-foreground sm:block">{note}</small>
+    </>
+  )
+  // An in-page target scrolls; the router's Link would only change the URL.
+  return to.startsWith("#") ? (
+    <a href={to} className={className}>
+      {body}
+    </a>
+  ) : (
+    <Link to={to} className={className}>
+      {body}
     </Link>
   )
 }
@@ -83,10 +93,34 @@ export default function TodayPage() {
         }
       />
 
+      {data.problems.length ? (
+        <div className={cn(surface, "mb-8 flex gap-3 border-destructive/30 bg-danger-subtle p-4")}>
+          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium text-foreground">Some meetings need a look</p>
+            {data.problems.map((m) => (
+              <p key={m.id}>
+                <Link to={`/meetings/${m.id}`} className="underline underline-offset-2">
+                  {m.title}
+                </Link>{" "}
+                <span className="text-muted-foreground">
+                  ·{" "}
+                  {m.status === "failed"
+                    ? "couldn’t be processed"
+                    : m.status === "waiting"
+                      ? "Claude hasn’t answered for hours: check the Claude Code routine is running"
+                      : "some drafts failed and will retry"}
+                </span>
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {isReviewer ? (
         <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           <Stat
-            to="/"
+            to="#questions"
             value={data.counts.questions}
             label="Questions for you"
             note={data.counts.questions ? "Answer right here" : "All answered"}
@@ -118,30 +152,6 @@ export default function TodayPage() {
       )}
 
       {isReviewer ? <ImpactTeaser /> : null}
-
-      {data.problems.length ? (
-        <div className={cn(surface, "mb-8 flex gap-3 border-destructive/30 bg-danger-subtle p-4")}>
-          <AlertTriangle className="mt-0.5 size-5 shrink-0 text-destructive" aria-hidden />
-          <div className="space-y-1 text-sm">
-            <p className="font-medium text-foreground">Some meetings need a look</p>
-            {data.problems.map((m) => (
-              <p key={m.id}>
-                <Link to={`/meetings/${m.id}`} className="underline underline-offset-2">
-                  {m.title}
-                </Link>{" "}
-                <span className="text-muted-foreground">
-                  ·{" "}
-                  {m.status === "failed"
-                    ? "couldn’t be processed"
-                    : m.status === "waiting"
-                      ? "Claude hasn’t answered for hours: check the Claude Code routine is running"
-                      : "some drafts failed and will retry"}
-                </span>
-              </p>
-            ))}
-          </div>
-        </div>
-      ) : null}
 
       <div className="grid items-start gap-8 lg:grid-cols-[7fr_5fr]">
         {isReviewer ? (
@@ -181,7 +191,7 @@ export default function TodayPage() {
 
         <div className="grid gap-8">
           {isReviewer ? (
-            <section id="questions">
+            <section id="questions" className="scroll-mt-24 md:scroll-mt-32">
               <SectionTitle title="Needs your answer">
                 {data.questions.length ? (
                   <span className="text-sm text-muted-foreground">Answers update the drafts</span>

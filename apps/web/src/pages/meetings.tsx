@@ -1,9 +1,10 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink, RotateCw } from "lucide-react"
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import { toast } from "sonner"
 
+import { DetailSheet } from "@/components/detail-sheet"
 import { Empty, Loading, PageHead, surface } from "@/components/page"
 import { CategoryTag, HotelTags, MeetingStatus } from "@/components/tags"
 import {
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useApp } from "@/hooks/use-app"
+import { useIsMobile } from "@/hooks/use-mobile"
 import { useScope } from "@/hooks/use-scope"
 import { api, HttpError, type Meeting, type MeetingSummary } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
@@ -270,6 +272,8 @@ const ANY = "any"
 
 export default function MeetingsPage() {
   const { id } = useParams()
+  const navigate = useNavigate()
+  const phone = useIsMobile()
   const { scope } = useScope()
   const [q, setQ] = useState("")
   const [person, setPerson] = useState(EVERYONE)
@@ -305,36 +309,38 @@ export default function MeetingsPage() {
       <PageHead title="Meetings" lede="What Gemini recorded, and where every point ended up." />
       <div className="grid items-start gap-6 md:grid-cols-[minmax(0,20rem)_minmax(0,1fr)]">
         <div className="grid gap-5">
-          <Select value={person} onValueChange={setPerson}>
-            <SelectTrigger aria-label="Employee" className="w-full bg-card">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={EVERYONE}>Everyone’s meetings</SelectItem>
-              {(people.data ?? [])
-                .filter((p) => p.role !== "admin")
-                .map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.name}’s meetings
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          {categories.length ? (
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger aria-label="Category" className="w-full bg-card">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-1 md:gap-3">
+            <Select value={person} onValueChange={setPerson}>
+              <SelectTrigger aria-label="Employee" className="w-full bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={ANY}>Every category</SelectItem>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.name}>
-                    {c.name}
-                  </SelectItem>
-                ))}
+                <SelectItem value={EVERYONE}>Everyone’s meetings</SelectItem>
+                {(people.data ?? [])
+                  .filter((p) => p.role !== "admin")
+                  .map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}’s meetings
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
-          ) : null}
+            {categories.length ? (
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger aria-label="Category" className="w-full bg-card">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ANY}>Every category</SelectItem>
+                  {categories.map((c) => (
+                    <SelectItem key={c.id} value={c.name}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
+          </div>
           <Input
             type="search"
             placeholder="Search meetings"
@@ -351,7 +357,7 @@ export default function MeetingsPage() {
                 <h4 className="eyebrow mb-2 text-muted-foreground">{date === today ? "Today" : day(date)}</h4>
                 <div className="grid gap-2">
                   {meetings.map((m) => (
-                    <Item key={m.id} m={m} selected={m.id === selectedId} />
+                    <Item key={m.id} m={m} selected={m.id === selectedId && (!phone || Boolean(id))} />
                   ))}
                 </div>
               </div>
@@ -360,9 +366,19 @@ export default function MeetingsPage() {
             <Empty>No meetings{q ? " match" : " yet"}.</Empty>
           )}
         </div>
-        <div className="md:sticky md:top-32">
-          {detail.data ? <Detail meeting={detail.data} /> : selectedId ? <Loading /> : null}
-        </div>
+        {phone ? (
+          <DetailSheet
+            open={Boolean(id)}
+            onClose={() => navigate("/meetings", { replace: true })}
+            title={detail.data?.title ?? "Meeting"}
+          >
+            {detail.data ? <Detail meeting={detail.data} /> : <Loading />}
+          </DetailSheet>
+        ) : (
+          <div className="sticky top-32">
+            {detail.data ? <Detail meeting={detail.data} /> : selectedId ? <Loading /> : null}
+          </div>
+        )}
       </div>
     </>
   )
