@@ -10,6 +10,48 @@ import { api, HttpError } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
+const KIND = { reminder: "Reminder", weekly_digest: "Weekly digest" } as const
+
+function Notices() {
+  const { data } = useQuery({ queryKey: ["notices"], queryFn: api.notices, refetchInterval: 60_000 })
+  if (!data?.length) return null
+  return (
+    <div className="space-y-2">
+      <h3 className="font-sans text-base font-medium">Reminders and digests</h3>
+      <div className={cn(surface, "overflow-x-auto")}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Sent</TableHead>
+              <TableHead>What</TableHead>
+              <TableHead>To</TableHead>
+              <TableHead>Result</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((n) => (
+              <TableRow key={n.id}>
+                <TableCell className="tnum whitespace-nowrap">
+                  {day(localDate(n.updated_at))} {time(n.updated_at)}
+                </TableCell>
+                <TableCell>{KIND[n.kind]}</TableCell>
+                <TableCell>{n.person}</TableCell>
+                <TableCell className="max-w-md whitespace-normal">
+                  {n.status === "failed" ? (
+                    <Status tone="late">{`${n.error ?? "Failed"} (tried ${n.attempts}×)`}</Status>
+                  ) : (
+                    <Status tone="done">Posted</Status>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  )
+}
+
 export default function RunsPage() {
   const queryClient = useQueryClient()
   const { data } = useQuery({ queryKey: ["runs"], queryFn: api.runs, refetchInterval: 30_000 })
@@ -68,6 +110,7 @@ export default function RunsPage() {
       ) : (
         <Empty>No runs yet. The worker runs every few minutes, or use Run now.</Empty>
       )}
+      <Notices />
     </div>
   )
 }

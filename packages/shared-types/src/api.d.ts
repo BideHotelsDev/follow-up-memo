@@ -225,6 +225,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notices
+         * @description Reminders and weekly digests sent (or that failed), newest first.
+         */
+        get: operations["list_notices_api_admin_notices_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/digest-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Digest Preview
+         * @description The weekly digest as it would read if sent now (nothing is sent).
+         */
+        get: operations["digest_preview_api_admin_digest_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/reminder-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Reminder Preview
+         * @description Your own reminder as it would read today, or a note that you'd get none (nothing is sent).
+         */
+        get: operations["reminder_preview_api_admin_reminder_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/app": {
         parameters: {
             query?: never;
@@ -1202,6 +1262,40 @@ export interface components {
             /** Drafts Waiting */
             drafts_waiting: number;
         };
+        /** NoticeOut */
+        NoticeOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "reminder" | "weekly_digest";
+            /** Person */
+            person: string;
+            /**
+             * Period
+             * Format: date
+             */
+            period: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "posted" | "failed";
+            /** Error */
+            error: string | null;
+            /** Attempts */
+            attempts: number;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
         /** OutputIn */
         OutputIn: {
             /** Subject */
@@ -1283,10 +1377,25 @@ export interface components {
             internal_domains: string[];
             /** Sensitive Topics */
             sensitive_topics: string[];
+            /** Reminders Enabled */
+            reminders_enabled: boolean;
+            /** Reminder Hour */
+            reminder_hour: number;
+            /** Weekly Digest Enabled */
+            weekly_digest_enabled: boolean;
+            /** Digest Weekday */
+            digest_weekday: number;
+            /** Digest Hour */
+            digest_hour: number;
             /** Skip Rules */
             skip_rules: number;
             /** Channels */
             channels: number;
+        };
+        /** PreviewOut */
+        PreviewOut: {
+            /** Text */
+            text: string;
         };
         /** PropertyIn */
         PropertyIn: {
@@ -1416,6 +1525,16 @@ export interface components {
             extract_instructions?: string | null;
             /** Email Instructions */
             email_instructions?: string | null;
+            /** Reminders Enabled */
+            reminders_enabled?: boolean | null;
+            /** Reminder Hour */
+            reminder_hour?: number | null;
+            /** Weekly Digest Enabled */
+            weekly_digest_enabled?: boolean | null;
+            /** Digest Weekday */
+            digest_weekday?: number | null;
+            /** Digest Hour */
+            digest_hour?: number | null;
             /** Quiet Minutes */
             quiet_minutes?: number | null;
             /** Lookback Days */
@@ -1468,6 +1587,16 @@ export interface components {
             extract_instructions: string;
             /** Email Instructions */
             email_instructions: string;
+            /** Reminders Enabled */
+            reminders_enabled: boolean;
+            /** Reminder Hour */
+            reminder_hour: number;
+            /** Weekly Digest Enabled */
+            weekly_digest_enabled: boolean;
+            /** Digest Weekday */
+            digest_weekday: number;
+            /** Digest Hour */
+            digest_hour: number;
             /** Quiet Minutes */
             quiet_minutes: number;
             /** Lookback Days */
@@ -2092,6 +2221,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunOut"];
+                };
+            };
+        };
+    };
+    list_notices_api_admin_notices_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoticeOut"][];
+                };
+            };
+        };
+    };
+    digest_preview_api_admin_digest_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+        };
+    };
+    reminder_preview_api_admin_reminder_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
                 };
             };
         };

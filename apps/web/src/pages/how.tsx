@@ -46,8 +46,38 @@ const steps = ({
   [`${owner} gets one Slack message.`, "A summary with links to the drafts and anything that needs an answer."],
 ]
 
-const rules = ({ owner, skip_rules, sensitive_topics, raw_text_days }: Info) => [
-  ["Drafts first", `Emails wait in Gmail. Team messages wait for ${owner}’s approval. Nothing is sent automatically.`],
+const at = (hour: number) => `${String(hour).padStart(2, "0")}:00`
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+const rules = ({
+  owner,
+  skip_rules,
+  sensitive_topics,
+  raw_text_days,
+  reminders_enabled,
+  reminder_hour,
+  weekly_digest_enabled,
+  digest_weekday,
+  digest_hour,
+}: Info) => [
+  [
+    "Drafts first",
+    `Emails wait in Gmail. Team messages about meetings wait for ${owner}’s approval. Only ${owner}’s summaries${
+      reminders_enabled ? " and the due-date reminders" : ""
+    } are sent by themselves.`,
+  ],
+  [
+    "Reminders",
+    reminders_enabled
+      ? `At ${at(reminder_hour)} on weekdays, everyone with tasks due that day or overdue gets one Slack message listing them.`
+      : `Due-date reminders are switched off. When Admin turns them on, everyone with tasks due or overdue gets one Slack message on weekday mornings.`,
+  ],
+  [
+    "Weekly digest",
+    weekly_digest_enabled
+      ? `Every ${WEEKDAYS[digest_weekday]} at ${at(digest_hour)}, ${owner} gets the past week: meetings, actions done on time or late, and what’s overdue.`
+      : "The weekly digest is switched off.",
+  ],
   ["No guessing", `Owners and dates come from the notes. Gaps become questions for ${owner}.`],
   [
     `${owner}’s own rules`,

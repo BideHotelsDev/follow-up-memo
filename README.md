@@ -1,8 +1,8 @@
 # Bide Meeting Follow-up
 
 Turns David's Gemini meeting notes into follow-ups that wait for approval: Gmail drafts to external attendees, Slack
-DMs and channel digests for the team, a task list, and questions for David. The only automatic send is the run
-summary DM to David. Spec: "Meeting Follow-up System — PRD & System Design" (Claude Doc).
+DMs and channel digests for the team, a task list, and questions for David. The only automatic sends are the run
+summary and weekly digest DMs to David, and (once Admin switches them on) due-date reminders to the team. Spec: "Meeting Follow-up System — PRD & System Design" (Claude Doc).
 
 ## Layout
 
@@ -89,12 +89,16 @@ Every 10 minutes the worker (`bide_followup.worker`) runs `pipeline/run.py`:
    unowned or undated items become questions for David (5 at most).
 
 5. **Generate** (`pipeline/outputs.py`): a Gmail draft to the external attendees, written by Claude from the
-   validated summary (never the notes) in David's tone and signature (`prompts/email_v1.md`); a Slack DM draft per
-   internal owner; a channel digest draft for the mapped topic or property. Sensitive meetings get no DMs or digest,
+   validated summary (never the notes) in David's tone and signature (`prompts/email_v2.md`); a Slack DM draft per
+   internal owner; a channel digest draft for the meeting's category or property. Sensitive meetings get no DMs or digest,
    and the email is flagged "review carefully". Outputs are upserted by (meeting, type, recipient), so a rerun updates
    drafts rather than duplicating them, and anything David has approved or discarded is left alone.
 6. **Summarise** (`pipeline/summary.py`): one Slack DM to David listing the meetings processed. With failure alerts
    to `ADMIN_ALERT_SLACK_CHANNEL` (after two failed runs in a row), the only message posted without approval.
+
+Separately, the worker checks every 10 minutes for scheduled messages (`pipeline/notices.py`): a weekday reminder to
+each person with tasks due that day or overdue (off by default), and the owner's weekly digest. Each is recorded in
+`notices` once per person per day or week, so a repeated check sends nothing new and a failed post is retried.
 
 A meeting that fails is retried on the next run and marked failed after 3 attempts; a failed output (a Gmail draft,
 the summary) is retried the same way and the meeting shows as partial meanwhile. Without Google connected the run

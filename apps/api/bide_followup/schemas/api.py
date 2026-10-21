@@ -117,6 +117,11 @@ class SettingsOut(BaseModel):
     sensitive_topics: list[str]
     extract_instructions: str
     email_instructions: str
+    reminders_enabled: bool
+    reminder_hour: int
+    weekly_digest_enabled: bool
+    digest_weekday: int
+    digest_hour: int
     quiet_minutes: int
     lookback_days: int
     max_attempts: int
@@ -146,6 +151,11 @@ class SettingsIn(BaseModel):
     ) = Field(default=None, max_length=20)
     extract_instructions: str | None = Field(default=None, max_length=4000)
     email_instructions: str | None = Field(default=None, max_length=4000)
+    reminders_enabled: bool | None = None
+    reminder_hour: int | None = Field(default=None, ge=5, le=18)
+    weekly_digest_enabled: bool | None = None
+    digest_weekday: int | None = Field(default=None, ge=0, le=6)
+    digest_hour: int | None = Field(default=None, ge=5, le=18)
     quiet_minutes: int | None = Field(default=None, ge=5, le=120)
     lookback_days: int | None = Field(default=None, ge=1, le=14)
     max_attempts: int | None = Field(default=None, ge=1, le=10)
@@ -156,6 +166,21 @@ class SettingsIn(BaseModel):
     @classmethod
     def trim(cls, v: str | None) -> str | None:
         return v.strip() if v is not None else None
+
+
+class NoticeOut(Orm):
+    id: uuid.UUID
+    kind: Literal["reminder", "weekly_digest"]
+    person: str
+    period: date
+    status: Literal["posted", "failed"]
+    error: str | None
+    attempts: int
+    updated_at: datetime
+
+
+class PreviewOut(BaseModel):
+    text: str
 
 
 class RunOut(Orm):
@@ -481,6 +506,11 @@ class PipelineOut(BaseModel):
     raw_text_days: int
     internal_domains: list[str]
     sensitive_topics: list[str]
+    reminders_enabled: bool
+    reminder_hour: int
+    weekly_digest_enabled: bool
+    digest_weekday: int
+    digest_hour: int
     skip_rules: int
     channels: int
 

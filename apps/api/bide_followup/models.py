@@ -391,3 +391,31 @@ class Category(Timestamped, Base):
     color: Mapped[int] = mapped_column(Integer, default=0)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+NOTICE_KINDS = ("reminder", "weekly_digest")
+NOTICE_STATUSES = ("posted", "failed")
+
+
+class Notice(Timestamped, Base):
+    """A Slack message the app sends on a schedule: a person's due-today and overdue reminder, or the owner's weekly
+    digest. One per person per period (the day, or the week's Monday), so a repeated check never sends twice."""
+
+    __tablename__ = "notices"
+    __table_args__ = (
+        CheckConstraint(_in("kind", NOTICE_KINDS), name="kind"),
+        CheckConstraint(_in("status", NOTICE_STATUSES), name="status"),
+        UniqueConstraint("kind", "user_id", "period"),
+    )
+
+    kind: Mapped[str] = mapped_column(String(16))
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    period: Mapped[date] = mapped_column(Date)
+    recipient: Mapped[str] = mapped_column(String(32), default="")
+    body: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(8))
+    error: Mapped[str | None] = mapped_column(Text)
+    attempts: Mapped[int] = mapped_column(Integer, default=0)
+    external_id: Mapped[str | None] = mapped_column(String(64))
+
+    user: Mapped[User] = relationship()

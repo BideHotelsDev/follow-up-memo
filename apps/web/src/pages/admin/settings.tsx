@@ -6,6 +6,8 @@ import { Loading, surface } from "@/components/page"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { api, HttpError, type Settings } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -50,6 +52,42 @@ const TIMINGS: { key: Timing; label: string; min: number; max: number; hint: str
   },
 ]
 
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+const HOURS = Array.from({ length: 14 }, (_, i) => i + 5) // 5am to 6pm, as the API allows
+
+function HourSelect({ id, value, onChange }: { id: string; value: number; onChange: (hour: number) => void }) {
+  return (
+    <Select value={String(value)} onValueChange={(v) => onChange(Number(v))}>
+      <SelectTrigger id={id} className="w-32 bg-card">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {HOURS.map((h) => (
+          <SelectItem key={h} value={String(h)}>
+            {`${String(h).padStart(2, "0")}:00`}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+/** Shows what a scheduled message would say today, without sending it. */
+function Preview({ label, load }: { label: string; load: () => Promise<{ text: string }> }) {
+  const [text, setText] = useState<string | null>(null)
+  const show = useMutation({ mutationFn: load, onSuccess: (r) => setText(r.text) })
+  return (
+    <div className="grid gap-2">
+      <Button type="button" variant="outline" className="justify-self-start" onClick={() => show.mutate()}>
+        {show.isPending ? "Loading…" : label}
+      </Button>
+      {text !== null ? (
+        <pre className="rounded-md border bg-muted/40 p-3 text-xs whitespace-pre-wrap">{text}</pre>
+      ) : null}
+    </div>
+  )
+}
+
 /** "a.com, b.com" ↔ ["a.com", "b.com"] */
 const split = (text: string) =>
   text
@@ -69,6 +107,11 @@ function Form({ initial }: { initial: Settings }) {
         email_signature: form.email_signature,
         extract_instructions: form.extract_instructions,
         email_instructions: form.email_instructions,
+        reminders_enabled: form.reminders_enabled,
+        reminder_hour: form.reminder_hour,
+        weekly_digest_enabled: form.weekly_digest_enabled,
+        digest_weekday: form.digest_weekday,
+        digest_hour: form.digest_hour,
         poll_interval_minutes: form.poll_interval_minutes,
         minutes_saved_per_meeting: form.minutes_saved_per_meeting,
         baseline_followup_rate: form.baseline_followup_rate,
@@ -156,6 +199,71 @@ function Form({ initial }: { initial: Settings }) {
           <p className="text-xs text-muted-foreground">
             Applies to new drafts. To redo one already written, reprocess its meeting.
           </p>
+        </div>
+      </fieldset>
+      <fieldset className="grid gap-4 border-t pt-5">
+        <legend className="mb-2 font-medium">Reminders and weekly digest</legend>
+        <div className="grid gap-2">
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={form.reminders_enabled}
+              onCheckedChange={(on) => setForm({ ...form, reminders_enabled: on })}
+              aria-label="Send due-date reminders"
+            />
+            Send due-date reminders
+          </label>
+          <p className="text-xs text-muted-foreground">
+            On weekdays, a Slack message to each person with tasks due that day or overdue. These go to the team without
+            your approval, so they start switched off.
+          </p>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="reminder-hour">At</Label>
+            <HourSelect
+              id="reminder-hour"
+              value={form.reminder_hour}
+              onChange={(h) => setForm({ ...form, reminder_hour: h })}
+            />
+          </div>
+          <Preview label="Preview my reminder" load={api.reminderPreview} />
+        </div>
+        <div className="grid gap-2">
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={form.weekly_digest_enabled}
+              onCheckedChange={(on) => setForm({ ...form, weekly_digest_enabled: on })}
+              aria-label="Send the weekly digest"
+            />
+            Send the owner a weekly digest
+          </label>
+          <p className="text-xs text-muted-foreground">
+            The past seven days: meetings processed, actions done on time or late, what’s overdue and who has it, and
+            what’s still waiting for you.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="digest-day">Every</Label>
+            <Select
+              value={String(form.digest_weekday)}
+              onValueChange={(v) => setForm({ ...form, digest_weekday: Number(v) })}
+            >
+              <SelectTrigger id="digest-day" className="w-36 bg-card">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WEEKDAYS.map((d, i) => (
+                  <SelectItem key={d} value={String(i)}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label htmlFor="digest-hour">at</Label>
+            <HourSelect
+              id="digest-hour"
+              value={form.digest_hour}
+              onChange={(h) => setForm({ ...form, digest_hour: h })}
+            />
+          </div>
+          <Preview label="Preview this week’s digest" load={api.digestPreview} />
         </div>
       </fieldset>
       <div className="grid gap-1.5">

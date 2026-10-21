@@ -16,7 +16,7 @@ from bide_followup import runtime_settings
 from bide_followup.config import settings
 from bide_followup.db import SessionLocal
 from bide_followup.integrations import google_oauth
-from bide_followup.pipeline import outputs, run
+from bide_followup.pipeline import notices, outputs, run
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
 log = logging.getLogger(__name__)
@@ -35,6 +35,11 @@ def sync_gmail() -> None:
             return  # the next poll reports the connection problem
         if closed:
             log.info("%s email drafts were sent or deleted in Gmail", closed)
+
+
+def notify() -> None:
+    with SessionLocal() as session:
+        notices.send_due(session)
 
 
 def purge() -> None:
@@ -67,6 +72,8 @@ def main() -> None:
         "poll": (poll, IntervalTrigger(minutes=current["poll"])),
         "sync_gmail": (sync_gmail, IntervalTrigger(minutes=current["sync_gmail"])),
         "purge": (purge, CronTrigger(hour=3, minute=0)),
+        # Reminders and the weekly digest: sent once per period, so checking often costs nothing.
+        "notify": (notify, IntervalTrigger(minutes=10)),
     }
     for name, (job, trigger) in jobs.items():
         scheduler.add_job(job, trigger, id=name, max_instances=1, coalesce=True, misfire_grace_time=600)

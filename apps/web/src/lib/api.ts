@@ -16,6 +16,8 @@ export type AnswerIn = Schemas["AnswerIn"]
 export type Output = Schemas["OutputOut"]
 export type OutputIn = Schemas["OutputIn"]
 export type Run = Schemas["RunOut"]
+export type Notice = Schemas["NoticeOut"]
+export type Preview = Schemas["PreviewOut"]
 export type Impact = Schemas["ImpactOut"]
 export type ClaudeStatus = Schemas["ClaudeStatusOut"]
 export type AppSettings = Schemas["AppOut"]
@@ -131,6 +133,9 @@ export const api = {
   adminSystems: () => request<System[]>("GET", "/admin/systems"),
   addSystem: (body: PropertyIn) => request<System>("POST", "/admin/systems", body),
   updateSystem: (id: string, body: PropertyIn) => request<System>("PUT", `/admin/systems/${id}`, body),
+  notices: () => request<Notice[]>("GET", "/admin/notices"),
+  digestPreview: () => request<Preview>("GET", "/admin/digest-preview"),
+  reminderPreview: () => request<Preview>("GET", "/admin/reminder-preview"),
   runNow: () => request<Run>("POST", "/admin/runs"),
 }
 

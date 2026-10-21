@@ -512,6 +512,76 @@
         }
       }
     },
+    "/api/admin/notices": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Notices",
+        "description": "Reminders and weekly digests sent (or that failed), newest first.",
+        "operationId": "list_notices_api_admin_notices_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NoticeOut"
+                  },
+                  "type": "array",
+                  "title": "Response List Notices Api Admin Notices Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/digest-preview": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Digest Preview",
+        "description": "The weekly digest as it would read if sent now (nothing is sent).",
+        "operationId": "digest_preview_api_admin_digest_preview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/reminder-preview": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reminder Preview",
+        "description": "Your own reminder as it would read today, or a note that you'd get none (nothing is sent).",
+        "operationId": "reminder_preview_api_admin_reminder_preview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/app": {
       "get": {
         "tags": [
@@ -3500,6 +3570,72 @@
         ],
         "title": "MeetingSummaryOut"
       },
+      "NoticeOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "reminder",
+              "weekly_digest"
+            ],
+            "title": "Kind"
+          },
+          "person": {
+            "type": "string",
+            "title": "Person"
+          },
+          "period": {
+            "type": "string",
+            "format": "date",
+            "title": "Period"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "posted",
+              "failed"
+            ],
+            "title": "Status"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "attempts": {
+            "type": "integer",
+            "title": "Attempts"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "person",
+          "period",
+          "status",
+          "error",
+          "attempts",
+          "updated_at"
+        ],
+        "title": "NoticeOut"
+      },
       "OutputIn": {
         "properties": {
           "subject": {
@@ -3720,6 +3856,26 @@
             "type": "array",
             "title": "Sensitive Topics"
           },
+          "reminders_enabled": {
+            "type": "boolean",
+            "title": "Reminders Enabled"
+          },
+          "reminder_hour": {
+            "type": "integer",
+            "title": "Reminder Hour"
+          },
+          "weekly_digest_enabled": {
+            "type": "boolean",
+            "title": "Weekly Digest Enabled"
+          },
+          "digest_weekday": {
+            "type": "integer",
+            "title": "Digest Weekday"
+          },
+          "digest_hour": {
+            "type": "integer",
+            "title": "Digest Hour"
+          },
           "skip_rules": {
             "type": "integer",
             "title": "Skip Rules"
@@ -3738,11 +3894,29 @@
           "raw_text_days",
           "internal_domains",
           "sensitive_topics",
+          "reminders_enabled",
+          "reminder_hour",
+          "weekly_digest_enabled",
+          "digest_weekday",
+          "digest_hour",
           "skip_rules",
           "channels"
         ],
         "title": "PipelineOut",
         "description": "How the app is set to run, for How it works and the Impact definitions."
+      },
+      "PreviewOut": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "PreviewOut"
       },
       "PropertyIn": {
         "properties": {
@@ -4212,6 +4386,67 @@
             ],
             "title": "Email Instructions"
           },
+          "reminders_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminders Enabled"
+          },
+          "reminder_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 18.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reminder Hour"
+          },
+          "weekly_digest_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Weekly Digest Enabled"
+          },
+          "digest_weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest Weekday"
+          },
+          "digest_hour": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 18.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest Hour"
+          },
           "quiet_minutes": {
             "anyOf": [
               {
@@ -4377,6 +4612,26 @@
             "type": "string",
             "title": "Email Instructions"
           },
+          "reminders_enabled": {
+            "type": "boolean",
+            "title": "Reminders Enabled"
+          },
+          "reminder_hour": {
+            "type": "integer",
+            "title": "Reminder Hour"
+          },
+          "weekly_digest_enabled": {
+            "type": "boolean",
+            "title": "Weekly Digest Enabled"
+          },
+          "digest_weekday": {
+            "type": "integer",
+            "title": "Digest Weekday"
+          },
+          "digest_hour": {
+            "type": "integer",
+            "title": "Digest Hour"
+          },
           "quiet_minutes": {
             "type": "integer",
             "title": "Quiet Minutes"
@@ -4418,6 +4673,11 @@
           "sensitive_topics",
           "extract_instructions",
           "email_instructions",
+          "reminders_enabled",
+          "reminder_hour",
+          "weekly_digest_enabled",
+          "digest_weekday",
+          "digest_hour",
           "quiet_minutes",
           "lookback_days",
           "max_attempts",

@@ -7,14 +7,17 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 
-from bide_followup import auth, runtime_settings
+from bide_followup import auth, clock, runtime_settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
-from bide_followup.models import ChannelMap, Run, SkipRule, User
+from bide_followup.models import ChannelMap, Notice, Run, SkipRule, User
+from bide_followup.pipeline import notices
 from bide_followup.pipeline import run as pipeline
 from bide_followup.schemas.api import (
     ChannelMapIn,
     ChannelMapOut,
+    NoticeOut,
+    PreviewOut,
     RunOut,
     SettingsIn,
     SettingsOut,
@@ -122,3 +125,23 @@ def list_runs(session: SessionDep, _: Admin, limit: int = 50) -> list[RunOut]:
 def run_now(session: SessionDep, _: Admin) -> RunOut:
     """Run the pipeline now rather than waiting for the worker's next poll."""
     return RunOut.model_validate(pipeline.run(session))
+
+
+@router.get("/notices")
+def list_notices(session: SessionDep, _: Admin) -> list[NoticeOut]:
+    """Reminders and weekly digests sent (or that failed), newest first."""
+    rows = session.scalars(select(Notice).order_by(Notice.updated_at.desc()).limit(60))
+    return [NoticeOut.model_validate({**r.__dict__, "person": r.user.name}) for r in rows]
+
+
+@router.get("/digest-preview")
+def digest_preview(session: SessionDep, _: Admin) -> PreviewOut:
+    """The weekly digest as it would read if sent now (nothing is sent)."""
+    return PreviewOut(text=notices.digest_text(session, clock.today()))
+
+
+@router.get("/reminder-preview")
+def reminder_preview(session: SessionDep, user: Admin) -> PreviewOut:
+    """Your own reminder as it would read today, or a note that you'd get none (nothing is sent)."""
+    text = notices.reminder_text(session, user, clock.today())
+    return PreviewOut(text=text or f"Nothing of yours is due today or overdue, so no reminder for {user.name}.")

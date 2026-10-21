@@ -30,6 +30,14 @@ DEFAULTS: dict[str, Any] = {
     "max_attempts": env.max_attempts,
     "gmail_sync_minutes": 30,
     "raw_text_days": env.raw_text_days,
+    # Scheduled Slack messages (UK time). Reminders go to each person with tasks due today or overdue, on weekdays;
+    # off until Bide switches them on, since they message the team without approval. The weekly digest goes to the
+    # owner on the chosen day (0 = Monday) and covers the week before.
+    "reminders_enabled": False,
+    "reminder_hour": 8,
+    "weekly_digest_enabled": True,
+    "digest_weekday": 0,
+    "digest_hour": 8,
     # Impact page: the minutes a meeting's follow-up took by hand (time saved = meetings × this), and optional
     # before-launch figures Admin can enter, since the app has no data from before it existed.
     "minutes_saved_per_meeting": 20,
