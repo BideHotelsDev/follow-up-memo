@@ -11,6 +11,7 @@ from bide_followup import auth, catalog, runtime_settings
 from bide_followup.auth import CurrentUser
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
+from bide_followup.integrations import wispr
 from bide_followup.models import Category, ChannelMap, Meeting, Property, SkipRule, System, User
 from bide_followup.schemas.api import (
     AppOut,
@@ -50,6 +51,7 @@ def app_settings(session: SessionDep, _: CurrentUser) -> AppOut:
             skip_rules=count(SkipRule),
             channels=count(ChannelMap),
         ),
+        dictation=wispr.configured(),
     )
 
 

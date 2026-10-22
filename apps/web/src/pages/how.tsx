@@ -109,16 +109,24 @@ const problems = ({ owner, max_attempts }: Info) => [
 ]
 
 /** Wispr Flow (David's dictation app) spells these right once they're in its Dictionary. */
-function Dictation({ words }: { words: string[] }) {
+function Dictation({ words, dictation }: { words: string[]; dictation: boolean }) {
   const [copied, setCopied] = useState(false)
   return (
     <section id="wispr" className="mt-10 scroll-mt-24 md:scroll-mt-32">
       <SectionTitle title="Dictating with Wispr Flow" />
       <div className={cn(surface, "grid gap-4 p-5 lg:grid-cols-[7fr_5fr] lg:gap-8")}>
         <div className="grid content-start gap-3 text-muted-foreground">
+          {dictation ? (
+            <p>
+              Each box has a <b className="font-medium text-foreground">Dictate</b> button. Press it, speak, then press
+              Stop: Wispr Flow tidies what you said (no “um”s, your corrections applied, names spelled right) and puts
+              it in at the cursor. Nothing needs installing, so it works on any computer or phone.
+            </p>
+          ) : null}
           <p>
-            Wispr Flow types wherever the cursor is, so it works in every box here: answers to questions, and edits to
-            email and Slack drafts. It works in Gmail too.
+            {dictation ? "With the Wispr Flow app installed, it also " : "Wispr Flow "}types wherever the cursor is, so
+            it works in every box here: answers to questions, and edits to email and Slack drafts. It works in Gmail
+            too.
           </p>
           <p>
             Click into a box, hold Wispr’s dictation key and speak. On a phone, use the Wispr keyboard. Press{" "}
@@ -202,7 +210,7 @@ export default function HowPage() {
           ))}
         </ul>
       </section>
-      <Dictation words={words} />
+      <Dictation words={words} dictation={app.dictation} />
     </>
   )
 }

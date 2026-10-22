@@ -11,13 +11,21 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import func, select
 
-from bide_followup import auth, runtime_settings
+from bide_followup import auth, catalog, runtime_settings
+from bide_followup.auth import CurrentUser
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
-from bide_followup.integrations import google_oauth, llm, slack
+from bide_followup.integrations import google_oauth, llm, slack, wispr
 from bide_followup.models import LlmJob, User
 from bide_followup.routers import service
-from bide_followup.schemas.api import ClaudeModeIn, ClaudeStatusOut, ConnectionOut, ConnectionsOut, RoutineTokenOut
+from bide_followup.schemas.api import (
+    ClaudeModeIn,
+    ClaudeStatusOut,
+    ConnectionOut,
+    ConnectionsOut,
+    DictationTokenOut,
+    RoutineTokenOut,
+)
 
 router = APIRouter(prefix="/api", tags=["connections"])
 
@@ -178,3 +186,20 @@ def routine_token(session: SessionDep, admin: Admin) -> RoutineTokenOut:
 def revoke_routine_token(session: SessionDep, admin: Admin) -> None:
     runtime_settings.put(session, "routine_token_hash", "")
     session.commit()
+
+
+@router.post("/dictation/token")
+def dictation_token(session: SessionDep, user: CurrentUser) -> DictationTokenOut:
+    """A Wispr Flow client token for this person's browser, so the microphone streams to Wispr directly and the org
+    API key stays here."""
+    if not wispr.configured():
+        raise HTTPException(status_code=503, detail="Wispr Flow's API is not set up")
+    try:
+        token, expires_in = wispr.access_token(user)
+    except wispr.WisprError as exc:
+        raise HTTPException(status_code=502, detail=f"Wispr Flow didn't give a token ({exc})") from exc
+    people = session.scalars(select(User.name).where(User.is_active).order_by(User.name))
+    words = [*people, *catalog.property_names(session), *catalog.system_names(session), "Bide"]
+    return DictationTokenOut(
+        access_token=token, expires_in=expires_in, ws_url=wispr.ws_url(), dictionary=list(dict.fromkeys(words))
+    )

@@ -154,6 +154,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/dictation/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Dictation Token
+         * @description A Wispr Flow client token for this person's browser, so the microphone streams to Wispr directly and the org
+         *     API key stays here.
+         */
+        post: operations["dictation_token_api_dictation_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/settings": {
         parameters: {
             query?: never;
@@ -886,6 +907,8 @@ export interface components {
             /** Systems */
             systems: string[];
             pipeline: components["schemas"]["PipelineOut"];
+            /** Dictation */
+            dictation: boolean;
         };
         /**
          * ApproveAllIn
@@ -1036,6 +1059,21 @@ export interface components {
         ConnectionsOut: {
             google: components["schemas"]["ConnectionOut"] | null;
             slack: components["schemas"]["ConnectionOut"] | null;
+        };
+        /**
+         * DictationTokenOut
+         * @description What the browser needs to stream the microphone to Wispr Flow: a short-lived client token, where to send the
+         *     audio, and the names to spell right.
+         */
+        DictationTokenOut: {
+            /** Access Token */
+            access_token: string;
+            /** Expires In */
+            expires_in: number;
+            /** Ws Url */
+            ws_url: string;
+            /** Dictionary */
+            dictionary: string[];
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2117,6 +2155,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    dictation_token_api_dictation_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DictationTokenOut"];
+                };
             };
         };
     };

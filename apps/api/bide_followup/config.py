@@ -61,6 +61,12 @@ class Settings(BaseSettings):
     llm_model: str = "claude-opus-5-5"
     llm_effort: str = "medium"
 
+    # Wispr Flow's voice API (exclusive access, from enterprise@wisprflow.ai). With a key, the boxes people write in
+    # get a microphone button: the browser streams audio straight to Wispr with a short-lived token the app makes.
+    # Without one, the buttons are hidden and Wispr Flow still works as a dictation app typing into any box.
+    wispr_api_key: str = ""
+    wispr_api_url: str = "https://platform-api.wisprflow.ai"
+
     poll_interval_minutes: int = 10
     # Gemini may still be writing a doc this soon after its last change (FR-3); notes older than this are not looked
     # at (FR-1).

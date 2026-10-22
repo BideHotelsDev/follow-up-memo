@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { DictateButton } from "@/components/dictate-button"
 import { Mrkdwn } from "@/components/mrkdwn"
 import { Empty, Loading, PageHead, surface } from "@/components/page"
 import { HotelTags, Status } from "@/components/tags"
@@ -23,6 +24,7 @@ function Message({ draft }: { draft: Output }) {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [body, setBody] = useState(draft.body)
+  const bodyBox = useRef<HTMLTextAreaElement>(null)
   const channel = draft.type === "slack_digest"
   const waiting = draft.status === "draft"
   const refresh = () => queryClient.invalidateQueries()
@@ -72,15 +74,18 @@ function Message({ draft }: { draft: Output }) {
         <div className="min-w-0">
           <p className="font-semibold text-foreground">{owner_name}</p>
           {editing ? (
-            <Textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
-              aria-keyshortcuts="Meta+Enter Control+Enter"
-              rows={8}
-              className="mt-1"
-              aria-label="Message"
-            />
+            <div className="mt-1 grid gap-2">
+              <DictateButton target={bodyBox} value={body} onChange={setBody} className="justify-self-end" />
+              <Textarea
+                ref={bodyBox}
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
+                aria-keyshortcuts="Meta+Enter Control+Enter"
+                rows={8}
+                aria-label="Message"
+              />
+            </div>
           ) : (
             <div className="mt-0.5 max-w-prose text-foreground">
               <Mrkdwn text={draft.body} />

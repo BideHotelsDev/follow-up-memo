@@ -206,14 +206,28 @@ function WisprCard() {
       <CardHeader>
         <div className="flex items-center justify-between gap-2">
           <CardTitle>Wispr Flow</CardTitle>
-          <Badge className="bg-ok-subtle text-ok-foreground">Ready</Badge>
+          {app.dictation ? (
+            <Badge className="bg-ok-subtle text-ok-foreground">Voice API on</Badge>
+          ) : (
+            <Badge variant="outline">Typing app only</Badge>
+          )}
         </div>
         <CardDescription>
-          {app.owner_name}’s dictation app. It types wherever the cursor is, so it works in every box here with nothing
-          to connect: answers, and edits to email and Slack drafts. ⌘ Enter (or Ctrl Enter) saves.
+          {app.dictation
+            ? "Every box here has a Dictate button: press it, speak, press Stop, and Wispr’s text goes in at the cursor, names spelled right. Wispr bills Bide per use."
+            : `${app.owner_name}’s dictation app types into any box here, with nothing to connect. ⌘ Enter (or Ctrl Enter) saves.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-2 text-sm">
+        {app.dictation ? null : (
+          <p className="rounded-lg bg-secondary px-3 py-2 text-foreground">
+            For a Dictate button in the app itself, Bide needs Wispr Flow’s voice API. Access is by invitation: ask{" "}
+            <a className="underline underline-offset-2" href="mailto:enterprise@wisprflow.ai">
+              enterprise@wisprflow.ai
+            </a>
+            , then set <code className="font-mono text-xs">WISPR_API_KEY</code> on the app service.
+          </p>
+        )}
         <p className="text-muted-foreground">Add these to Wispr’s Dictionary so names are spelled right:</p>
         <p className="text-foreground">{words.join(", ")}</p>
       </CardContent>

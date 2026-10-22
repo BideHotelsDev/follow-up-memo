@@ -79,6 +79,34 @@ test("David answers a question and approves a channel update", async ({ page }) 
   await expect(card.getByText("Approved · posted")).toBeVisible()
 })
 
+test("Dictate streams the microphone to Wispr Flow and puts its text in at the cursor", async ({ page, context }) => {
+  await context.grantPermissions(["microphone"])
+  await signIn(page, DAVID)
+  await page.goto("/slack")
+  await page.getByRole("group", { name: "Show" }).getByRole("button", { name: /^All/ }).click()
+  const card = page.locator("article", { hasText: "Russell" }).first()
+  await card.getByRole("button", { name: "Edit" }).click()
+  const message = card.getByLabel("Message")
+  const before = await message.inputValue()
+  await message.press("ControlOrMeta+End")
+
+  await card.getByRole("button", { name: "Dictate with Wispr Flow" }).click()
+  const stop = card.getByRole("button", { name: "Stop and insert" })
+  await expect(stop).toBeVisible()
+  await page.waitForTimeout(1500) // a packet or two of the fake microphone
+  await stop.click()
+  // The mock's transcript (apps/api/mocks/server.py, DICTATED), added where the cursor was.
+  await expect(message).toHaveValue(before + "Thanks, Russell. Please send the October figures by Friday.")
+  await expect(card.getByRole("button", { name: "Dictate with Wispr Flow" })).toBeEnabled()
+
+  const inbox = await (await page.request.get("http://localhost:8400/inbox")).json()
+  const last = inbox.dictations.at(-1)
+  expect(last.packets).toBeGreaterThan(0)
+  expect(last.context.textbox_contents.before_text).toBe(before)
+  expect(last.context.dictionary_context).toContain("Bide")
+  await card.getByRole("button", { name: "Cancel" }).click()
+})
+
 test("Dictated text lands in the boxes and saves, as Wispr Flow types it", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"])
   await signIn(page, DAVID)

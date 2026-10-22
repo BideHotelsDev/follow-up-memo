@@ -199,6 +199,28 @@
         }
       }
     },
+    "/api/dictation/token": {
+      "post": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Dictation Token",
+        "description": "A Wispr Flow client token for this person's browser, so the microphone streams to Wispr directly and the org\nAPI key stays here.",
+        "operationId": "dictation_token_api_dictation_token_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DictationTokenOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/settings": {
       "get": {
         "tags": [
@@ -2336,6 +2358,10 @@
           },
           "pipeline": {
             "$ref": "#/components/schemas/PipelineOut"
+          },
+          "dictation": {
+            "type": "boolean",
+            "title": "Dictation"
           }
         },
         "type": "object",
@@ -2346,7 +2372,8 @@
           "properties",
           "categories",
           "systems",
-          "pipeline"
+          "pipeline",
+          "dictation"
         ],
         "title": "AppOut",
         "description": "What the web app needs on every page: the owner's name, the properties (with their tag colours), the systems,\nand how the pipeline is set to run. The categories include those switched off, so past meetings keep their colour."
@@ -2806,6 +2833,38 @@
           "slack"
         ],
         "title": "ConnectionsOut"
+      },
+      "DictationTokenOut": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "ws_url": {
+            "type": "string",
+            "title": "Ws Url"
+          },
+          "dictionary": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dictionary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "expires_in",
+          "ws_url",
+          "dictionary"
+        ],
+        "title": "DictationTokenOut",
+        "description": "What the browser needs to stream the microphone to Wispr Flow: a short-lived client token, where to send the\naudio, and the names to spell right."
       },
       "HTTPValidationError": {
         "properties": {

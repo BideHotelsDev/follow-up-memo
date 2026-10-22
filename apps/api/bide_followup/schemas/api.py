@@ -492,6 +492,16 @@ class RoutineTokenOut(BaseModel):
     token: str
 
 
+class DictationTokenOut(BaseModel):
+    """What the browser needs to stream the microphone to Wispr Flow: a short-lived client token, where to send the
+    audio, and the names to spell right."""
+
+    access_token: str
+    expires_in: int
+    ws_url: str
+    dictionary: list[str]
+
+
 # --- what Bide edits in Admin (catalog.py) -----------------------------------------------------------------------
 
 
@@ -569,3 +579,4 @@ class AppOut(BaseModel):
     categories: list[CategoryOut]
     systems: list[str]
     pipeline: PipelineOut
+    dictation: bool  # Wispr Flow's voice API is set up: the boxes get a microphone button

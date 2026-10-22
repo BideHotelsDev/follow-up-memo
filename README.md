@@ -117,6 +117,14 @@ an API answer, checks included. Routines run at most hourly, so drafts arrive wi
 trade-offs: `routine/README.md` and `apps/api/bide_followup/prompts/routine.md`. Admin → Connections shows the mode and the queue; Today flags
 meetings Claude hasn't answered for over 3 hours.
 
+## Dictation: Wispr Flow
+
+Without setup, Wispr Flow works as David's dictation app: it types into any box, and ⌘/Ctrl Enter saves. With
+`WISPR_API_KEY` (Wispr's voice API, by invitation from enterprise@wisprflow.ai) every editable box also gets a
+**Dictate** button. The app makes a 15-minute client token (`POST /api/dictation/token`; the org key stays on the
+server), the browser streams the microphone to Wispr's WebSocket as 16 kHz PCM, and Wispr's tidied text goes in at the
+cursor. Names from Admin are sent as its dictionary. Wispr bills per use. The mocks serve a fake Wispr for dev and e2e.
+
 ## Golden set
 
 `pnpm eval` runs extraction on the cases in `apps/api/eval/cases` and scores actions found, owners, due dates and

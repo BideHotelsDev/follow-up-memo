@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 
 import { DetailSheet } from "@/components/detail-sheet"
+import { DictateButton } from "@/components/dictate-button"
 import { Empty, Loading, PageHead, surface } from "@/components/page"
 import { HotelTags, Status } from "@/components/tags"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ function Preview({ email }: { email: Output }) {
   const [editing, setEditing] = useState(false)
   const [subject, setSubject] = useState(email.subject ?? "")
   const [body, setBody] = useState(email.body)
+  const bodyBox = useRef<HTMLTextAreaElement>(null)
   const done = () => queryClient.invalidateQueries()
   const fail = (err: unknown) => toast.error(err instanceof HttpError ? err.message : "Something went wrong")
   const save = useMutation({
@@ -81,15 +83,19 @@ function Preview({ email }: { email: Output }) {
       </div>
       <div className="border-t p-5">
         {editing ? (
-          <Textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
-            aria-keyshortcuts="Meta+Enter Control+Enter"
-            rows={14}
-            aria-label="Email"
-            className="font-sans text-[15px]"
-          />
+          <div className="grid gap-2">
+            <DictateButton target={bodyBox} value={body} onChange={setBody} kind="email" className="justify-self-end" />
+            <Textarea
+              ref={bodyBox}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              onKeyDown={onModEnter(() => body.trim() && !save.isPending && save.mutate())}
+              aria-keyshortcuts="Meta+Enter Control+Enter"
+              rows={14}
+              aria-label="Email"
+              className="font-sans text-[15px]"
+            />
+          </div>
         ) : (
           <p className="max-w-prose whitespace-pre-wrap text-foreground">
             {email.body || "The email hasn’t been written yet; the next run tries again."}

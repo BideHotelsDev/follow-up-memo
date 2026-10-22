@@ -1,4 +1,4 @@
-"""Stand-ins for Google (OAuth token, Drive, Calendar, Gmail drafts), Slack and Claude, for local development and
+"""Stand-ins for Google (OAuth token, Drive, Calendar, Gmail drafts), Slack, Claude and Wispr Flow's voice API, for local development and
 tests. Gmail drafts and Slack posts are kept in `state` (and listed at /inbox) so you can see what would have gone out.
 
     pnpm dev:mocks          # http://localhost:8400
@@ -13,7 +13,7 @@ import json
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
 from mocks.samples import SAMPLES, doc_name, friday_after
@@ -30,6 +30,7 @@ def reset(now: datetime | None = None) -> None:
     state["files"] = {}
     state["drafts"] = {}
     state["slack"] = []
+    state["dictations"] = []
     for s in SAMPLES:
         start = now + s["start_offset"]
         end = start + timedelta(minutes=s["minutes"])
@@ -217,7 +218,49 @@ async def slack_api(method: str, request: Request) -> dict:
     return {"ok": False, "error": "unknown_method"}
 
 
+# Wispr Flow: a client token, then a WebSocket that takes audio packets and, on commit, answers with this text.
+DICTATED = "Thanks, Russell. Please send the October figures by Friday."
+
+
+@app.post("/wispr/api/v1/dash/generate_access_token")
+async def wispr_token(request: Request) -> dict:
+    if request.headers.get("authorization") != "Bearer mock-key":
+        raise HTTPException(status_code=401)
+    body = await request.json()
+    return {"access_token": f"mock-wispr-{body['client_id']}", "expires_in": body["duration_secs"]}
+
+
+@app.websocket("/wispr/api/v1/dash/client_ws")
+async def wispr_ws(ws: WebSocket) -> None:
+    await ws.accept()
+    packets = 0
+    try:
+        first = await ws.receive_json()
+        if first.get("type") != "auth" or not str(first.get("access_token", "")).startswith("mock-wispr-"):
+            await ws.send_json({"status": "error", "error": "unauthorized"})
+            await ws.close()
+            return
+        await ws.send_json({"status": "auth"})
+        while True:
+            message = await ws.receive_json()
+            if message["type"] == "append":
+                if message["position"] != packets:
+                    await ws.send_json({"status": "error", "error": "position out of sequence"})
+                    await ws.close()
+                    return
+                packets += len(message["audio_packets"]["packets"])
+            elif message["type"] == "commit":
+                await ws.send_json({"status": "info", "message": {"event": "commit_received"}})
+                state["dictations"].append({"packets": packets, "context": first.get("context")})
+                text = DICTATED if packets else ""
+                await ws.send_json({"status": "text", "position": packets, "final": True, "body": {"text": text}})
+                await ws.close()
+                return
+    except WebSocketDisconnect:
+        return
+
+
 @app.get("/inbox")
 def inbox() -> dict:
     """What the app would have put in Gmail and Slack."""
-    return {"gmail_drafts": state["drafts"], "slack": state["slack"]}
+    return {"gmail_drafts": state["drafts"], "slack": state["slack"], "dictations": state["dictations"]}

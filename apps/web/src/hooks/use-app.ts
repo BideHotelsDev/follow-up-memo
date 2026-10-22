@@ -25,6 +25,7 @@ const FALLBACK: AppSettings = {
     skip_rules: 0,
     channels: 0,
   },
+  dictation: false,
 }
 
 /** The owner's name, the properties, the categories, the systems and how the pipeline runs, as Bide set them in Admin. */

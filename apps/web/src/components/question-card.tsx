@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
+import { DictateButton } from "@/components/dictate-button"
 import { HotelTags } from "@/components/tags"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +18,7 @@ export function QuestionCard({ question }: { question: Question }) {
   const queryClient = useQueryClient()
   const people = useQuery({ queryKey: ["people"], queryFn: api.people, enabled: question.kind === "owner" })
   const [text, setText] = useState("")
+  const answerBox = useRef<HTMLTextAreaElement>(null)
   const [due, setDue] = useState("")
   const answer = useMutation({
     mutationFn: (body: AnswerIn) => api.answer(question.id, body),
@@ -80,6 +82,7 @@ export function QuestionCard({ question }: { question: Question }) {
           }}
         >
           <Textarea
+            ref={answerBox}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={onModEnter(() => text.trim() && !answer.isPending && answer.mutate({ text }))}
@@ -89,6 +92,7 @@ export function QuestionCard({ question }: { question: Question }) {
             aria-label="Your answer"
             aria-keyshortcuts="Meta+Enter Control+Enter"
           />
+          <DictateButton target={answerBox} value={text} onChange={setText} compact />
           <Button type="submit" disabled={!text.trim() || answer.isPending}>
             Save
           </Button>
