@@ -101,6 +101,28 @@
         }
       }
     },
+    "/api/admin/slack/test": {
+      "post": {
+        "tags": [
+          "connections"
+        ],
+        "summary": "Slack Test",
+        "description": "Check the installed bot for real: DM the person who pressed the button, post to the alerts channel, and look\nup everyone in Admin \u2192 People by email (saving the Slack IDs it finds, as the run summary does for David).",
+        "operationId": "slack_test_api_admin_slack_test_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SlackTestOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/claude": {
       "get": {
         "tags": [
@@ -5077,6 +5099,79 @@
           "id"
         ],
         "title": "SkipRuleOut"
+      },
+      "SlackCheck": {
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "title": "Ok"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ok",
+          "detail"
+        ],
+        "title": "SlackCheck"
+      },
+      "SlackPersonCheck": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "found": {
+            "type": "boolean",
+            "title": "Found"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "email",
+          "found"
+        ],
+        "title": "SlackPersonCheck"
+      },
+      "SlackTestOut": {
+        "properties": {
+          "dm": {
+            "$ref": "#/components/schemas/SlackCheck"
+          },
+          "alerts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SlackCheck"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "people": {
+            "items": {
+              "$ref": "#/components/schemas/SlackPersonCheck"
+            },
+            "type": "array",
+            "title": "People"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dm",
+          "alerts",
+          "people"
+        ],
+        "title": "SlackTestOut",
+        "description": "Admin \u2192 Connections \u2192 Send a test: a DM to whoever pressed it, a post to the alerts channel (when one is set),\nand whether Slack knows each person in Admin \u2192 People by their email."
       },
       "SystemIn": {
         "properties": {

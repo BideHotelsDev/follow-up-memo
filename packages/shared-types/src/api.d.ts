@@ -92,6 +92,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/slack/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Slack Test
+         * @description Check the installed bot for real: DM the person who pressed the button, post to the alerts channel, and look
+         *     up everyone in Admin → People by email (saving the Slack IDs it finds, as the run summary does for David).
+         */
+        post: operations["slack_test_api_admin_slack_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/claude": {
         parameters: {
             query?: never;
@@ -1793,6 +1814,33 @@ export interface components {
              */
             id: string;
         };
+        /** SlackCheck */
+        SlackCheck: {
+            /** Ok */
+            ok: boolean;
+            /** Detail */
+            detail: string;
+        };
+        /** SlackPersonCheck */
+        SlackPersonCheck: {
+            /** Name */
+            name: string;
+            /** Email */
+            email: string;
+            /** Found */
+            found: boolean;
+        };
+        /**
+         * SlackTestOut
+         * @description Admin → Connections → Send a test: a DM to whoever pressed it, a post to the alerts channel (when one is set),
+         *     and whether Slack knows each person in Admin → People by their email.
+         */
+        SlackTestOut: {
+            dm: components["schemas"]["SlackCheck"];
+            alerts: components["schemas"]["SlackCheck"] | null;
+            /** People */
+            people: components["schemas"]["SlackPersonCheck"][];
+        };
         /**
          * SystemIn
          * @description Same fields as a property.
@@ -2063,6 +2111,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ConnectionsOut"];
+                };
+            };
+        };
+    };
+    slack_test_api_admin_slack_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SlackTestOut"];
                 };
             };
         };

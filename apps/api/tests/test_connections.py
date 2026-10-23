@@ -118,3 +118,27 @@ def test_wrong_key_is_unreadable(monkeypatch):
     monkeypatch.setattr(settings, "token_encryption_key", Fernet.generate_key().decode())
     with pytest.raises(DomainError):
         crypto.decrypt(blob)
+
+
+def test_slack_test_posts_for_real_and_finds_people(sign_in, slack_bot, monkeypatch, db):
+    from bide_followup.config import settings
+    from bide_followup.models import User
+
+    monkeypatch.setattr(settings, "admin_alert_slack_channel", "C0ALERTS")
+    out = sign_in("david@liddellpropertyinvestments.com").post("/api/admin/slack/test").json()
+    assert out["dm"] == {"ok": True, "detail": "Sent"} and out["alerts"] == {"ok": True, "detail": "Sent"}
+    assert [m["channel"] for m in slack_bot] == ["D-U0DAVID", "C0ALERTS"]
+    found = {p["email"]: p["found"] for p in out["people"]}
+    assert found["david@liddellpropertyinvestments.com"] is True and found["kyle@bidehotels.com"] is False
+    with db() as s:
+        assert s.query(User).filter_by(email="david@liddellpropertyinvestments.com").one().slack_user_id == "U0DAVID"
+
+
+def test_slack_test_reports_what_failed(sign_in, slack_bot):
+    out = sign_in("kyle@bidehotels.com").post("/api/admin/slack/test").json()
+    assert out["dm"]["ok"] is False and "kyle@bidehotels.com" in out["dm"]["detail"]
+    assert out["alerts"] is None  # no alerts channel set
+
+
+def test_slack_test_needs_the_bot(sign_in):
+    assert sign_in("kyle@bidehotels.com").post("/api/admin/slack/test").status_code == 409

@@ -492,6 +492,26 @@ class RoutineTokenOut(BaseModel):
     token: str
 
 
+class SlackCheck(BaseModel):
+    ok: bool
+    detail: str
+
+
+class SlackPersonCheck(BaseModel):
+    name: str
+    email: str
+    found: bool
+
+
+class SlackTestOut(BaseModel):
+    """Admin → Connections → Send a test: a DM to whoever pressed it, a post to the alerts channel (when one is set),
+    and whether Slack knows each person in Admin → People by their email."""
+
+    dm: SlackCheck
+    alerts: SlackCheck | None
+    people: list[SlackPersonCheck]
+
+
 class DictationTokenOut(BaseModel):
     """What the browser needs to stream the microphone to Wispr Flow: a short-lived client token, where to send the
     audio, and the names to spell right."""

@@ -118,6 +118,7 @@ export const api = {
   claudeMode: (mode: ClaudeStatus["mode"]) => request<ClaudeStatus>("PUT", "/admin/claude/mode", { mode }),
   routineToken: () => request<{ token: string }>("POST", "/admin/claude/routine-token"),
   revokeRoutineToken: () => request<void>("DELETE", "/admin/claude/routine-token"),
+  slackTest: () => request<Schemas["SlackTestOut"]>("POST", "/admin/slack/test"),
   dictationToken: () => request<DictationToken>("POST", "/dictation/token"),
   adminPeople: () => request<User[]>("GET", "/admin/people"),
   addPerson: (body: UserIn) => request<User>("POST", "/admin/people", body),

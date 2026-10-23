@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, ExternalLink, KeyRound } from "lucide-react"
+import { Check, ExternalLink, KeyRound, X } from "lucide-react"
 import { Link, useSearchParams } from "react-router-dom"
 import { toast } from "sonner"
 
@@ -241,6 +241,50 @@ function WisprCard() {
   )
 }
 
+/** Send a test through the installed bot: a DM, the alerts channel, and who Slack knows by email. */
+function SlackTest() {
+  const test = useMutation({
+    mutationFn: api.slackTest,
+    onError: (e) => toast.error(e instanceof HttpError ? e.message : "Couldn't reach Slack. Try again."),
+  })
+  const out = test.data
+  const missing = out?.people.filter((p) => !p.found) ?? []
+  const line = (ok: boolean, label: string, detail?: string) => (
+    <li className="flex items-start gap-2">
+      {ok ? (
+        <Check className="mt-0.5 size-4 shrink-0 text-ok-foreground" aria-hidden />
+      ) : (
+        <X className="mt-0.5 size-4 shrink-0 text-destructive" aria-hidden />
+      )}
+      <span>
+        <span className="sr-only">{ok ? "Worked: " : "Failed: "}</span>
+        {label}
+        {detail ? <span className="text-muted-foreground"> ({detail})</span> : null}
+      </span>
+    </li>
+  )
+  return (
+    <>
+      <Button variant="outline" onClick={() => test.mutate()} disabled={test.isPending}>
+        {test.isPending ? "Sending…" : "Send a test"}
+      </Button>
+      {out ? (
+        <ul className="order-last grid w-full gap-1.5 pt-1 text-sm" aria-label="Slack test results">
+          {line(out.dm.ok, "A DM to you", out.dm.ok ? undefined : out.dm.detail)}
+          {out.alerts
+            ? line(out.alerts.ok, "The alerts channel", out.alerts.ok ? undefined : out.alerts.detail)
+            : line(false, "The alerts channel", "none set")}
+          {line(
+            missing.length === 0,
+            `${out.people.length - missing.length} of ${out.people.length} people found in Slack by email`,
+            missing.length ? `not found: ${missing.map((p) => p.email).join(", ")}` : undefined,
+          )}
+        </ul>
+      ) : null}
+    </>
+  )
+}
+
 export default function ConnectionsPage() {
   const { owner_name: owner, owner_email } = useApp()
   const [params] = useSearchParams()
@@ -298,8 +342,9 @@ export default function ConnectionsPage() {
           <CardContent className="text-sm">
             {data?.slack ? <p>Installed in {data.slack.account_email}</p> : null}
           </CardContent>
-          <CardFooter>
-            <Button asChild variant={data?.slack ? "outline" : "default"}>
+          <CardFooter className="flex flex-wrap gap-2">
+            {data?.slack?.status === "connected" ? <SlackTest /> : null}
+            <Button asChild variant={data?.slack ? "ghost" : "default"}>
               <a href={links.slackInstall()}>{data?.slack ? "Reinstall" : "Install"} Slack bot</a>
             </Button>
           </CardFooter>

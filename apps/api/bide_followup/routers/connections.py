@@ -9,6 +9,7 @@ from urllib.parse import urlencode
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
+from slack_sdk.errors import SlackApiError
 from sqlalchemy import func, select
 
 from bide_followup import auth, catalog, runtime_settings
@@ -25,6 +26,9 @@ from bide_followup.schemas.api import (
     ConnectionsOut,
     DictationTokenOut,
     RoutineTokenOut,
+    SlackCheck,
+    SlackPersonCheck,
+    SlackTestOut,
 )
 
 router = APIRouter(prefix="/api", tags=["connections"])
@@ -134,6 +138,41 @@ def connections(session: SessionDep, _: Admin) -> ConnectionsOut:
         return ConnectionOut.model_validate(row) if row else None
 
     return ConnectionsOut(google=out(google_oauth.integration(session)), slack=out(slack.integration(session)))
+
+
+@router.post("/admin/slack/test")
+def slack_test(session: SessionDep, admin: Admin) -> SlackTestOut:
+    """Check the installed bot for real: DM the person who pressed the button, post to the alerts channel, and look
+    up everyone in Admin → People by email (saving the Slack IDs it finds, as the run summary does for David)."""
+    if slack.client(session) is None:
+        raise HTTPException(status_code=409, detail="Install the Slack bot first")
+
+    def attempt(send) -> SlackCheck:
+        try:
+            send()
+            return SlackCheck(ok=True, detail="Sent")
+        except SlackApiError as exc:
+            return SlackCheck(ok=False, detail=str(exc.response.get("error", "error")))
+
+    people = []
+    for person in session.scalars(select(User).where(User.is_active).order_by(User.name)):
+        try:
+            found = person.slack_user_id or slack.user_id_for(session, person.email)
+        except SlackApiError:
+            found = None
+        if found and not person.slack_user_id:
+            person.slack_user_id = found
+        people.append(SlackPersonCheck(name=person.name, email=person.email, found=bool(found)))
+    session.commit()
+
+    text = f"Test from Bide Follow-up, sent by {admin.name} from Admin → Connections. The bot can post here."
+    if admin.slack_user_id:
+        dm = attempt(lambda: slack.post(session, admin.slack_user_id, text))
+    else:
+        dm = SlackCheck(ok=False, detail=f"Slack has no account with {admin.email}")
+    channel = settings.admin_alert_slack_channel
+    alerts = attempt(lambda: slack.post(session, channel, text)) if channel else None
+    return SlackTestOut(dm=dm, alerts=alerts, people=people)
 
 
 ROUTINE_PROMPT = Path(__file__).parent.parent / "prompts" / "routine.md"
