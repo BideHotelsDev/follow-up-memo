@@ -38,6 +38,10 @@ DEFAULTS: dict[str, Any] = {
     "weekly_digest_enabled": True,
     "digest_weekday": 0,
     "digest_hour": 8,
+    # Once a week, at the reminder hour, each person's open tasks with no due date, which the daily reminder never
+    # lists. Off until Bide switches it on, like the reminders.
+    "undated_nudge_enabled": False,
+    "undated_nudge_weekday": 0,
     # Impact page: the minutes a meeting's follow-up took by hand (time saved = meetings × this), and optional
     # before-launch figures Admin can enter, since the app has no data from before it existed.
     "minutes_saved_per_meeting": 20,

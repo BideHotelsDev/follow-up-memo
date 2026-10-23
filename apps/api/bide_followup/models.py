@@ -393,13 +393,13 @@ class Category(Timestamped, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
-NOTICE_KINDS = ("reminder", "weekly_digest")
+NOTICE_KINDS = ("reminder", "weekly_digest", "undated_nudge")
 NOTICE_STATUSES = ("posted", "failed")
 
 
 class Notice(Timestamped, Base):
-    """A Slack message the app sends on a schedule: a person's due-today and overdue reminder, or the owner's weekly
-    digest. One per person per period (the day, or the week's Monday), so a repeated check never sends twice."""
+    """A Slack message the app sends on a schedule: a person's due-today and overdue reminder, their weekly list of
+    open tasks with no due date, or the owner's weekly digest. One per person per period (the day, or the week's Monday), so a repeated check never sends twice."""
 
     __tablename__ = "notices"
     __table_args__ = (

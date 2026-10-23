@@ -140,6 +140,13 @@ def digest_preview(session: SessionDep, _: Admin) -> PreviewOut:
     return PreviewOut(text=notices.digest_text(session, clock.today()))
 
 
+@router.get("/undated-preview")
+def undated_preview(session: SessionDep, user: Admin) -> PreviewOut:
+    """Your own weekly nudge about tasks with no due date, as it would read today (nothing is sent)."""
+    text = notices.undated_text(session, user, clock.today())
+    return PreviewOut(text=text or f"{user.name} has no open tasks without a due date, so no nudge.")
+
+
 @router.get("/reminder-preview")
 def reminder_preview(session: SessionDep, user: Admin) -> PreviewOut:
     """Your own reminder as it would read today, or a note that you'd get none (nothing is sent)."""

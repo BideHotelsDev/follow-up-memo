@@ -142,6 +142,7 @@ export const api = {
   notices: () => request<Notice[]>("GET", "/admin/notices"),
   digestPreview: () => request<Preview>("GET", "/admin/digest-preview"),
   reminderPreview: () => request<Preview>("GET", "/admin/reminder-preview"),
+  undatedPreview: () => request<Preview>("GET", "/admin/undated-preview"),
   runNow: () => request<Run>("POST", "/admin/runs"),
 }
 

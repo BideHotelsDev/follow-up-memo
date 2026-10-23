@@ -74,3 +74,11 @@ def test_worker_follows_interval_changes(db, monkeypatch):
         s.commit()
     worker.follow_settings(Scheduler(), current)
     assert moved == {"sync_gmail": 60} and current["sync_gmail"] == 60
+
+
+def test_undated_nudge_settings_save(sign_in):
+    client = sign_in("kyle@bidehotels.com")
+    assert client.get("/api/admin/settings").json()["undated_nudge_enabled"] is False
+    out = client.put("/api/admin/settings", json={"undated_nudge_enabled": True, "undated_nudge_weekday": 4}).json()
+    assert out["undated_nudge_enabled"] is True and out["undated_nudge_weekday"] == 4
+    assert "no open tasks without a due date" in client.get("/api/admin/undated-preview").json()["text"]

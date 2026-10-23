@@ -146,3 +146,27 @@ def test_admin_previews_and_log(sign_in, db, slack_bot, tasks, monkeypatch):
     log = client.get("/api/admin/notices").json()
     assert [(n["kind"], n["person"], n["status"]) for n in log] == [("reminder", "Sam", "posted")]
     assert sign_in("sam@bidehotels.com").get("/api/admin/notices").status_code == 403
+
+
+def test_undated_tasks_get_a_weekly_nudge(db, slack_bot, tasks):
+    with db() as s:
+        russell = s.scalar(select(User).where(User.name == "Russell"))
+        text = notices.undated_text(s, russell, MONDAY_9AM.date())
+        assert "Fix Operto" in text and "no due date" in text and "/tasks" in text
+        sam = s.scalar(select(User).where(User.name == "Sam"))
+        assert notices.undated_text(s, sam, MONDAY_9AM.date()) is None  # all of Sam's open tasks have dates
+
+    switch_on(db, undated_nudge_enabled=True)
+    with db() as s:
+        notices.send_due(s, TUESDAY_9AM + timedelta(days=1))  # not the chosen day: nothing
+        assert s.scalars(select(Notice).where(Notice.kind == "undated_nudge")).all() == []
+        notices.send_due(s, MONDAY_9AM)
+        notices.send_due(s, MONDAY_9AM + timedelta(hours=1))  # a second check that morning sends nothing new
+        rows = s.scalars(select(Notice).where(Notice.kind == "undated_nudge")).all()
+        assert [r.user.name for r in rows] == ["Russell"]
+
+
+def test_the_undated_nudge_starts_switched_off(db, slack_bot, tasks):
+    with db() as s:
+        notices.send_due(s, MONDAY_9AM)
+        assert s.scalars(select(Notice).where(Notice.kind == "undated_nudge")).all() == []

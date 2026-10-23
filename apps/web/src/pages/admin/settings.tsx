@@ -109,6 +109,8 @@ function Form({ initial }: { initial: Settings }) {
         email_instructions: form.email_instructions,
         reminders_enabled: form.reminders_enabled,
         reminder_hour: form.reminder_hour,
+        undated_nudge_enabled: form.undated_nudge_enabled,
+        undated_nudge_weekday: form.undated_nudge_weekday,
         weekly_digest_enabled: form.weekly_digest_enabled,
         digest_weekday: form.digest_weekday,
         digest_hour: form.digest_hour,
@@ -225,6 +227,39 @@ function Form({ initial }: { initial: Settings }) {
             />
           </div>
           <Preview label="Preview my reminder" load={api.reminderPreview} />
+        </div>
+        <div className="grid gap-2">
+          <label className="flex items-center gap-2">
+            <Switch
+              checked={form.undated_nudge_enabled}
+              onCheckedChange={(on) => setForm({ ...form, undated_nudge_enabled: on })}
+              aria-label="Send a weekly nudge about tasks with no due date"
+            />
+            Send a weekly nudge about tasks with no due date
+          </label>
+          <p className="text-xs text-muted-foreground">
+            The daily reminder only covers tasks with a date. Once a week, at the reminder time, each person gets a
+            Slack message listing their open tasks that have none, to tick off or give a date.
+          </p>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="nudge-day">Every</Label>
+            <Select
+              value={String(form.undated_nudge_weekday)}
+              onValueChange={(v) => setForm({ ...form, undated_nudge_weekday: Number(v) })}
+            >
+              <SelectTrigger id="nudge-day" className="w-36 bg-card">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WEEKDAYS.slice(0, 5).map((d, i) => (
+                  <SelectItem key={d} value={String(i)}>
+                    {d}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Preview label="Preview my nudge" load={api.undatedPreview} />
         </div>
         <div className="grid gap-2">
           <label className="flex items-center gap-2">

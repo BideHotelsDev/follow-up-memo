@@ -349,6 +349,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/undated-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Undated Preview
+         * @description Your own weekly nudge about tasks with no due date, as it would read today (nothing is sent).
+         */
+        get: operations["undated_preview_api_admin_undated_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/reminder-preview": {
         parameters: {
             query?: never;
@@ -1446,7 +1466,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "reminder" | "weekly_digest";
+            kind: "reminder" | "weekly_digest" | "undated_nudge";
             /** Person */
             person: string;
             /**
@@ -1716,6 +1736,10 @@ export interface components {
             digest_weekday?: number | null;
             /** Digest Hour */
             digest_hour?: number | null;
+            /** Undated Nudge Enabled */
+            undated_nudge_enabled?: boolean | null;
+            /** Undated Nudge Weekday */
+            undated_nudge_weekday?: number | null;
             /** Quiet Minutes */
             quiet_minutes?: number | null;
             /** Lookback Days */
@@ -1778,6 +1802,10 @@ export interface components {
             digest_weekday: number;
             /** Digest Hour */
             digest_hour: number;
+            /** Undated Nudge Enabled */
+            undated_nudge_enabled: boolean;
+            /** Undated Nudge Weekday */
+            undated_nudge_weekday: number;
             /** Quiet Minutes */
             quiet_minutes: number;
             /** Lookback Days */
@@ -2565,6 +2593,26 @@ export interface operations {
         };
     };
     digest_preview_api_admin_digest_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+        };
+    };
+    undated_preview_api_admin_undated_preview_get: {
         parameters: {
             query?: never;
             header?: never;

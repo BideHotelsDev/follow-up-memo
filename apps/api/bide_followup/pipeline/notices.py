@@ -1,5 +1,5 @@
-"""Scheduled Slack messages (PRD v1.1): each person's reminder of tasks due today or overdue, and the owner's weekly
-digest. The worker calls `send_due` every few minutes; a notice is recorded per person per period, so a repeated call
+"""Scheduled Slack messages (PRD v1.1): each person's reminder of tasks due today or overdue, their weekly nudge
+about open tasks with no due date, and the owner's weekly digest. The worker calls `send_due` every few minutes; a notice is recorded per person per period, so a repeated call
 sends nothing new, and a failed post is retried on the next call until max_attempts.
 """
 
@@ -61,6 +61,41 @@ def reminder_text(session: Session, user: User, today: date) -> str | None:
         lines.append("\n*Due today*")
         lines += [f"• {a.description} (from {a.meeting.title})" for a in now]
     lines.append(f"\n<{app_url('/tasks')}|Open your tasks> to tick them off or change a date.")
+    return "\n".join(lines)
+
+
+NUDGE_LIST = 10
+
+
+def undated_text(session: Session, user: User, today: date) -> str | None:
+    """The weekly nudge for one person: their open tasks with no due date from before today, or None when there are
+    none (the daily reminder only covers dated tasks)."""
+    start = datetime.combine(today, datetime.min.time(), tzinfo=clock.now().tzinfo)
+    items = session.scalars(
+        select(ActionItem)
+        .join(Meeting)
+        .where(
+            ActionItem.status == "open",
+            ActionItem.due_date.is_(None),
+            ActionItem.owner_user_id == user.id,
+            ActionItem.created_at < start,
+        )
+        .order_by(ActionItem.created_at)
+    ).all()
+    if not items:
+        return None
+    one = len(items) == 1
+    first = user.name.split()[0]
+    lines = [f"*{first}, these tasks from meetings have no due date and are still open:*"]
+    if one:
+        lines = [f"*{first}, this task from a meeting has no due date and is still open:*"]
+    lines += [
+        f"• {a.description} (from {a.meeting.title}, {_day(a.created_at.astimezone(start.tzinfo).date())})"
+        for a in items[:NUDGE_LIST]
+    ]
+    if len(items) > NUDGE_LIST:
+        lines.append(f"• and {len(items) - NUDGE_LIST} more")
+    lines.append(f"\n<{app_url('/tasks')}|Open your tasks> to tick off what's done or give the rest a date.")
     return "\n".join(lines)
 
 
@@ -158,6 +193,13 @@ def send_reminders(session: Session, today: date) -> list[Notice]:
     return [n for n in sent if n is not None]
 
 
+def send_undated(session: Session, today: date) -> list[Notice]:
+    people = session.scalars(select(User).where(User.is_active).order_by(User.name)).all()
+    sent = [_send(session, "undated_nudge", p, today, undated_text(session, p, today)) for p in people]
+    session.commit()
+    return [n for n in sent if n is not None]
+
+
 def send_digest(session: Session, today: date) -> Notice | None:
     owner = catalog.owner(session)
     if owner is None:
@@ -172,10 +214,17 @@ def _in_window(now: datetime, hour: int) -> bool:
 
 
 def send_due(session: Session, now: datetime | None = None) -> None:
-    """Send whatever is due at this moment (UK time): weekday reminders and the weekly digest."""
+    """Send whatever is due at this moment (UK time): weekday reminders, the weekly undated-task nudge and the weekly
+    digest."""
     now = now or clock.now()
     get = lambda key: runtime_settings.get(session, key)
     if get("reminders_enabled") and now.weekday() < 5 and _in_window(now, get("reminder_hour")):
         send_reminders(session, now.date())
+    if (
+        get("undated_nudge_enabled")
+        and now.weekday() == get("undated_nudge_weekday")
+        and _in_window(now, get("reminder_hour"))
+    ):
+        send_undated(session, now.date())
     if get("weekly_digest_enabled") and now.weekday() == get("digest_weekday") and _in_window(now, get("digest_hour")):
         send_digest(session, now.date())

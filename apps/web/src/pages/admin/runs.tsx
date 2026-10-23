@@ -10,7 +10,7 @@ import { api, HttpError } from "@/lib/api"
 import { day, localDate, time } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-const KIND = { reminder: "Reminder", weekly_digest: "Weekly digest" } as const
+const KIND = { reminder: "Reminder", weekly_digest: "Weekly digest", undated_nudge: "No-date nudge" } as const
 
 function Notices() {
   const { data } = useQuery({ queryKey: ["notices"], queryFn: api.notices, refetchInterval: 60_000 })

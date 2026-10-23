@@ -680,6 +680,28 @@
         }
       }
     },
+    "/api/admin/undated-preview": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Undated Preview",
+        "description": "Your own weekly nudge about tasks with no due date, as it would read today (nothing is sent).",
+        "operationId": "undated_preview_api_admin_undated_preview_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/reminder-preview": {
       "get": {
         "tags": [
@@ -3927,7 +3949,8 @@
             "type": "string",
             "enum": [
               "reminder",
-              "weekly_digest"
+              "weekly_digest",
+              "undated_nudge"
             ],
             "title": "Kind"
           },
@@ -4807,6 +4830,30 @@
             ],
             "title": "Digest Hour"
           },
+          "undated_nudge_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undated Nudge Enabled"
+          },
+          "undated_nudge_weekday": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 6.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Undated Nudge Weekday"
+          },
           "quiet_minutes": {
             "anyOf": [
               {
@@ -4992,6 +5039,14 @@
             "type": "integer",
             "title": "Digest Hour"
           },
+          "undated_nudge_enabled": {
+            "type": "boolean",
+            "title": "Undated Nudge Enabled"
+          },
+          "undated_nudge_weekday": {
+            "type": "integer",
+            "title": "Undated Nudge Weekday"
+          },
           "quiet_minutes": {
             "type": "integer",
             "title": "Quiet Minutes"
@@ -5038,6 +5093,8 @@
           "weekly_digest_enabled",
           "digest_weekday",
           "digest_hour",
+          "undated_nudge_enabled",
+          "undated_nudge_weekday",
           "quiet_minutes",
           "lookback_days",
           "max_attempts",

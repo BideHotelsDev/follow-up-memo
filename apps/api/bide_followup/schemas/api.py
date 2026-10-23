@@ -122,6 +122,8 @@ class SettingsOut(BaseModel):
     weekly_digest_enabled: bool
     digest_weekday: int
     digest_hour: int
+    undated_nudge_enabled: bool
+    undated_nudge_weekday: int
     quiet_minutes: int
     lookback_days: int
     max_attempts: int
@@ -156,6 +158,8 @@ class SettingsIn(BaseModel):
     weekly_digest_enabled: bool | None = None
     digest_weekday: int | None = Field(default=None, ge=0, le=6)
     digest_hour: int | None = Field(default=None, ge=5, le=18)
+    undated_nudge_enabled: bool | None = None
+    undated_nudge_weekday: int | None = Field(default=None, ge=0, le=6)
     quiet_minutes: int | None = Field(default=None, ge=5, le=120)
     lookback_days: int | None = Field(default=None, ge=1, le=14)
     max_attempts: int | None = Field(default=None, ge=1, le=10)
@@ -170,7 +174,7 @@ class SettingsIn(BaseModel):
 
 class NoticeOut(Orm):
     id: uuid.UUID
-    kind: Literal["reminder", "weekly_digest"]
+    kind: Literal["reminder", "weekly_digest", "undated_nudge"]
     person: str
     period: date
     status: Literal["posted", "failed"]
