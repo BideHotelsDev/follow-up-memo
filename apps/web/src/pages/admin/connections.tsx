@@ -156,8 +156,10 @@ function ClaudeCard() {
             </Step>
             <Step n={2} done={Boolean(seen)} title="Create the routine in Claude Code">
               <p className="text-sm text-muted-foreground">
-                New routine, no repository, tools Bash, Read and Write. Put the two values below in the routine’s
-                environment variables (never in the prompt), paste the prompt, and set the schedule.
+                New task, set up manually. Pick a repository (any: without one claude.ai makes a chat task, which
+                can’t reach the app), then edit its cloud environment: network access Custom, the app’s domain in
+                Allowed domains, and the two values below as environment variables (never in the prompt). Paste the
+                prompt and set the schedule.
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <CopyField name="FOLLOWUP_URL" value={data.app_url} />

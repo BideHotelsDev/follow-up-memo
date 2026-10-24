@@ -22,10 +22,13 @@ The routine runs in Anthropic's cloud, so the app must be deployed (Railway) at 
 2. On Railway, set on both services: `EXTRACTION_MODE=routine` and `SERVICE_API_TOKEN=<the token>`.
 3. In Claude Code, create a routine (`/schedule`, or https://claude.ai/code/routines):
    - Schedule: hourly in working hours, e.g. `5 7-19 * * 1-5` (UTC; 08:05–20:05 UK summer time, weekdays).
-   - No repository needed. Tools: Bash, Read, Write.
+   - **New task → Set up manually**, and pick a repository (any, e.g. this one). Without a repository (or an API
+     or GitHub trigger) claude.ai makes a chat task, which has no cloud environment and can't reach the app.
+   - Under Advanced settings → General → Cloud environment, edit the environment: Network access **Custom**, the
+     app's domain in Allowed domains, keeping the default list. (An organisation-shared environment is changed by
+     an Owner under admin settings → Cloud environments.)
    - Environment variables `FOLLOWUP_URL` (the app's address, no trailing slash) and `FOLLOWUP_TOKEN` (the token),
-     set in the routine's environment settings, not in the prompt. If the environment limits outbound network
-     access, allow the app's domain.
+     set in that cloud environment, not in the prompt.
    - Prompt: the contents of `apps/api/bide_followup/prompts/routine.md` (Admin → Connections → Claude has a Copy
      button).
 4. Run the routine once by hand and check Admin → Connections: "Last answer" should update and the queue empty.
