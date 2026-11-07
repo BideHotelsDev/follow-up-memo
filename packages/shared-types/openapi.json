@@ -29,7 +29,7 @@
           "auth"
         ],
         "summary": "Providers",
-        "description": "Which sign-in options the sign-in page shows.",
+        "description": "Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose route still\nworks); the Hub's address also loads the app switcher.",
         "operationId": "providers_api_auth_providers_get",
         "responses": {
           "200": {
@@ -72,10 +72,18 @@
           "auth"
         ],
         "summary": "Logout",
+        "description": "Ends the app's session. With Bide Hub on, the browser goes on to the Hub to end its session too (which\nsigns the person out of the other Bide systems).",
         "operationId": "logout_api_auth_logout_post",
         "responses": {
-          "204": {
-            "description": "Successful Response"
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutOut"
+                }
+              }
+            }
           }
         }
       }
@@ -3529,6 +3537,26 @@
         ],
         "title": "LlmJobOut"
       },
+      "LogoutOut": {
+        "properties": {
+          "redirect": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redirect"
+          }
+        },
+        "type": "object",
+        "required": [
+          "redirect"
+        ],
+        "title": "LogoutOut"
+      },
       "MeetingOut": {
         "properties": {
           "id": {
@@ -4361,12 +4389,29 @@
           "dev": {
             "type": "boolean",
             "title": "Dev"
+          },
+          "bide": {
+            "type": "boolean",
+            "title": "Bide"
+          },
+          "bide_hub_issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bide Hub Issuer"
           }
         },
         "type": "object",
         "required": [
           "google",
-          "dev"
+          "dev",
+          "bide",
+          "bide_hub_issuer"
         ],
         "title": "ProvidersOut"
       },
