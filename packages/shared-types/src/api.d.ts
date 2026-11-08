@@ -30,8 +30,8 @@ export interface paths {
         };
         /**
          * Providers
-         * @description Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose route still
-         *     works); the Hub's address also loads the app switcher.
+         * @description Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose routes are
+         *     then closed; connecting David's Google account still works); the Hub's address also loads the app switcher.
          */
         get: operations["providers_api_auth_providers_get"];
         put?: never;

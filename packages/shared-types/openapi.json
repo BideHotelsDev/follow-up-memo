@@ -29,7 +29,7 @@
           "auth"
         ],
         "summary": "Providers",
-        "description": "Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose route still\nworks); the Hub's address also loads the app switcher.",
+        "description": "Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose routes are\nthen closed; connecting David's Google account still works); the Hub's address also loads the app switcher.",
         "operationId": "providers_api_auth_providers_get",
         "responses": {
           "200": {
