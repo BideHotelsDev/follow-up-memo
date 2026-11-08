@@ -31,6 +31,14 @@ class HealthOut(BaseModel):
 class ProvidersOut(BaseModel):
     google: bool
     dev: bool
+    # Sign in with Bide (Bide Hub); bide_hub_issuer is set only then, and serves the app switcher.
+    bide: bool
+    bide_hub_issuer: str | None
+
+
+class LogoutOut(BaseModel):
+    # Where the browser goes next to end the Bide Hub session too; null when the Hub isn't configured.
+    redirect: str | None
 
 
 class DevLoginIn(BaseModel):

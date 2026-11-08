@@ -16,6 +16,7 @@ import {
 import { useEffect, useState } from "react"
 import { NavLink, Outlet, useLocation } from "react-router-dom"
 
+import { BideAppSwitcher } from "@/components/bide-app-switcher"
 import { SpiralPin, Wordmark } from "@/components/brand"
 import { BIDE_WIDE, CategoryDot } from "@/components/tags"
 import { Button } from "@/components/ui/button"
@@ -197,6 +198,8 @@ export function AppShell({ me }: { me: User }) {
   const reviewer = me.role !== "member"
   const { properties } = useApp()
   const today = useQuery({ queryKey: ["today", scope], queryFn: () => api.today(scope), refetchInterval: 60_000 })
+  const providers = useQuery({ queryKey: ["providers"], queryFn: api.providers, staleTime: Infinity })
+  const hub = providers.data?.bide_hub_issuer
   const counts = today.data?.counts
   const tabs: Tab[] = reviewer
     ? [
@@ -222,6 +225,7 @@ export function AppShell({ me }: { me: User }) {
         <div className="mx-auto max-w-6xl space-y-1 py-2.5 md:pb-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
+              {hub ? <BideAppSwitcher hub={hub} current="meeting-followup" /> : null}
               <SpiralPin className="size-6 shrink-0 text-primary md:size-7" />
               <Wordmark className="text-xl md:text-2xl" showTrademark={false} />
               <span className="hidden truncate text-sm text-muted-foreground sm:inline">Meeting follow-up</span>
@@ -259,8 +263,10 @@ export function AppShell({ me }: { me: User }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onSelect={async () => {
-                      await api.logout()
-                      queryClient.setQueryData(["me"], null)
+                      const { redirect } = await api.logout()
+                      // With Sign in with Bide, the Hub ends its session too and sends the browser back here.
+                      if (redirect) window.location.assign(redirect)
+                      else queryClient.setQueryData(["me"], null)
                     }}
                   >
                     <LogOut className="size-4" /> Sign out

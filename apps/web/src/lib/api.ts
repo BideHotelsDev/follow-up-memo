@@ -3,6 +3,7 @@ import type { Schemas } from "@bide-followup/shared-types"
 export type User = Schemas["UserOut"]
 export type UserIn = Schemas["UserIn"]
 export type Providers = Schemas["ProvidersOut"]
+export type Logout = Schemas["LogoutOut"]
 export type Connections = Schemas["ConnectionsOut"]
 export type Connection = Schemas["ConnectionOut"]
 export type Person = Schemas["PersonOut"]
@@ -91,7 +92,7 @@ export const api = {
   me: () => request<User>("GET", "/auth/me"),
   providers: () => request<Providers>("GET", "/auth/providers"),
   devLogin: (email: string) => request<void>("POST", "/auth/dev-login", { email }),
-  logout: () => request<void>("POST", "/auth/logout"),
+  logout: () => request<Logout>("POST", "/auth/logout"),
 
   app: () => request<AppSettings>("GET", "/app"),
   people: () => request<Person[]>("GET", "/people"),
@@ -149,6 +150,7 @@ export const api = {
 /** Full-page navigations (OAuth redirects), not fetches. */
 export const links = {
   googleSignIn: (next = "/") => `/api/auth/google/login?next=${encodeURIComponent(next)}`,
+  bideSignIn: (next = "/") => `/api/auth/bide/login?next=${encodeURIComponent(next)}`,
   googleConnect: (loginHint?: string) =>
     `/api/auth/google/connect${loginHint ? `?login_hint=${encodeURIComponent(loginHint)}` : ""}`,
   slackInstall: () => "/api/auth/slack/install",

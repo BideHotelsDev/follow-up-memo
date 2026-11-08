@@ -87,10 +87,23 @@ class User(Timestamped, Base):
     role: Mapped[str] = mapped_column(String(16), default="member")
     slack_user_id: Mapped[str | None] = mapped_column(String(32))
     google_sub: Mapped[str | None] = mapped_column(String(64), unique=True)
+    # The person's Bide Hub identity, linked on their first Sign in with Bide (auth_hub.py).
+    bide_hub_sub: Mapped[str | None] = mapped_column(String(64), unique=True)
     # Topics this person owns by default (e.g. "housekeeping", "pricing"); the extraction prompt carries them.
     ownership_areas: Mapped[list[str]] = mapped_column(JsonType, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_sign_in_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+
+
+class HubLogout(Timestamped, Base):
+    """A Bide Hub sign-out the app was told about (back-channel logout). Sessions are signed cookies the server can't
+    delete, so the current-user check refuses a session whose Hub `sid` is listed here, or, for a row with no `sid`,
+    any Hub session of that `sub` that started before created_at. Rows older than SESSION_DAYS are pruned."""
+
+    __tablename__ = "hub_logouts"
+
+    sid: Mapped[str | None] = mapped_column(String(64), index=True)
+    sub: Mapped[str] = mapped_column(String(64), index=True)
 
 
 PROVIDERS = ("google", "slack")

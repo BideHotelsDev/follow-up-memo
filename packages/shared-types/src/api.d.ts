@@ -30,7 +30,8 @@ export interface paths {
         };
         /**
          * Providers
-         * @description Which sign-in options the sign-in page shows.
+         * @description Which sign-in options the sign-in page shows. Sign in with Bide replaces Sign in with Google (whose routes are
+         *     then closed; connecting David's Google account still works); the Hub's address also loads the app switcher.
          */
         get: operations["providers_api_auth_providers_get"];
         put?: never;
@@ -67,7 +68,11 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Logout */
+        /**
+         * Logout
+         * @description Ends the app's session. With Bide Hub on, the browser goes on to the Hub to end its session too (which
+         *     signs the person out of the other Bide systems).
+         */
         post: operations["logout_api_auth_logout_post"];
         delete?: never;
         options?: never;
@@ -1341,6 +1346,11 @@ export interface components {
              */
             created_at: string;
         };
+        /** LogoutOut */
+        LogoutOut: {
+            /** Redirect */
+            redirect: string | null;
+        };
         /** MeetingOut */
         MeetingOut: {
             /**
@@ -1624,6 +1634,10 @@ export interface components {
             google: boolean;
             /** Dev */
             dev: boolean;
+            /** Bide */
+            bide: boolean;
+            /** Bide Hub Issuer */
+            bide_hub_issuer: string | null;
         };
         /** QuestionOut */
         QuestionOut: {
@@ -2115,11 +2129,13 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["LogoutOut"];
+                };
             };
         };
     };

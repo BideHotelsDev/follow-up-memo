@@ -25,6 +25,12 @@ pnpm dev:web                      # http://localhost:5175 (proxies /api to the A
 With `AUTH_DEV_LOGIN=true` the sign-in page lets you sign in as any seeded person (e.g. `kyle@bidehotels.com`, Admin)
 without Google.
 
+To sign in through Bide Hub instead (with the Hub running on port 5190), set `BIDE_HUB_ISSUER=http://localhost:5190`,
+`BIDE_HUB_CLIENT_ID=meeting-followup` and `BIDE_HUB_CLIENT_SECRET=dev-secret-meeting-followup`. The sign-in page then
+shows **Sign in with Bide** in place of Google, the header gets the Hub's app switcher, and signing out ends the Hub
+session too. The app's own rules still apply after the Hub: only people in **People**, on a Bide domain. The Google
+connection for Gmail and Drive (Admin → Connections) is separate and works the same either way.
+
 Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`, and the browser tests
 (`pnpm --filter @bide-followup/web e2e`, with the mock services and `E2E_BASE_URL` pointing at the app; desktop and
 390 px phone widths, with an axe accessibility check). After changing an API model, run

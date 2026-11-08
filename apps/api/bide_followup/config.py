@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # print(Fernet.generate_key().decode())"). Required before any account is connected.
     token_encryption_key: str = ""
 
+    # Bide Hub, the single sign-on for Bide's systems. With all three set, the sign-in page offers Sign in with Bide
+    # instead of Sign in with Google (auth_hub.py); unset, sign-in works as before.
+    bide_hub_issuer: str = ""
+    bide_hub_client_id: str = ""
+    bide_hub_client_secret: str = ""
+
     # One Google OAuth app (Internal to the Bide Workspace) for both app sign-in and connecting David's account.
     google_client_id: str = ""
     google_client_secret: str = ""

@@ -10,11 +10,20 @@ import { Label } from "@/components/ui/label"
 import { api, HttpError, links } from "@/lib/api"
 
 const LOGIN_ERRORS: Record<string, string> = {
-  not_registered: "That account isn't on the list. Ask Kyle to add you.",
+  not_registered: "That account isn't on the list. Ask Kyle or another Admin to add you.",
   domain_not_allowed: "Sign in with your Bide Google account.",
   invalid_state: "The sign-in took too long or was opened in another tab. Try again.",
   invalid_token: "Google's answer couldn't be checked. Try again.",
   google_error: "Google didn't complete the sign-in. Try again.",
+}
+
+/** With Sign in with Bide, the same codes come from the Hub's answer, plus the Hub's own refusals. */
+const BIDE_LOGIN_ERRORS: Record<string, string> = {
+  ...LOGIN_ERRORS,
+  domain_not_allowed: "Meeting follow-up is for Bide email addresses. Sign in to Bide with your work account.",
+  invalid_token: "Bide's answer couldn't be checked. Try again.",
+  hub_denied: "Your Bide account doesn't have Meeting follow-up. Ask Kyle or another Admin to add you.",
+  hub_error: "Bide didn't complete the sign-in. Try again.",
 }
 
 export default function SignInPage() {
@@ -35,10 +44,16 @@ export default function SignInPage() {
         </div>
         {loginError ? (
           <Alert variant="destructive">
-            <AlertDescription>{LOGIN_ERRORS[loginError] ?? "Sign-in failed. Try again."}</AlertDescription>
+            <AlertDescription>
+              {(providers.data?.bide ? BIDE_LOGIN_ERRORS : LOGIN_ERRORS)[loginError] ?? "Sign-in failed. Try again."}
+            </AlertDescription>
           </Alert>
         ) : null}
-        {providers.data?.google ? (
+        {providers.data?.bide ? (
+          <Button asChild size="lg" className="w-full">
+            <a href={links.bideSignIn(params.get("next") ?? "/")}>Sign in with Bide</a>
+          </Button>
+        ) : providers.data?.google ? (
           <Button asChild size="lg" className="w-full">
             <a href={links.googleSignIn(params.get("next") ?? "/")}>Sign in with Google</a>
           </Button>
