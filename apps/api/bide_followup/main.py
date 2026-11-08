@@ -20,6 +20,8 @@ log = logging.getLogger(__name__)
 app = FastAPI(title="Bide Meeting Follow-up", version="0.1.0")
 app.add_exception_handler(DomainError, domain_error_handler)
 
+if missing := settings.missing_deployment_secrets():
+    raise RuntimeError(f"{' and '.join(missing)} must be set when APP_BASE_URL isn't http://localhost")
 if not settings.session_secret:
     log.warning("SESSION_SECRET not set; using a random key, so sessions end when the process restarts")
 app.add_middleware(

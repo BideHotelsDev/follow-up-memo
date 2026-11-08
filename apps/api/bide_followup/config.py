@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,7 +17,8 @@ class Settings(BaseSettings):
 
     # Public URL the browser uses; OAuth callbacks and the links in Slack and emails point here.
     app_base_url: str = "http://localhost:5175"
-    # Signs the session cookie. Empty means a random key per process (sessions reset on restart).
+    # Signs the session cookie. Empty means a random key per process (sessions reset on restart), which is only
+    # allowed locally: outside localhost the API refuses to start without it (main.py).
     session_secret: str = ""
     session_days: int = 14
     # Local development only: sign in by email without Google. Has no effect unless app_base_url is http://localhost.
@@ -29,8 +31,21 @@ class Settings(BaseSettings):
     def bide_domain_list(self) -> list[str]:
         return [d.strip().lower().lstrip("@") for d in self.bide_domains.split(",") if d.strip()]
 
+    @property
+    def is_local(self) -> bool:
+        """app_base_url is http://localhost: local development. Anything else is a deployment (staging or
+        production)."""
+        url = urlsplit(self.app_base_url)
+        return url.scheme == "http" and url.hostname == "localhost"
+
+    def missing_deployment_secrets(self) -> list[str]:
+        """Secrets a deployment can't run without: the session cookie's signing key and the stored tokens' key."""
+        required = {"SESSION_SECRET": self.session_secret, "TOKEN_ENCRYPTION_KEY": self.token_encryption_key}
+        return [] if self.is_local else [name for name, value in required.items() if not value]
+
     # Encrypts the stored Google and Slack tokens (a Fernet key: python -c "from cryptography.fernet import Fernet;
-    # print(Fernet.generate_key().decode())"). Required before any account is connected.
+    # print(Fernet.generate_key().decode())"). Required before any account is connected, and outside localhost the API
+    # refuses to start without it (main.py).
     token_encryption_key: str = ""
 
     # Bide Hub, the single sign-on for Bide's systems. With all three set, the sign-in page offers Sign in with Bide

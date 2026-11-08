@@ -328,3 +328,119 @@ def test_dev_login_unchanged_with_bide_on(client, hub, monkeypatch):
     assert client.get("/api/auth/me").json()["email"] == "kyle@bidehotels.com"
     monkeypatch.setattr(settings, "app_base_url", "https://followup.bidehotels.com")
     assert client.post("/api/auth/dev-login", json={"email": "kyle@bidehotels.com"}).status_code == 404
+
+
+def test_sessions_from_before_the_hub_end_when_it_is_switched_on(client, monkeypatch):
+    """A Google session started before the Hub was switched on has no Hub sid, so it's refused while the Hub is on."""
+    from tests.test_auth import google_round_trip
+
+    google_round_trip(client, monkeypatch, {"sub": "g-1", "email": "sam@bidehotels.com", "email_verified": True})
+    assert client.get("/api/auth/me").status_code == 200
+    monkeypatch.setattr(settings, "bide_hub_issuer", ISSUER)
+    monkeypatch.setattr(settings, "bide_hub_client_id", CLIENT)
+    monkeypatch.setattr(settings, "bide_hub_client_secret", f"dev-secret-{CLIENT}")
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_a_dev_login_session_only_counts_while_dev_login_is_allowed(sign_in, hub, monkeypatch):
+    client = sign_in("kyle@bidehotels.com")
+    assert client.get("/api/auth/me").status_code == 200
+    monkeypatch.setattr(settings, "auth_dev_login", False)
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_an_id_token_without_a_sid_is_refused(client, hub):
+    resp = round_trip(client, hub, sub="hub-kyle", email="kyle@bidehotels.com", sid=None)
+    assert resp.headers["location"] == "/?login_error=invalid_token"
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_changing_a_persons_email_unlinks_their_sign_in_identities(sign_in, db, hub):
+    with db() as s:
+        russell = s.query(User).filter_by(email="russell@bidehotels.com").one()
+        russell.bide_hub_sub, russell.google_sub = "hub-russell", "g-russell"
+        s.commit()
+        russell_id = russell.id
+    client = sign_in("kyle@bidehotels.com")
+    person = next(p for p in client.get("/api/admin/people").json() if p["id"] == str(russell_id))
+
+    # Other changes (or the same address in other case) keep the links.
+    assert client.put(f"/api/admin/people/{russell_id}", json={**person, "name": "Russ"}).status_code == 200
+    resp = client.put(f"/api/admin/people/{russell_id}", json={**person, "email": "RUSSELL@bidehotels.com"})
+    assert resp.status_code == 200
+    with db() as s:
+        assert (s.get(User, russell_id).bide_hub_sub, s.get(User, russell_id).google_sub) == (
+            "hub-russell",
+            "g-russell",
+        )
+
+    resp = client.put(f"/api/admin/people/{russell_id}", json={**person, "email": "russell.new@bidehotels.com"})
+    assert resp.status_code == 200
+    with db() as s:
+        assert (s.get(User, russell_id).bide_hub_sub, s.get(User, russell_id).google_sub) == (None, None)
+
+
+def disable_token(sub: str, **extra) -> str:
+    """What the Hub sends when an admin switches someone off: the logout event plus account-disabled, no sid."""
+    events = {auth_hub.BACKCHANNEL_EVENT: {}, auth_hub.ACCOUNT_DISABLED_EVENT: {}}
+    return logout_token(**{"sub": sub, "events": events, **extra})
+
+
+def test_account_disabled_on_the_hub_switches_the_person_off(client, db, hub, monkeypatch):
+    from datetime import timedelta
+
+    from bide_followup import clock
+    from bide_followup.models import AuditLog
+    from tests.conftest import NOW
+
+    round_trip(client, hub, sub="hub-sam", email="sam@bidehotels.com", sid="sid-a")
+    assert client.get("/api/auth/me").status_code == 200
+    resp = client.post("/api/auth/bide/backchannel-logout", data={"logout_token": disable_token("hub-sam")})
+    assert resp.status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+    with db() as s:
+        sam = s.query(User).filter_by(email="sam@bidehotels.com").one()
+        assert sam.is_active is False and sam.bide_hub_sub == "hub-sam"
+        (entry,) = s.query(AuditLog).filter_by(entity="user").all()
+        assert (entry.entity_id, entry.action, entry.user_id) == (sam.id, "update", None)
+        assert entry.before == {"is_active": True}
+        assert entry.after == {"is_active": False, "reason": "bide_hub_account_disabled"}
+
+    # Signing in again doesn't bring them back: that's an Admin's call here.
+    monkeypatch.setattr(clock, "now", lambda: NOW + timedelta(minutes=5))
+    resp = round_trip(client, hub, sub="hub-sam", email="sam@bidehotels.com", sid="sid-b")
+    assert resp.headers["location"] == "/?login_error=not_registered"
+    with db() as s:
+        s.query(User).filter_by(email="sam@bidehotels.com").one().is_active = True
+        s.commit()
+    round_trip(client, hub, sub="hub-sam", email="sam@bidehotels.com", sid="sid-c")
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_account_disabled_matches_by_hub_identity_only(client, db, hub):
+    """No one linked to that sub: nothing changes and the Hub still hears it went through. Never by email."""
+    with db() as s:
+        s.query(User).filter_by(email="sam@bidehotels.com").one().bide_hub_sub = "hub-sam"
+        s.commit()
+    token = disable_token("hub-nobody", email="sam@bidehotels.com")
+    assert client.post("/api/auth/bide/backchannel-logout", data={"logout_token": token}).status_code == 200
+    with db() as s:
+        assert s.query(User).filter_by(is_active=False).count() == 0
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        lambda: disable_token("hub-sam", aud="holiday-tracker"),
+        lambda: disable_token("hub-sam", nonce="n"),
+        lambda: disable_token("hub-sam", key=OTHER_KEY),
+        lambda: logout_token(sub="hub-sam", events={auth_hub.ACCOUNT_DISABLED_EVENT: {}}),
+    ],
+    ids=["aud", "nonce", "signature", "no-logout-event"],
+)
+def test_an_unverified_account_disabled_token_changes_nothing(client, db, hub, token):
+    round_trip(client, hub, sub="hub-sam", email="sam@bidehotels.com", sid="sid-a")
+    assert client.post("/api/auth/bide/backchannel-logout", data={"logout_token": token()}).status_code == 400
+    assert client.get("/api/auth/me").status_code == 200
+    with db() as s:
+        assert s.query(User).filter_by(email="sam@bidehotels.com").one().is_active is True

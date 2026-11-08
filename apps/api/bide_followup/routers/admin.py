@@ -72,6 +72,10 @@ def update_person(user_id: uuid.UUID, body: UserIn, session: SessionDep, admin: 
         raise not_found("Person")
     if user.id == admin.id and (body.role != admin.role or not body.is_active):
         raise DomainError("own_access", "You can't change your own role or switch yourself off")
+    if body.email.lower() != user.email.lower():
+        # The sign-in identities were linked through the old address: the new one links afresh on its next sign-in.
+        user.bide_hub_sub = None
+        user.google_sub = None
     for key, value in body.model_dump().items():
         setattr(user, key, value)
     try:
