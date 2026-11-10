@@ -57,7 +57,9 @@ def test_changing_an_email_signs_out_the_old_address(sign_in, client, db, monkey
         session.commit()
     sign_in("kyle@bidehotels.com")
     sam = _people(client)["Sam"]
-    assert client.put(f"/api/admin/people/{sam['id']}", json={**sam, "email": "samuel@bidehotels.com"}).status_code == 200
+    assert (
+        client.put(f"/api/admin/people/{sam['id']}", json={**sam, "email": "samuel@bidehotels.com"}).status_code == 200
+    )
 
     assert sams_browser.get("/api/auth/me").status_code == 401
     with db() as session:

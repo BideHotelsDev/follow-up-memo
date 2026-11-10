@@ -74,10 +74,7 @@ def _keep_someone_in_charge(session: Session, leaving: User) -> None:
     (Postgres; SQLite has no row locks), so two admins switching each other off at once can't both pass: the second
     waits for the first and then sees its change."""
     rows = session.execute(
-        select(User.id, User.is_active, User.role)
-        .where(User.role.in_(IN_CHARGE))
-        .order_by(User.id)
-        .with_for_update()
+        select(User.id, User.is_active, User.role).where(User.role.in_(IN_CHARGE)).order_by(User.id).with_for_update()
     ).all()
     if not any(r.is_active and r.id != leaving.id for r in rows):
         raise DomainError("last_admin", "Follow-up needs at least one active owner or admin")
