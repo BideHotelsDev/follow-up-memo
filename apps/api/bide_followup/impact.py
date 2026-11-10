@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from bide_followup import catalog, clock, runtime_settings
 from bide_followup.catalog import BIDE_WIDE
 from bide_followup.integrations import llm
-from bide_followup.models import ActionItem, AuditLog, Meeting, Run, User
+from bide_followup.models import ActionItem, AuditLog, Meeting, Run
 from bide_followup.schemas.api import (
     ImpactActions,
     ImpactDrafts,
@@ -196,7 +196,7 @@ def compute(session: Session, weeks: int = 8, prop: str | None = None) -> Impact
             item_ids.discard(log.entity_id)  # count each task once
 
     # How often David uses the app: days in the last week with something done by him.
-    david = session.scalar(select(User).where(User.role == "owner").order_by(User.created_at))
+    david = catalog.owner(session)  # active owners only, like everywhere else
     active_days = 0
     if david is not None:
         since = clock.utcnow() - timedelta(days=7)

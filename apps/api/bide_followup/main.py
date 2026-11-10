@@ -22,6 +22,8 @@ app.add_exception_handler(DomainError, domain_error_handler)
 
 if missing := settings.missing_deployment_secrets():
     raise RuntimeError(f"{' and '.join(missing)} must be set when APP_BASE_URL isn't http://localhost")
+if partial := settings.partial_hub_settings():
+    raise RuntimeError(f"Bide Hub is half configured: set {' and '.join(partial)} too, or unset all BIDE_HUB_* settings")
 if not settings.session_secret:
     log.warning("SESSION_SECRET not set; using a random key, so sessions end when the process restarts")
 app.add_middleware(

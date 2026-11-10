@@ -38,6 +38,17 @@ class Settings(BaseSettings):
         url = urlsplit(self.app_base_url)
         return url.scheme == "http" and url.hostname == "localhost"
 
+    def partial_hub_settings(self) -> list[str]:
+        """The BIDE_HUB_* settings that are missing when some (not all) are set. With one missing, Sign in with Bide
+        would silently switch off and Google sign-in come back, for people switched off in the Hub too."""
+        hub = {
+            "BIDE_HUB_ISSUER": self.bide_hub_issuer,
+            "BIDE_HUB_CLIENT_ID": self.bide_hub_client_id,
+            "BIDE_HUB_CLIENT_SECRET": self.bide_hub_client_secret,
+        }
+        missing = [name for name, value in hub.items() if not value]
+        return missing if len(missing) < len(hub) else []
+
     def missing_deployment_secrets(self) -> list[str]:
         """Secrets a deployment can't run without: the session cookie's signing key and the stored tokens' key."""
         required = {"SESSION_SECRET": self.session_secret, "TOKEN_ENCRYPTION_KEY": self.token_encryption_key}

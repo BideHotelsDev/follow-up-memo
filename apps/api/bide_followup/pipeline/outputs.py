@@ -225,7 +225,7 @@ def _failed(session: Session, meeting: Meeting, type_: str, recipient: str, exc:
 
 
 def _david(session: Session) -> User | None:
-    return session.scalar(select(User).where(User.role == "owner", User.is_active).order_by(User.created_at))
+    return catalog.owner(session)
 
 
 def _store(session: Session, meeting: Meeting, specs: list[dict], types: tuple[str, ...], keep: set) -> None:

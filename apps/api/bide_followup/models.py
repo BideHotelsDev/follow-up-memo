@@ -19,6 +19,7 @@ from sqlalchemy import (
     TypeDecorator,
     UniqueConstraint,
     Uuid,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -80,7 +81,11 @@ class User(Timestamped, Base):
     """David = owner; Russell, Sam = member; Kyle = admin. Sign-in is invite-only: a person must have a row here."""
 
     __tablename__ = "users"
-    __table_args__ = (CheckConstraint(_in("role", ROLES), name="role"),)
+    __table_args__ = (
+        CheckConstraint(_in("role", ROLES), name="role"),
+        # Sign-in matches emails ignoring case, so two rows differing only by case would be ambiguous.
+        Index("uq_users_email_lower", text("lower(email)"), unique=True),
+    )
 
     email: Mapped[str] = mapped_column(String(254), unique=True)
     name: Mapped[str] = mapped_column(String(120))
@@ -93,6 +98,9 @@ class User(Timestamped, Base):
     ownership_areas: Mapped[list[str]] = mapped_column(JsonType, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_sign_in_at: Mapped[datetime | None] = mapped_column(UtcDateTime())
+    # Sessions started before this are refused: set when the email changes (whoever signed in under the old address
+    # may not be this person) and when the person is switched off (so switching them on doesn't revive old sessions).
+    sessions_valid_after: Mapped[datetime | None] = mapped_column(UtcDateTime())
 
 
 class HubLogout(Timestamped, Base):
