@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -72,3 +76,27 @@ def test_logout(sign_in):
     assert client.get("/api/auth/me").json()["role"] == "owner"
     client.post("/api/auth/logout")
     assert client.get("/api/auth/me").status_code == 401
+
+
+def _start_app(**env: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, "-c", "import bide_followup.main"],
+        cwd=Path(__file__).parents[1],
+        env=os.environ | env,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+
+
+def test_a_deployment_refuses_to_start_without_its_secrets():
+    """Outside localhost, a random session key or no token key won't do: staging and production both need them."""
+    deployed = {"APP_BASE_URL": "https://followup.bidehotels.com"}
+    refused = _start_app(**deployed, SESSION_SECRET="", TOKEN_ENCRYPTION_KEY="")
+    assert refused.returncode != 0 and "SESSION_SECRET and TOKEN_ENCRYPTION_KEY must be set" in refused.stderr
+    refused = _start_app(**deployed, SESSION_SECRET="s3cret", TOKEN_ENCRYPTION_KEY="")
+    assert refused.returncode != 0 and "TOKEN_ENCRYPTION_KEY must be set" in refused.stderr
+    assert _start_app(**deployed, SESSION_SECRET="s3cret", TOKEN_ENCRYPTION_KEY="k").returncode == 0
+    local = _start_app(APP_BASE_URL="http://localhost:5175", SESSION_SECRET="", TOKEN_ENCRYPTION_KEY="")
+    assert local.returncode == 0

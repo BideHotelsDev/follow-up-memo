@@ -28,10 +28,12 @@ from bide_followup import clock
 from bide_followup.auth import LoginError, _sign_in, hub_configured, redirect_uri, safe_next, start_session
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
-from bide_followup.models import HubLogout, User
+from bide_followup.models import AuditLog, HubLogout, User
 
 CALLBACK_PATH = "/api/auth/bide/callback"
 BACKCHANNEL_EVENT = "http://schemas.openid.net/event/backchannel-logout"
+# Sent alongside BACKCHANNEL_EVENT (with a sub and no sid) when a Hub admin switches someone off.
+ACCOUNT_DISABLED_EVENT = "urn:bide:hub:account-disabled"
 # The Hub's answers on the callback that mean "you can't open this app" rather than "something broke".
 DENIED_ERRORS = ("access_denied", "login_required")
 
@@ -168,6 +170,8 @@ def callback(
             raise LoginError("invalid_state")
         body = exchange_code(code, expected["verifier"])
         claims = verify(body["id_token"])
+        if not claims.get("sid"):
+            raise LoginError("invalid_token")  # with the Hub on, a session without its sid isn't accepted
         user = resolve_user(session, claims, expected["nonce"])
     except LoginError as exc:
         return RedirectResponse(f"/?login_error={exc.code}", status_code=303)
@@ -178,7 +182,9 @@ def callback(
 
 @router.post("/backchannel-logout", include_in_schema=False)
 def backchannel_logout(session: SessionDep, logout_token: Annotated[str, Form()]) -> None:
-    """The Hub, server to server, when someone signs out anywhere, signs out everywhere or is switched off."""
+    """The Hub, server to server, when someone signs out anywhere, signs out everywhere or is switched off. Switched
+    off, the token also carries ACCOUNT_DISABLED_EVENT: the person linked to that Hub identity (by sub only, never by
+    email) is switched off here too, with an audit entry. Switching them back on is an Admin's job in the app."""
     _require_hub()
     try:
         claims = verify(logout_token)
@@ -192,4 +198,18 @@ def backchannel_logout(session: SessionDep, logout_token: Annotated[str, Form()]
         delete(HubLogout).where(HubLogout.created_at < clock.utcnow() - timedelta(days=settings.session_days))
     )
     session.add(HubLogout(sid=claims.get("sid"), sub=claims["sub"]))
+    if ACCOUNT_DISABLED_EVENT in events:
+        user = session.scalar(select(User).where(User.bide_hub_sub == claims["sub"]))
+        if user is not None and user.is_active:
+            user.is_active = False
+            session.add(
+                AuditLog(
+                    user_id=None,
+                    entity="user",
+                    entity_id=user.id,
+                    action="update",
+                    before={"is_active": True},
+                    after={"is_active": False, "reason": "bide_hub_account_disabled"},
+                )
+            )
     session.commit()

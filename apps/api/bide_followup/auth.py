@@ -38,9 +38,11 @@ class LoginError(Exception):
         self.code = code
 
 
-def start_session(request: Request, user: User, hub_sid: str | None = None) -> None:
+def start_session(request: Request, user: User, hub_sid: str | None = None, dev: bool = False) -> None:
     request.session.clear()
     request.session["user_id"] = str(user.id)
+    if dev:
+        request.session["dev"] = True
     if hub_sid:
         request.session["hub_sid"] = hub_sid
         request.session["signed_in_at"] = clock.utcnow().isoformat()
@@ -64,10 +66,18 @@ def _hub_signed_out(session: Session, request: Request, user: User) -> bool:
     return session.scalar(select(HubLogout.id).where(ended).limit(1)) is not None
 
 
+def _not_from_hub(request: Request) -> bool:
+    """With Bide Hub on, only a Sign in with Bide session (it carries the Hub sid) counts, so Google sessions from
+    before the Hub end. A local dev-login session still counts while dev login itself is allowed (localhost only)."""
+    if not hub_configured() or request.session.get("hub_sid"):
+        return False
+    return not (request.session.get("dev") and dev_login_enabled())
+
+
 def current_user(request: Request, session: SessionDep) -> User:
     user_id = request.session.get("user_id")
     user = session.get(User, _uuid(user_id)) if user_id else None
-    if user is None or not user.is_active or _hub_signed_out(session, request, user):
+    if user is None or not user.is_active or _not_from_hub(request) or _hub_signed_out(session, request, user):
         raise HTTPException(status_code=401, detail="not signed in")
     return user
 
@@ -233,7 +243,7 @@ def google_callback(
 
 
 def dev_login_enabled() -> bool:
-    return settings.auth_dev_login and settings.app_base_url.startswith("http://localhost")
+    return settings.auth_dev_login and settings.is_local
 
 
 @router.get("/providers")
@@ -256,7 +266,7 @@ def dev_login(request: Request, session: SessionDep, body: DevLoginIn) -> None:
     user = session.scalar(select(User).where(func.lower(User.email) == body.email.lower(), User.is_active))
     if user is None:
         raise HTTPException(status_code=403, detail="not registered")
-    start_session(request, user)
+    start_session(request, user, dev=True)
 
 
 @router.get("/me")
