@@ -18,14 +18,17 @@ export default function AdminLayout() {
   return (
     <>
       <PageHead title="Admin" lede="Who the app knows, where messages go, and how runs are going." />
-      <nav aria-label="Admin" className="mb-8 flex flex-wrap gap-2">
+      <nav
+        aria-label="Admin"
+        className="-mx-1 mb-8 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 md:flex-wrap md:overflow-visible"
+      >
         {TABS.map(([to, label]) => (
           <NavLink
             key={to}
             to={`/admin/${to}`}
             className={({ isActive }) =>
               cn(
-                "rounded-full border px-3.5 py-1.5 text-sm",
+                "shrink-0 rounded-full border px-3.5 py-1.5 text-sm whitespace-nowrap max-md:py-3",
                 isActive ? "border-foreground bg-foreground text-background" : "bg-card hover:border-foreground/40",
               )
             }
