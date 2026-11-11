@@ -7,7 +7,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
 
-from bide_followup import auth, auth_hub
+from bide_followup import auth, auth_hub, hub_accounts
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, domain_error_handler
@@ -52,6 +52,7 @@ def health(session: SessionDep) -> HealthOut:
 app.include_router(health_router)
 app.include_router(auth.router)
 app.include_router(auth_hub.router)
+app.include_router(hub_accounts.router)
 app.include_router(connections.router)
 app.include_router(admin.router)
 app.include_router(catalog.router)

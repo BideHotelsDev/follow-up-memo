@@ -64,6 +64,18 @@ class Settings(BaseSettings):
     bide_hub_issuer: str = ""
     bide_hub_client_id: str = ""
     bide_hub_client_secret: str = ""
+    # With Sign in with Bide on, also let the Hub manage who has an account here and with which role (hub_accounts.py).
+    # Off until an operator turns it on; then the Hub imports the accounts and Admin → People goes read-only for them.
+    bide_hub_manages_accounts: bool = False
+
+    @property
+    def accounts_managed_by_hub(self) -> bool:
+        return bool(
+            self.bide_hub_issuer
+            and self.bide_hub_client_id
+            and self.bide_hub_client_secret
+            and self.bide_hub_manages_accounts
+        )
 
     # One Google OAuth app (Internal to the Bide Workspace) for both app sign-in and connecting David's account.
     google_client_id: str = ""

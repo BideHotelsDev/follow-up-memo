@@ -134,6 +134,7 @@ def test_providers_offer_bide_instead_of_google(client, hub):
         "dev": True,
         "bide": True,
         "bide_hub_issuer": ISSUER,
+        "accounts_managed_by_hub": False,
     }
 
 
@@ -301,6 +302,7 @@ def test_flag_off_keeps_the_old_sign_in(client, monkeypatch):
         "dev": True,
         "bide": False,
         "bide_hub_issuer": None,
+        "accounts_managed_by_hub": False,
     }
     assert client.get("/api/auth/bide/login", follow_redirects=False).status_code == 404
     assert client.get("/api/auth/bide/callback", params={"code": "c", "state": "s"}).status_code == 404

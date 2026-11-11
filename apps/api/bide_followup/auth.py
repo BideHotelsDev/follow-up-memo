@@ -281,6 +281,7 @@ def providers() -> ProvidersOut:
         dev=dev_login_enabled(),
         bide=hub,
         bide_hub_issuer=settings.bide_hub_issuer.rstrip("/") if hub else None,
+        accounts_managed_by_hub=settings.accounts_managed_by_hub,
     )
 
 

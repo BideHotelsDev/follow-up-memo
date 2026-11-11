@@ -4404,6 +4404,11 @@
               }
             ],
             "title": "Bide Hub Issuer"
+          },
+          "accounts_managed_by_hub": {
+            "type": "boolean",
+            "title": "Accounts Managed By Hub",
+            "default": false
           }
         },
         "type": "object",

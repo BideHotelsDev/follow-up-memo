@@ -8,7 +8,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from bide_followup import auth, clock, runtime_settings
+from bide_followup import auth, clock, hub_accounts, runtime_settings
 from bide_followup.db import SessionDep
 from bide_followup.errors import DomainError, not_found
 from bide_followup.models import ChannelMap, Notice, Run, SkipRule, User
@@ -56,8 +56,27 @@ def list_people(session: SessionDep, _: Admin) -> list[UserOut]:
     return [UserOut.model_validate(u) for u in session.scalars(select(User).order_by(User.name))]
 
 
+def _hub_manages(user: User | None, body: UserIn) -> None:
+    """While Bide Hub manages accounts, who has one and with which role is set there: only what is Follow-up's own
+    (Slack ID, ownership areas) can still be changed here."""
+    if not hub_accounts.managed():
+        return
+    if user is None:
+        raise DomainError("managed_by_hub", "People are added in Bide Hub now (Admin → People there).")
+    if (body.email.lower(), body.name, body.role, body.is_active) != (
+        user.email.lower(),
+        user.name,
+        user.role,
+        user.is_active,
+    ):
+        raise DomainError(
+            "managed_by_hub", "Email, name, role and on/off are set in Bide Hub now. Slack ID and areas stay here."
+        )
+
+
 @router.post("/people", status_code=201)
 def add_person(body: UserIn, session: SessionDep, _: Admin) -> UserOut:
+    _hub_manages(None, body)
     if session.scalar(select(User).where(func.lower(User.email) == body.email)):
         raise DomainError("email_taken", f"{body.email} is already on the list")
     user = User(**body.model_dump())
@@ -85,6 +104,7 @@ def update_person(user_id: uuid.UUID, body: UserIn, session: SessionDep, admin: 
     user = session.get(User, user_id)
     if user is None:
         raise not_found("Person")
+    _hub_manages(user, body)
     if user.id == admin.id and (body.role != admin.role or not body.is_active):
         raise DomainError("own_access", "You can't change your own role or switch yourself off")
     if user.is_active and user.role in IN_CHARGE and not (body.is_active and body.role in IN_CHARGE):
