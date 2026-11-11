@@ -39,6 +39,9 @@ BACKCHANNEL_EVENT = "http://schemas.openid.net/event/backchannel-logout"
 ACCOUNT_DISABLED_EVENT = "urn:bide:hub:account-disabled"
 PROVISIONING_PURPOSE = "bide-hub-provisioning"
 PROVISIONING_MAX_SECONDS = 120
+# A logout token's media type (Back-Channel Logout 1.0 §2.4). When the `typ` header is present it must be one of these,
+# so no other JWT the Hub signs (an ID token is "JWT") can pass for a logout.
+LOGOUT_TYP = frozenset({"logout+jwt", "application/logout+jwt"})
 ALGORITHMS = ["RS256"]  # the Hub signs with RS256 only; refusing anything else rules out algorithm confusion
 
 
@@ -235,6 +238,9 @@ class HubClient:
         """OIDC Back-Channel Logout 1.0 plus the Bide extensions: the logout event, no nonce, a `sub`; `logout_at` (when
         it really happened) and the account-disabled event. Raises InvalidToken; answer 400 then."""
         claims = self._decode(token, self.client_id, ["sub"])
+        typ = jwt.get_unverified_header(token).get("typ")  # the signature has been checked by now
+        if typ is not None and str(typ).lower() not in LOGOUT_TYP:
+            raise InvalidToken(f"not a logout token (typ {typ!r})")
         events = claims.get("events")
         if not isinstance(events, dict) or BACKCHANNEL_EVENT not in events:
             raise InvalidToken("not a logout token (no back-channel logout event)")

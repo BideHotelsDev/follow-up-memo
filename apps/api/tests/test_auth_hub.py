@@ -24,8 +24,8 @@ KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
-def sign(claims: dict, key=KEY, kid="k1") -> str:
-    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": kid})
+def sign(claims: dict, key=KEY, kid="k1", typ: str | None = None) -> str:
+    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": kid} | ({"typ": typ} if typ else {}))
 
 
 class Hub(FakeHub):
@@ -98,7 +98,7 @@ def logout_token(key=KEY, **extra) -> str:
         "events": {auth_hub.BACKCHANNEL_EVENT: {}},
         **extra,
     }
-    return sign({k: v for k, v in body.items() if v is not None}, key)
+    return sign({k: v for k, v in body.items() if v is not None}, key, typ="logout+jwt")
 
 
 def test_sign_in_with_bide(client, db, hub):
