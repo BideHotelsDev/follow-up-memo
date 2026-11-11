@@ -3,19 +3,20 @@ and the token endpoint is a patched httpx.post."""
 
 import base64
 import hashlib
-import json
 import time
 from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
 
+import httpx
 import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
-from bide_followup import auth_hub
+from bide_followup import auth_hub, clock
+from bide_followup._vendor.bide_hub_client.testing import FakeHub
 from bide_followup.config import settings
 from bide_followup.models import User
-from tests.conftest import NOW, FakeResponse
+from tests.conftest import NOW
 
 ISSUER = "http://hub.test"
 CLIENT = "meeting-followup"
@@ -23,19 +24,28 @@ KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 OTHER_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 
 
-def sign(claims: dict, key=KEY, kid="k1") -> str:
-    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": kid})
+def sign(claims: dict, key=KEY, kid="k1", typ: str | None = None) -> str:
+    return jwt.encode(claims, key, algorithm="RS256", headers={"kid": kid} | ({"typ": typ} if typ else {}))
 
 
-class Hub:
+class Hub(FakeHub):
+    """The shared fake Hub (bide-hub-client's testing.FakeHub: discovery, JWKS, token endpoint over an httpx
+    MockTransport), with a token endpoint that answers with whatever ID token claims the test set and records what the
+    app sent."""
+
     def __init__(self) -> None:
+        super().__init__(issuer=ISSUER, client_id=CLIENT, client_secret=f"dev-secret-{CLIENT}", key=KEY, kid="k1")
         self.token_requests: list[dict] = []
         self.id_claims: dict = {}
+        self.id_key = KEY
 
-    def token(self, url, **kwargs):
-        assert url == f"{ISSUER}/oauth/token"
-        self.token_requests.append(kwargs)
-        return FakeResponse({"id_token": sign(self.id_claims), "access_token": "at", "token_type": "Bearer"})
+    def _token(self, request: httpx.Request) -> httpx.Response:
+        form = {k: v[0] for k, v in parse_qs(request.content.decode()).items()}
+        user, _, password = base64.b64decode(request.headers["authorization"].split()[1]).decode().partition(":")
+        self.token_requests.append({"auth": (user, password), "data": form})
+        return httpx.Response(
+            200, json={"id_token": sign(self.id_claims, self.id_key), "access_token": "at", "token_type": "Bearer"}
+        )
 
 
 @pytest.fixture
@@ -43,23 +53,10 @@ def hub(monkeypatch):
     monkeypatch.setattr(settings, "bide_hub_issuer", ISSUER + "/")
     monkeypatch.setattr(settings, "bide_hub_client_id", CLIENT)
     monkeypatch.setattr(settings, "bide_hub_client_secret", f"dev-secret-{CLIENT}")
-    monkeypatch.setattr(
-        auth_hub,
-        "discovery",
-        lambda: {
-            "issuer": ISSUER,
-            "authorization_endpoint": f"{ISSUER}/oauth/authorize",
-            "token_endpoint": f"{ISSUER}/oauth/token",
-            "jwks_uri": f"{ISSUER}/oauth/jwks",
-        },
-    )
-    jwk = {**json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(KEY.public_key())), "kid": "k1", "use": "sig"}
-    monkeypatch.setattr(jwt.PyJWKClient, "fetch_data", lambda self: {"keys": [jwk]})
-    auth_hub._jwks.cache_clear()
-    mock = Hub()
-    monkeypatch.setattr(auth_hub.httpx, "post", mock.token)
-    yield mock
-    auth_hub._jwks.cache_clear()
+    fake = Hub()
+    client = fake.client(now=lambda: clock.utcnow().timestamp())
+    monkeypatch.setattr(auth_hub, "hub", lambda: client)
+    return fake
 
 
 def claims(**extra) -> dict:
@@ -101,7 +98,7 @@ def logout_token(key=KEY, **extra) -> str:
         "events": {auth_hub.BACKCHANNEL_EVENT: {}},
         **extra,
     }
-    return sign({k: v for k, v in body.items() if v is not None}, key)
+    return sign({k: v for k, v in body.items() if v is not None}, key, typ="logout+jwt")
 
 
 def test_sign_in_with_bide(client, db, hub):
@@ -164,9 +161,8 @@ def test_token_for_someone_else_is_refused(client, hub, bad):
     assert client.get("/api/auth/me").status_code == 401
 
 
-def test_token_signed_by_another_key_is_refused(client, hub, monkeypatch):
-    monkeypatch.setattr(hub, "token", lambda url, **k: FakeResponse({"id_token": sign(hub.id_claims, OTHER_KEY)}))
-    monkeypatch.setattr(auth_hub.httpx, "post", hub.token)
+def test_token_signed_by_another_key_is_refused(client, hub):
+    hub.id_key = OTHER_KEY
     resp = round_trip(client, hub, sub="hub-sam", email="sam@bidehotels.com")
     assert resp.headers["location"] == "/?login_error=invalid_token"
 
@@ -346,7 +342,7 @@ def test_google_sign_in_is_closed_with_bide_on(client, hub, monkeypatch):
     resp = client.get("/api/auth/google/login", params={"next": "//evil.test"}, follow_redirects=False)
     assert resp.headers["location"] == "/api/auth/bide/login?next=%2F"
     # A Google answer that arrives anyway doesn't sign anyone in.
-    monkeypatch.setattr(auth_hub.httpx, "post", lambda *a, **k: pytest.fail("Google's token endpoint was called"))
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: pytest.fail("Google's token endpoint was called"))
     resp = client.get("/api/auth/google/callback", params={"code": "c", "state": "s"}, follow_redirects=False)
     assert resp.status_code == 404
     assert client.get("/api/auth/me").status_code == 401
@@ -473,3 +469,19 @@ def test_an_unverified_account_disabled_token_changes_nothing(client, db, hub, t
     assert client.get("/api/auth/me").status_code == 200
     with db() as s:
         assert s.query(User).filter_by(email="sam@bidehotels.com").one().is_active is True
+
+
+def test_vendored_bide_hub_client_is_unmodified():
+    """bide-hub-client is copied from bide-hub (packages/bide-hub-client/vendor.py): change it there, not here."""
+    from bide_followup._vendor.bide_hub_client import integrity
+
+    assert integrity.check() == []
+
+
+def test_backchannel_logout_when_the_hubs_keys_cant_be_fetched_is_retried_later(client, hub, monkeypatch):
+    """Not a 400 (which says "bad token"): the Hub keeps retrying anything that isn't a 2xx."""
+    monkeypatch.setattr(hub, "handler", lambda request: httpx.Response(503))
+    client2 = hub.client(now=lambda: clock.utcnow().timestamp())
+    monkeypatch.setattr(auth_hub, "hub", lambda: client2)
+    resp = client.post("/api/auth/bide/backchannel-logout", data={"logout_token": logout_token(sub="hub-kyle")})
+    assert resp.status_code == 503

@@ -4,134 +4,72 @@ On when BIDE_HUB_ISSUER, BIDE_HUB_CLIENT_ID and BIDE_HUB_CLIENT_SECRET are all s
 says who someone is and that they may open the app; the app's own rules still apply after that (auth._sign_in:
 invite-only, Bide domains). The Hub identity is linked to the invited person by sub, or the first time by email.
 
+Talking to the Hub (discovery, keys, PKCE, the code exchange, checking every token) is the shared bide-hub-client,
+vendored under _vendor/ (don't edit it here: change it in bide-hub and sync). This module keeps what is the app's own:
+which user a Hub identity is, its session, and what a logout ends.
+
 Sessions stay the app's signed cookie, carrying the Hub `sid`. When someone signs out of the Hub (here or in another
 system) the Hub posts a logout token to /backchannel-logout, which records it in `hub_logouts`; auth.current_user
 then refuses the matching sessions.
 """
 
-import base64
-import hashlib
-import secrets
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from functools import cache
-from typing import Annotated, Any
-from urllib.parse import urlencode
+from typing import Annotated
 
-import httpx
-import jwt
 from fastapi import APIRouter, Form, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from bide_followup import clock
+from bide_followup._vendor.bide_hub_client import (
+    ACCOUNT_DISABLED_EVENT,
+    BACKCHANNEL_EVENT,
+    HubClient,
+    HubDenied,
+    HubError,
+    Identity,
+    InvalidToken,
+    PendingLogin,
+)
 from bide_followup.auth import LoginError, _sign_in, hub_configured, redirect_uri, safe_next, start_session
 from bide_followup.config import settings
 from bide_followup.db import SessionDep
 from bide_followup.models import AuditLog, HubLogout, User
 
+__all__ = ["ACCOUNT_DISABLED_EVENT", "BACKCHANNEL_EVENT", "hub", "router"]
+
 CALLBACK_PATH = "/api/auth/bide/callback"
-BACKCHANNEL_EVENT = "http://schemas.openid.net/event/backchannel-logout"
-# Sent alongside BACKCHANNEL_EVENT (with a sub and no sid) when a Hub admin switches someone off.
-ACCOUNT_DISABLED_EVENT = "urn:bide:hub:account-disabled"
-# The Hub's answers on the callback that mean "you can't open this app" rather than "something broke".
-DENIED_ERRORS = ("access_denied", "login_required")
-# Seconds of clock difference with the Hub tolerated on exp / iat, so a Hub clock a little ahead doesn't refuse tokens.
-LEEWAY = 30
+PENDING = "bide_hub"  # the session key holding the sign-in in progress
 
 router = APIRouter(prefix="/api/auth/bide", tags=["auth"])
 
 
-def issuer() -> str:
-    return settings.bide_hub_issuer.rstrip("/")
-
-
 @cache
-def _discovery(iss: str) -> dict[str, Any]:
-    resp = httpx.get(f"{iss}/.well-known/openid-configuration", timeout=10)
-    resp.raise_for_status()
-    return resp.json()
+def _client(issuer: str, client_id: str, client_secret: str) -> HubClient:
+    # The app's clock (tests freeze it), so a logout's time is capped at the same "now" the sessions are dated by.
+    return HubClient(issuer, client_id, client_secret, now=lambda: clock.utcnow().timestamp())
 
 
-def discovery() -> dict[str, Any]:
-    """The Hub's endpoints, fetched once per process."""
-    try:
-        return _discovery(issuer())
-    except (httpx.HTTPError, ValueError) as exc:
-        raise LoginError("hub_error") from exc
+def hub() -> HubClient:
+    """The Hub client for the current settings (one per configuration, so its caches are shared)."""
+    return _client(settings.bide_hub_issuer, settings.bide_hub_client_id, settings.bide_hub_client_secret)
 
 
-@cache
-def _jwks(uri: str) -> jwt.PyJWKClient:
-    return jwt.PyJWKClient(uri, cache_keys=True)
+def _login_error(exc: HubError) -> LoginError:
+    """The sign-in page's message for what went wrong (the codes it already knows)."""
+    if isinstance(exc, HubDenied):
+        return LoginError("hub_denied" if exc.no_access else "hub_error")
+    return LoginError({"invalid_token": "invalid_token", "invalid_state": "invalid_state"}.get(exc.code, "hub_error"))
 
 
-def verify(token: str) -> dict[str, Any]:
-    """A JWT signed by the Hub for this app: RS256 against the Hub's JWKS, issuer, audience and expiry."""
-    try:
-        key = _jwks(discovery()["jwks_uri"]).get_signing_key_from_jwt(token).key
-        return jwt.decode(
-            token,
-            key,
-            algorithms=["RS256"],
-            audience=settings.bide_hub_client_id,
-            issuer=issuer(),
-            leeway=LEEWAY,
-            options={"require": ["iss", "aud", "exp", "sub"]},
-        )
-    except jwt.PyJWTError as exc:
-        raise LoginError("invalid_token") from exc
-
-
-def same(a: str, b: str) -> bool:
-    """Constant-time equality that also copes with non-ASCII input (secrets.compare_digest raises on str that isn't)."""
-    return secrets.compare_digest(a.encode(), b.encode())
-
-
-def logout_time(claims: dict[str, Any]) -> datetime:
-    """When the sign-out really happened. The Hub retries a logout until it arrives, each try with a new token, and
-    says when it happened in `logout_at`; without it (or if it's in the future) this moment is used."""
-    now = clock.utcnow()
-    at = claims.get("logout_at")
-    if isinstance(at, int | float) and not isinstance(at, bool):
-        try:
-            return min(datetime.fromtimestamp(at, UTC), now)
-        except (OverflowError, OSError, ValueError):
-            pass
-    return now
-
-
-def code_challenge(verifier: str) -> str:
-    return base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip("=")
-
-
-def exchange_code(code: str, verifier: str) -> dict[str, Any]:
-    try:
-        resp = httpx.post(
-            discovery()["token_endpoint"],
-            auth=(settings.bide_hub_client_id, settings.bide_hub_client_secret),
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": redirect_uri(CALLBACK_PATH),
-                "code_verifier": verifier,
-            },
-            timeout=15,
-        )
-        body = resp.json() if resp.content else {}
-    except (httpx.HTTPError, ValueError) as exc:
-        raise LoginError("hub_error") from exc
-    if resp.is_error or "id_token" not in body:
-        raise LoginError("hub_error")
-    return body
-
-
-def _link(session: Session, sub: str, email: str | None, email_verified: bool) -> User | None:
-    """The invited person behind a Hub identity: by sub, or (first time) by email, only when the Hub says it has
-    verified that email."""
+def _link(session: Session, sub: str, email: str | None) -> User | None:
+    """The invited person behind a Hub identity: by sub, or (first time) by email. `email` is only set when the Hub
+    has verified it (bide-hub-client's Identity.email)."""
     user = session.scalar(select(User).where(User.bide_hub_sub == sub))
-    if user is None and email and email_verified:
-        user = session.scalar(select(User).where(func.lower(User.email) == email.lower()))
+    if user is None and email:
+        user = session.scalar(select(User).where(func.lower(User.email) == email))
         if user is not None and user.bide_hub_sub not in (None, sub):
             return None  # already linked to a different Hub identity
         if user is not None:
@@ -139,11 +77,8 @@ def _link(session: Session, sub: str, email: str | None, email_verified: bool) -
     return user
 
 
-def resolve_user(session: Session, claims: dict[str, Any], nonce: str) -> User:
-    if not same(str(claims.get("nonce", "")), nonce):
-        raise LoginError("invalid_token")
-    verified = claims.get("email_verified") is True
-    return _sign_in(session, _link(session, claims["sub"], claims.get("email"), verified))
+def resolve_user(session: Session, identity: Identity) -> User:
+    return _sign_in(session, _link(session, identity.sub, identity.email))
 
 
 def _require_hub() -> None:
@@ -154,23 +89,12 @@ def _require_hub() -> None:
 @router.get("/login", include_in_schema=False)
 def login(request: Request, next_path: Annotated[str, Query(alias="next")] = "/") -> RedirectResponse:
     _require_hub()
-    state, nonce, verifier = secrets.token_urlsafe(24), secrets.token_urlsafe(24), secrets.token_urlsafe(48)
-    request.session["bide_hub"] = {"state": state, "nonce": nonce, "verifier": verifier, "next": safe_next(next_path)}
     try:
-        endpoint = discovery()["authorization_endpoint"]
-    except LoginError as exc:
-        return RedirectResponse(f"/?login_error={exc.code}", status_code=303)
-    params = {
-        "response_type": "code",
-        "client_id": settings.bide_hub_client_id,
-        "redirect_uri": redirect_uri(CALLBACK_PATH),
-        "scope": "openid email profile",
-        "state": state,
-        "nonce": nonce,
-        "code_challenge": code_challenge(verifier),
-        "code_challenge_method": "S256",
-    }
-    return RedirectResponse(f"{endpoint}?{urlencode(params)}")
+        url, pending = hub().start_login(redirect_uri(CALLBACK_PATH), safe_next(next_path))
+    except HubError as exc:
+        return RedirectResponse(f"/?login_error={_login_error(exc).code}", status_code=303)
+    request.session[PENDING] = pending.to_dict()
+    return RedirectResponse(url)
 
 
 @router.get("/callback", include_in_schema=False)
@@ -182,48 +106,40 @@ def callback(
     error: str | None = None,
 ) -> RedirectResponse:
     _require_hub()
-    expected = request.session.pop("bide_hub", None)
+    pending = PendingLogin.from_dict(request.session.pop(PENDING, None))
     try:
-        if not expected or not same(state or "", expected["state"]):
-            raise LoginError("invalid_state")
-        if error:
-            raise LoginError("hub_denied" if error in DENIED_ERRORS else "hub_error")
-        if not code:
-            raise LoginError("invalid_state")
-        body = exchange_code(code, expected["verifier"])
-        claims = verify(body["id_token"])
-        if not claims.get("sid"):
-            raise LoginError("invalid_token")  # with the Hub on, a session without its sid isn't accepted
-        user = resolve_user(session, claims, expected["nonce"])
+        identity = hub().finish_login(pending, redirect_uri(CALLBACK_PATH), state, code, error)
+        user = resolve_user(session, identity)
+    except HubError as exc:
+        return RedirectResponse(f"/?login_error={_login_error(exc).code}", status_code=303)
     except LoginError as exc:
         return RedirectResponse(f"/?login_error={exc.code}", status_code=303)
 
-    start_session(request, user, hub_sid=claims.get("sid"))
-    return RedirectResponse(expected.get("next", "/"), status_code=303)
+    start_session(request, user, hub_sid=identity.sid)
+    return RedirectResponse(pending.next if pending else "/", status_code=303)
 
 
 @router.post("/backchannel-logout", include_in_schema=False)
 def backchannel_logout(session: SessionDep, logout_token: Annotated[str, Form()]) -> None:
     """The Hub, server to server, when someone signs out anywhere, signs out everywhere or is switched off. Switched
-    off, the token also carries ACCOUNT_DISABLED_EVENT: the person linked to that Hub identity (by sub only, never by
-    email) is switched off here too, with an audit entry. Switching them back on is an Admin's job in the app."""
+    off, the token also carries the account-disabled event: the person linked to that Hub identity (by sub only, never
+    by email) is switched off here too, with an audit entry. Switching them back on is an Admin's job in the app."""
     _require_hub()
     try:
-        claims = verify(logout_token)
-    except LoginError as exc:
+        logout = hub().verify_logout_token(logout_token)
+    except InvalidToken as exc:
         raise HTTPException(status_code=400, detail="invalid logout token") from exc
-    events = claims.get("events")
-    if "nonce" in claims or not isinstance(events, dict) or BACKCHANNEL_EVENT not in events:
-        raise HTTPException(status_code=400, detail="invalid logout token")
+    except HubError as exc:  # the Hub's keys couldn't be fetched: not a 2xx, so the Hub tries again later
+        raise HTTPException(status_code=503, detail="couldn't check the logout token") from exc
     # Sessions last SESSION_DAYS at most, so older records can't match anything any more.
     session.execute(
         delete(HubLogout).where(HubLogout.created_at < clock.utcnow() - timedelta(days=settings.session_days))
     )
     # Dated when the sign-out happened, not when this (possibly retried) delivery arrived, so a late delivery doesn't
     # end sessions the person started after signing out.
-    session.add(HubLogout(sid=claims.get("sid"), sub=claims["sub"], created_at=logout_time(claims)))
-    if ACCOUNT_DISABLED_EVENT in events:
-        user = session.scalar(select(User).where(User.bide_hub_sub == claims["sub"]))
+    session.add(HubLogout(sid=logout.sid, sub=logout.sub, created_at=logout.logout_at))
+    if logout.disabled:
+        user = session.scalar(select(User).where(User.bide_hub_sub == logout.sub))
         if user is not None and user.is_active:
             user.is_active = False
             session.add(
