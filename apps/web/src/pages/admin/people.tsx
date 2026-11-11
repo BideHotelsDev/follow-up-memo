@@ -17,7 +17,8 @@ const ROLE_LABELS: Record<User["role"], string> = { owner: "Owner", admin: "Admi
 
 const EMPTY: UserIn = { email: "", name: "", role: "member", slack_user_id: null, ownership_areas: [], is_active: true }
 
-function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () => void }) {
+/** While Bide Hub manages accounts, email, name, role and on/off come from the Hub; Slack ID and areas stay here. */
+function PersonDialog({ person, managed, onClose }: { person: User | "new"; managed: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<UserIn>(person === "new" ? EMPTY : person)
   const [areas, setAreas] = useState((form.ownership_areas ?? []).join(", "))
@@ -50,17 +51,35 @@ function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () =
             save.mutate({ ...form, slack_user_id: form.slack_user_id || null, ownership_areas })
           }}
         >
+          {managed ? (
+            <p className="rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">
+              Name, email, role and sign-in are set in Bide Hub. You can change the Slack ID and areas here.
+            </p>
+          ) : null}
           <div className="space-y-1.5">
             <Label htmlFor="name">Name</Label>
-            <Input id="name" value={form.name} onChange={(e) => set("name", e.target.value)} required />
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              required
+              disabled={managed}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} required />
+            <Input
+              id="email"
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              required
+              disabled={managed}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="role">Role</Label>
-            <Select value={form.role} onValueChange={(v) => set("role", v as User["role"])}>
+            <Select value={form.role} onValueChange={(v) => set("role", v as User["role"])} disabled={managed}>
               <SelectTrigger id="role">
                 <SelectValue />
               </SelectTrigger>
@@ -96,7 +115,12 @@ function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () =
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Switch id="active" checked={form.is_active} onCheckedChange={(v) => set("is_active", v)} />
+            <Switch
+              id="active"
+              checked={form.is_active}
+              onCheckedChange={(v) => set("is_active", v)}
+              disabled={managed}
+            />
             <Label htmlFor="active">Can sign in</Label>
           </div>
         </form>
@@ -115,6 +139,9 @@ function PersonDialog({ person, onClose }: { person: User | "new"; onClose: () =
 
 export default function PeoplePage() {
   const { data = [] } = useQuery({ queryKey: ["admin-people"], queryFn: api.adminPeople })
+  const providers = useQuery({ queryKey: ["providers"], queryFn: api.providers, staleTime: Infinity })
+  const managed = providers.data?.accounts_managed_by_hub ?? false
+  const hub = providers.data?.bide_hub_issuer
   const [editing, setEditing] = useState<User | "new" | null>(null)
 
   return (
@@ -122,12 +149,30 @@ export default function PeoplePage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl">People</h2>
-          <p className="text-muted-foreground">Who can sign in, and who owns which kind of action.</p>
+          <p className="text-muted-foreground">
+            {managed ? (
+              <>
+                Who can sign in, and with which role, is managed in{" "}
+                {hub ? (
+                  <a className="underline underline-offset-4" href={`${hub}/admin/people`}>
+                    Bide Hub
+                  </a>
+                ) : (
+                  "Bide Hub"
+                )}
+                . Here you set who owns which kind of action.
+              </>
+            ) : (
+              "Who can sign in, and who owns which kind of action."
+            )}
+          </p>
         </div>
-        <Button onClick={() => setEditing("new")}>
-          <Plus className="size-4" aria-hidden />
-          Add person
-        </Button>
+        {managed ? null : (
+          <Button onClick={() => setEditing("new")}>
+            <Plus className="size-4" aria-hidden />
+            Add person
+          </Button>
+        )}
       </div>
       <div className="overflow-x-auto rounded-lg border bg-card">
         <Table>
@@ -161,7 +206,7 @@ export default function PeoplePage() {
           </TableBody>
         </Table>
       </div>
-      {editing ? <PersonDialog person={editing} onClose={() => setEditing(null)} /> : null}
+      {editing ? <PersonDialog person={editing} managed={managed} onClose={() => setEditing(null)} /> : null}
     </div>
   )
 }

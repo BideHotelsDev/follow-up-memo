@@ -1638,6 +1638,11 @@ export interface components {
             bide: boolean;
             /** Bide Hub Issuer */
             bide_hub_issuer: string | null;
+            /**
+             * Accounts Managed By Hub
+             * @default false
+             */
+            accounts_managed_by_hub?: boolean;
         };
         /** QuestionOut */
         QuestionOut: {

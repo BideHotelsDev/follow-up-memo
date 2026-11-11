@@ -34,6 +34,8 @@ class ProvidersOut(BaseModel):
     # Sign in with Bide (Bide Hub); bide_hub_issuer is set only then, and serves the app switcher.
     bide: bool
     bide_hub_issuer: str | None
+    # Bide Hub manages who has an account and with which role: Admin → People is read-only for those (hub_accounts.py).
+    accounts_managed_by_hub: bool = False
 
 
 class LogoutOut(BaseModel):

@@ -31,6 +31,12 @@ shows **Sign in with Bide** in place of Google, the header gets the Hub's app sw
 session too. The app's own rules still apply after the Hub: only people in **People**, on a Bide domain. The Google
 connection for Gmail and Drive (Admin → Connections) is separate and works the same either way.
 
+With `BIDE_HUB_MANAGES_ACCOUNTS=true` as well, the Hub also decides who has an account here and with which role
+(`apps/api/bide_followup/hub_accounts.py`, the Hub's "Accounts managed by the Hub"). To switch it on: deploy with it set,
+then in the Hub open Admin → Apps → Meeting Follow-up and fill in "Accounts managed by the Hub" with
+`{APP_BASE_URL}/api/auth/bide/provisioning`. The Hub imports today's accounts first, so nobody loses access. From then on
+**People** here is read-only for name, email, role and sign-in; Slack IDs and areas are still set here.
+
 Checks: `pnpm check` (lint, format, types), `pnpm test:api`, `pnpm build:web`, and the browser tests
 (`pnpm --filter @bide-followup/web e2e`, with the mock services and `E2E_BASE_URL` pointing at the app; desktop and
 390 px phone widths, with an axe accessibility check). After changing an API model, run
