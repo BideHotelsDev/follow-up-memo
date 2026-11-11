@@ -8,7 +8,7 @@ from slack_sdk.errors import SlackApiError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from bide_followup import runtime_settings
+from bide_followup import catalog, runtime_settings
 from bide_followup.config import settings
 from bide_followup.integrations import slack
 from bide_followup.models import Meeting, Output, Run, User
@@ -50,7 +50,7 @@ def text(meetings: list[Meeting]) -> str:
 
 
 def _david(session: Session) -> User | None:
-    david = session.scalar(select(User).where(User.role == "owner", User.is_active).order_by(User.created_at))
+    david = catalog.owner(session)
     if david is not None and not david.slack_user_id:
         try:
             david.slack_user_id = slack.user_id_for(session, david.email)

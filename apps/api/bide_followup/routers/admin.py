@@ -6,6 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy import delete, func, select
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from bide_followup import auth, clock, runtime_settings
 from bide_followup.db import SessionDep
@@ -65,6 +66,20 @@ def add_person(body: UserIn, session: SessionDep, _: Admin) -> UserOut:
     return UserOut.model_validate(user)
 
 
+IN_CHARGE = ("owner", "admin")
+
+
+def _keep_someone_in_charge(session: Session, leaving: User) -> None:
+    """Refuse if `leaving` is the last active owner or admin. Every owner and admin row is locked first, in id order
+    (Postgres; SQLite has no row locks), so two admins switching each other off at once can't both pass: the second
+    waits for the first and then sees its change."""
+    rows = session.execute(
+        select(User.id, User.is_active, User.role).where(User.role.in_(IN_CHARGE)).order_by(User.id).with_for_update()
+    ).all()
+    if not any(r.is_active and r.id != leaving.id for r in rows):
+        raise DomainError("last_admin", "Follow-up needs at least one active owner or admin")
+
+
 @router.put("/people/{user_id}")
 def update_person(user_id: uuid.UUID, body: UserIn, session: SessionDep, admin: Admin) -> UserOut:
     user = session.get(User, user_id)
@@ -72,10 +87,16 @@ def update_person(user_id: uuid.UUID, body: UserIn, session: SessionDep, admin: 
         raise not_found("Person")
     if user.id == admin.id and (body.role != admin.role or not body.is_active):
         raise DomainError("own_access", "You can't change your own role or switch yourself off")
+    if user.is_active and user.role in IN_CHARGE and not (body.is_active and body.role in IN_CHARGE):
+        _keep_someone_in_charge(session, user)
     if body.email.lower() != user.email.lower():
-        # The sign-in identities were linked through the old address: the new one links afresh on its next sign-in.
+        # The sign-in identities were linked through the old address: the new one links afresh on its next sign-in,
+        # and whoever is signed in under the old one is signed out.
         user.bide_hub_sub = None
         user.google_sub = None
+        user.sessions_valid_after = clock.utcnow()
+    if user.is_active and not body.is_active:
+        user.sessions_valid_after = clock.utcnow()  # switching them back on later doesn't revive old sessions
     for key, value in body.model_dump().items():
         setattr(user, key, value)
     try:

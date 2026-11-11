@@ -10,7 +10,7 @@ import json
 import secrets
 import uuid
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
@@ -41,11 +41,29 @@ class LoginError(Exception):
 def start_session(request: Request, user: User, hub_sid: str | None = None, dev: bool = False) -> None:
     request.session.clear()
     request.session["user_id"] = str(user.id)
+    request.session["signed_in_at"] = clock.utcnow().isoformat()
     if dev:
         request.session["dev"] = True
     if hub_sid:
         request.session["hub_sid"] = hub_sid
-        request.session["signed_in_at"] = clock.utcnow().isoformat()
+
+
+def _started(request: Request) -> datetime | None:
+    try:
+        return datetime.fromisoformat(request.session["signed_in_at"])
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def _expired(request: Request, user: User) -> bool:
+    """Sessions last SESSION_DAYS from sign-in, however often they're used: Starlette renews the cookie's own max_age
+    on every response, so it can't be the limit. That also keeps hub_logouts rows (pruned after SESSION_DAYS) for as
+    long as any session they end could still be presented. Sessions from before this recorded their start sign in
+    again."""
+    started = _started(request)
+    if started is None or clock.utcnow() - started > timedelta(days=settings.session_days):
+        return True
+    return user.sessions_valid_after is not None and started < user.sessions_valid_after
 
 
 def _hub_signed_out(session: Session, request: Request, user: User) -> bool:
@@ -54,9 +72,8 @@ def _hub_signed_out(session: Session, request: Request, user: User) -> bool:
     sid = request.session.get("hub_sid")
     if not sid:
         return False
-    try:
-        started = datetime.fromisoformat(request.session["signed_in_at"])
-    except (KeyError, TypeError, ValueError):
+    started = _started(request)
+    if started is None:
         return True
     ended = HubLogout.sid == sid
     if user.bide_hub_sub:
@@ -77,7 +94,15 @@ def _not_from_hub(request: Request) -> bool:
 def current_user(request: Request, session: SessionDep) -> User:
     user_id = request.session.get("user_id")
     user = session.get(User, _uuid(user_id)) if user_id else None
-    if user is None or not user.is_active or _not_from_hub(request) or _hub_signed_out(session, request, user):
+    if (
+        user is None
+        or not user.is_active
+        or _expired(request, user)
+        or _not_from_hub(request)
+        or _hub_signed_out(session, request, user)
+    ):
+        # Cleared, not just refused: otherwise the cookie keeps being re-issued with every response.
+        request.session.clear()
         raise HTTPException(status_code=401, detail="not signed in")
     return user
 

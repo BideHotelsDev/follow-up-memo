@@ -105,11 +105,11 @@ def exchange_code(code: str, verifier: str) -> dict[str, Any]:
     return body
 
 
-def _link(session: Session, sub: str, email: str | None) -> User | None:
-    """The invited person behind a Hub identity: by sub, or (first time) by email. The Hub only sends verified
-    emails."""
+def _link(session: Session, sub: str, email: str | None, email_verified: bool) -> User | None:
+    """The invited person behind a Hub identity: by sub, or (first time) by email, only when the Hub says it has
+    verified that email."""
     user = session.scalar(select(User).where(User.bide_hub_sub == sub))
-    if user is None and email:
+    if user is None and email and email_verified:
         user = session.scalar(select(User).where(func.lower(User.email) == email.lower()))
         if user is not None and user.bide_hub_sub not in (None, sub):
             return None  # already linked to a different Hub identity
@@ -121,7 +121,8 @@ def _link(session: Session, sub: str, email: str | None) -> User | None:
 def resolve_user(session: Session, claims: dict[str, Any], nonce: str) -> User:
     if not secrets.compare_digest(str(claims.get("nonce", "")), nonce):
         raise LoginError("invalid_token")
-    return _sign_in(session, _link(session, claims["sub"], claims.get("email")))
+    verified = claims.get("email_verified") is True
+    return _sign_in(session, _link(session, claims["sub"], claims.get("email"), verified))
 
 
 def _require_hub() -> None:
