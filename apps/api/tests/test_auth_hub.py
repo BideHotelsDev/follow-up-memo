@@ -5,6 +5,7 @@ import base64
 import hashlib
 import json
 import time
+from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
 
 import jwt
@@ -14,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from bide_followup import auth_hub
 from bide_followup.config import settings
 from bide_followup.models import User
-from tests.conftest import FakeResponse
+from tests.conftest import NOW, FakeResponse
 
 ISSUER = "http://hub.test"
 CLIENT = "meeting-followup"
@@ -232,6 +233,34 @@ def test_backchannel_logout_without_sid_ends_every_session_of_the_person(client,
     token = logout_token(sub="hub-kyle")
     assert client.post("/api/auth/bide/backchannel-logout", data={"logout_token": token}).status_code == 200
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_late_logout_leaves_sessions_started_after_it(client, hub):
+    """The Hub retries a logout until it arrives; `logout_at` says when the sign-out really happened. A session started
+    after that, on any device, carries on."""
+    round_trip(client, hub, sub="hub-kyle", email="kyle@bidehotels.com", sid="sid-new")
+    signed_out_earlier = (NOW - timedelta(hours=3)).timestamp()
+    token = logout_token(sub="hub-kyle", logout_at=signed_out_earlier)
+    assert client.post("/api/auth/bide/backchannel-logout", data={"logout_token": token}).status_code == 200
+    assert client.get("/api/auth/me").status_code == 200
+
+
+def test_logout_at_in_the_future_counts_as_now(client, hub):
+    round_trip(client, hub, sub="hub-kyle", email="kyle@bidehotels.com", sid="sid-a")
+    token = logout_token(sub="hub-kyle", logout_at=(NOW + timedelta(days=30)).timestamp())
+    assert client.post("/api/auth/bide/backchannel-logout", data={"logout_token": token}).status_code == 200
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_tokens_from_a_hub_clock_slightly_ahead_are_accepted(client, hub):
+    ahead = int(time.time()) + 20
+    resp = round_trip(client, hub, sub="hub-kyle", email="kyle@bidehotels.com", iat=ahead, nbf=ahead)
+    assert resp.status_code == 303 and "login_error" not in resp.headers["location"]
+
+
+def test_non_ascii_state_is_refused_not_a_crash(client, hub):
+    resp = round_trip(client, hub, state="é", sub="hub-kyle", email="kyle@bidehotels.com")
+    assert resp.status_code == 303 and "login_error=invalid_state" in resp.headers["location"]
 
 
 def test_backchannel_logout_leaves_dev_sessions_alone(sign_in, hub):
