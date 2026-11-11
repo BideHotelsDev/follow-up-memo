@@ -12,7 +12,7 @@ then refuses the matching sessions.
 import base64
 import hashlib
 import secrets
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from functools import cache
 from typing import Annotated, Any
 from urllib.parse import urlencode
@@ -36,6 +36,8 @@ BACKCHANNEL_EVENT = "http://schemas.openid.net/event/backchannel-logout"
 ACCOUNT_DISABLED_EVENT = "urn:bide:hub:account-disabled"
 # The Hub's answers on the callback that mean "you can't open this app" rather than "something broke".
 DENIED_ERRORS = ("access_denied", "login_required")
+# Seconds of clock difference with the Hub tolerated on exp / iat, so a Hub clock a little ahead doesn't refuse tokens.
+LEEWAY = 30
 
 router = APIRouter(prefix="/api/auth/bide", tags=["auth"])
 
@@ -74,10 +76,29 @@ def verify(token: str) -> dict[str, Any]:
             algorithms=["RS256"],
             audience=settings.bide_hub_client_id,
             issuer=issuer(),
+            leeway=LEEWAY,
             options={"require": ["iss", "aud", "exp", "sub"]},
         )
     except jwt.PyJWTError as exc:
         raise LoginError("invalid_token") from exc
+
+
+def same(a: str, b: str) -> bool:
+    """Constant-time equality that also copes with non-ASCII input (secrets.compare_digest raises on str that isn't)."""
+    return secrets.compare_digest(a.encode(), b.encode())
+
+
+def logout_time(claims: dict[str, Any]) -> datetime:
+    """When the sign-out really happened. The Hub retries a logout until it arrives, each try with a new token, and
+    says when it happened in `logout_at`; without it (or if it's in the future) this moment is used."""
+    now = clock.utcnow()
+    at = claims.get("logout_at")
+    if isinstance(at, int | float) and not isinstance(at, bool):
+        try:
+            return min(datetime.fromtimestamp(at, UTC), now)
+        except (OverflowError, OSError, ValueError):
+            pass
+    return now
 
 
 def code_challenge(verifier: str) -> str:
@@ -119,7 +140,7 @@ def _link(session: Session, sub: str, email: str | None, email_verified: bool) -
 
 
 def resolve_user(session: Session, claims: dict[str, Any], nonce: str) -> User:
-    if not secrets.compare_digest(str(claims.get("nonce", "")), nonce):
+    if not same(str(claims.get("nonce", "")), nonce):
         raise LoginError("invalid_token")
     verified = claims.get("email_verified") is True
     return _sign_in(session, _link(session, claims["sub"], claims.get("email"), verified))
@@ -163,7 +184,7 @@ def callback(
     _require_hub()
     expected = request.session.pop("bide_hub", None)
     try:
-        if not expected or not secrets.compare_digest(state or "", expected["state"]):
+        if not expected or not same(state or "", expected["state"]):
             raise LoginError("invalid_state")
         if error:
             raise LoginError("hub_denied" if error in DENIED_ERRORS else "hub_error")
@@ -198,7 +219,9 @@ def backchannel_logout(session: SessionDep, logout_token: Annotated[str, Form()]
     session.execute(
         delete(HubLogout).where(HubLogout.created_at < clock.utcnow() - timedelta(days=settings.session_days))
     )
-    session.add(HubLogout(sid=claims.get("sid"), sub=claims["sub"]))
+    # Dated when the sign-out happened, not when this (possibly retried) delivery arrived, so a late delivery doesn't
+    # end sessions the person started after signing out.
+    session.add(HubLogout(sid=claims.get("sid"), sub=claims["sub"], created_at=logout_time(claims)))
     if ACCOUNT_DISABLED_EVENT in events:
         user = session.scalar(select(User).where(User.bide_hub_sub == claims["sub"]))
         if user is not None and user.is_active:
