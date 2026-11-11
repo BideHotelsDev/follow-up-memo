@@ -256,8 +256,10 @@ class HubClient:
         )
 
     def _logout_time(self, claims: dict[str, Any]) -> datetime:
+        """`logout_at`, never later than now. Without it (a Hub from before it was added), the arrival time: not `iat`,
+        which is whole seconds and would put a logout before a session started earlier in that same second."""
         now = self._now()
-        raw = claims.get("logout_at", claims.get("iat"))
+        raw = claims.get("logout_at")
         at = raw if isinstance(raw, int | float) and not isinstance(raw, bool) else now
         return datetime.fromtimestamp(min(float(at), now), UTC)
 

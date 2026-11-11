@@ -16,7 +16,7 @@ from .client import (
 from .errors import HubDenied, HubError, HubUnavailable, InvalidToken, StateMismatch
 from .models import Identity, Logout, PendingLogin, ProvisioningRequest
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "ACCOUNT_DISABLED_EVENT",
