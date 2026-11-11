@@ -19,9 +19,13 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    clashes = op.get_bind().execute(
-        sa.text("SELECT lower(email) AS email, count(*) AS n FROM users GROUP BY lower(email) HAVING count(*) > 1")
-    ).all()
+    clashes = (
+        op.get_bind()
+        .execute(
+            sa.text("SELECT lower(email) AS email, count(*) AS n FROM users GROUP BY lower(email) HAVING count(*) > 1")
+        )
+        .all()
+    )
     if clashes:
         listed = ", ".join(f"{row.email} ({row.n} people)" for row in clashes)
         raise RuntimeError(f"Emails that differ only by case must be fixed in Admin > People first: {listed}")
