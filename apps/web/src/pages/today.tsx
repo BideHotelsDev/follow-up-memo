@@ -86,6 +86,7 @@ export default function TodayPage() {
       <PageHead
         eyebrow={longDay(data.date)}
         title={`${greeting()}, ${data.viewer.name}.`}
+        documentTitle="Today"
         lede={
           isReviewer
             ? `${plural(data.meetings.length, "call")} today${where}. ${followed} followed up, and nothing has gone out without your approval.`

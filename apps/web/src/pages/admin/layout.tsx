@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom"
+import { NavLink, Outlet, useLocation } from "react-router-dom"
 
 import { PageHead } from "@/components/page"
 import { cn } from "@/lib/utils"
@@ -15,9 +15,16 @@ const TABS: [string, string][] = [
 ]
 
 export default function AdminLayout() {
+  // Name the admin page in the tab too ("People · Admin"), not just "Admin" for all eight.
+  const { pathname } = useLocation()
+  const section = TABS.find(([to]) => pathname.startsWith(`/admin/${to}`))?.[1]
   return (
     <>
-      <PageHead title="Admin" lede="Who the app knows, where messages go, and how runs are going." />
+      <PageHead
+        title="Admin"
+        documentTitle={section ? `${section} · Admin` : "Admin"}
+        lede="Who the app knows, where messages go, and how runs are going."
+      />
       <nav
         aria-label="Admin"
         className="-mx-1 mb-8 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-1 md:flex-wrap md:overflow-visible"
