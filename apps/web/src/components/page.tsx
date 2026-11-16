@@ -2,19 +2,27 @@ import { Loader2 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+/** The app's name as it appears in index.html, after the page in every tab title. */
+export const APP_NAME = "bide Follow-up"
+
 export function PageHead({
   eyebrow,
   title,
+  documentTitle,
   lede,
   children,
 }: {
   eyebrow?: string
   title: string
+  /** The tab title, when the H1 is not a good one (the greeting on Today, say). Defaults to `title`. */
+  documentTitle?: string
   lede?: React.ReactNode
   children?: React.ReactNode
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      {/* React 19 hoists this into <head>, so each page names its own tab and history entry. */}
+      <title>{`${documentTitle ?? title} · ${APP_NAME}`}</title>
       <div className="space-y-2">
         {eyebrow ? <p className="eyebrow text-muted-foreground">{eyebrow}</p> : null}
         <h1 className="text-3xl md:text-4xl">{title}</h1>

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useSearchParams } from "react-router-dom"
 
 import { SpiralPin, Wordmark } from "@/components/brand"
+import { APP_NAME } from "@/components/page"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,6 +37,7 @@ export default function SignInPage() {
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
+      <title>{`Sign in · ${APP_NAME}`}</title>
       <div className="w-full max-w-sm space-y-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <SpiralPin className="size-10 text-primary" />
@@ -50,9 +52,13 @@ export default function SignInPage() {
           </Alert>
         ) : null}
         {providers.data?.bide ? (
-          <Button asChild size="lg" className="w-full">
-            <a href={links.bideSignIn(params.get("next") ?? "/")}>Sign in with Bide</a>
-          </Button>
+          // One sentence, not a list of methods: the Hub decides how someone signs in.
+          <div className="space-y-3">
+            <p className="text-center text-sm text-muted-foreground">Sign in with your Bide account.</p>
+            <Button asChild size="lg" className="w-full">
+              <a href={links.bideSignIn(params.get("next") ?? "/")}>Sign in with Bide</a>
+            </Button>
+          </div>
         ) : providers.data?.google ? (
           <Button asChild size="lg" className="w-full">
             <a href={links.googleSignIn(params.get("next") ?? "/")}>Sign in with Google</a>
